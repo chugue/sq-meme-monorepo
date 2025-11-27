@@ -47,6 +47,13 @@ contract CommentGame is ReentrancyGuard {
         uint256 timer;
     }
 
+    event CommentAdded(
+        address indexed commentor,
+        string message,
+        uint256 newEndTime,
+        uint256 timestamp
+    );
+
     constructor(Params memory _params, address _feeCollector) {
         id = _params.id;
         initiator = _params.initiator;
@@ -56,5 +63,35 @@ contract CommentGame is ReentrancyGuard {
         endTime = block.timestamp + _params.timer;
         lastCommentor = _params.initiator;
         feeCollector = _feeCollector;
+    }
+
+    /**
+     * @notice 게임에 댓글을 등록하고 참가비를 지불합니다.
+     * @dev 호출 전에 반드시 ERC20 approv가 선행되어야 합니다.
+     * @param _message 등록할 댓글 내용
+     */
+    function addComment(string memory _message) external nonReentrant {
+        // 1. 게임 종료 여부 확인 (시간 체크)
+        require(block.timestamp < endTime, "Game already ended");
+
+        // 2. 게임 종료 여부 확인 (변수 체크)
+        require(!isEnded, "Game already ended");
+
+        // 3. 토큰 승인 여부 확인
+        uint256 allowance = IERC20(gameToken).allowance(
+            msg.sender,
+            address(this)
+        );
+        require(allowance >= cost, "ERC20: Must approve token first");
+
+        // 4. 참가비 결제 (User -> Game Contract)
+        IERC20(gameToken).transferFrom(msg.sender, address(this), cost);
+
+        // 5. 상태 업데이트
+        lastCommentor = msg.sender;
+        endTime = block.timestamp + timer;
+        accumulatedFees += cost;
+
+        emit CommentAdded(msg.sender, _message, endTime, block.timestamp);
     }
 }
