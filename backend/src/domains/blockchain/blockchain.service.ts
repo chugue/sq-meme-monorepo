@@ -49,7 +49,11 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
 
     private startListening() {
         this.logger.log('🎧 Starting Contract Event Listener...');
+        this.watchGameCreated();
+        // TODO: this.watchCommentAdded();
+    }
 
+    private watchGameCreated() {
         const factoryAddress = this.configService.get<string>(
             'GAME_FACTORY_ADDRESS',
         );
@@ -60,7 +64,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
         }
 
         const gameCreatedEvent = parseAbiItem(
-            'event GameCreated(address indexed gameAddr, address indexed gameTokenAddr, address initiator, uint256 timer, uint256 cost)',
+            'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, address initiator, uint256 remainTime, uint256 endTime, uint256 cost, uint256 prizePool, bool isEnded, address lastCommentor)',
         );
 
         this.unwatch = this.client.watchContractEvent({
@@ -69,12 +73,20 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
             eventName: 'GameCreated',
             onLogs: (logs) => {
                 logs.forEach((log) => {
-                    const { gameAddr, initiator, cost } = log.args;
+                    const {
+                        gameAddr,
+                        gameTokenAddr,
+                        endTime,
+                        cost,
+                        prizePool,
+                    } = log.args;
 
                     this.logger.log(`🏭 New Game Created!`);
                     this.logger.log(` - Address: ${gameAddr}`);
-                    this.logger.log(` - Initiator: ${initiator}`);
+                    this.logger.log(` - Token: ${gameTokenAddr}`);
                     this.logger.log(` - Cost: ${cost?.toString()}`);
+                    this.logger.log(` - Prize Pool: ${prizePool?.toString()}`);
+                    this.logger.log(` - End Time: ${endTime?.toString()}`);
                 });
             },
         });

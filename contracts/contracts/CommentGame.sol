@@ -30,10 +30,10 @@ contract CommentGame is ReentrancyGuard {
     address public immutable initiator;
     address public immutable gameToken;
     uint256 public immutable cost;
-    uint256 public timer;
+    uint256 public remainTime;
     uint256 public endTime;
     address public lastCommentor;
-    uint256 public accumulatedFees;
+    uint256 public prizePool;
     bool public isEnded;
     // 플랫폼 수수료
     uint256 public constant PLATFORM_FEE = 2;
@@ -44,7 +44,7 @@ contract CommentGame is ReentrancyGuard {
         address initiator;
         address gameToken;
         uint256 cost;
-        uint256 timer;
+        uint256 time;
     }
 
     event CommentAdded(
@@ -59,8 +59,8 @@ contract CommentGame is ReentrancyGuard {
         initiator = _params.initiator;
         gameToken = _params.gameToken;
         cost = _params.cost;
-        timer = _params.timer;
-        endTime = block.timestamp + _params.timer;
+        remainTime = _params.time;
+        endTime = block.timestamp + _params.time;
         lastCommentor = _params.initiator;
         feeCollector = _feeCollector;
     }
@@ -89,8 +89,8 @@ contract CommentGame is ReentrancyGuard {
 
         // 5. 상태 업데이트
         lastCommentor = msg.sender;
-        endTime = block.timestamp + timer;
-        accumulatedFees += cost;
+        endTime = block.timestamp + remainTime;
+        prizePool += cost;
 
         emit CommentAdded(msg.sender, _message, endTime, block.timestamp);
     }
@@ -109,7 +109,7 @@ contract CommentGame is ReentrancyGuard {
         isEnded = true;
 
         // 3. Interactions (상호작용 - 송금)
-        uint256 totalPrize = accumulatedFees;
+        uint256 totalPrize = prizePool;
 
         // 4. 수수료 계산 (2%)
         uint256 platformShare = (totalPrize * PLATFORM_FEE) / 100;
