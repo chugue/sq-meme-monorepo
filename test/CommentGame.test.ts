@@ -1,7 +1,7 @@
+import "@nomicfoundation/hardhat-viem/types";
 import { expect } from "chai";
 import hre from "hardhat";
 import { describe, it } from "node:test";
-// Use hre.network.connect() to get loadFixture inside the test
 
 describe("CommentGame", function () {
   // 1. Fixture: 테스트 초기 상태 설정
