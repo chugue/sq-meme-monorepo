@@ -17,7 +17,7 @@ contract GameFactory is Ownable {
         uint256 cost
     );
 
-    constructor(address _feeCollector) {
+    constructor(address _feeCollector) Ownable(msg.sender) {
         feeCollector = _feeCollector;
     }
 

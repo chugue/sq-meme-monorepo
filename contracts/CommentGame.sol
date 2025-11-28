@@ -94,4 +94,35 @@ contract CommentGame is ReentrancyGuard {
 
         emit CommentAdded(msg.sender, _message, endTime, block.timestamp);
     }
+
+    /**
+     * @notice 게임 종료 후 우승자가 상금을 수령합니다.
+     * @dev Checks-Effects-Interactions 패턴을 준수하여 재진입 공격을 방지합니다.
+     */
+    function claimPrize() external nonReentrant {
+        // 1. Checks (검증)
+        require(block.timestamp >= endTime, "Game not ended yet");
+        require(msg.sender == lastCommentor, "Only winner can withdraw");
+        require(!isEnded, "Already withdrawn");
+
+        // 2. Effects (상태 변경)
+        isEnded = true;
+
+        // 3. Interactions (상호작용 - 송금)
+        uint256 totalPrize = accumulatedFees;
+
+        // 4. 수수료 계산 (2%)
+        uint256 platformShare = (totalPrize * PLATFORM_FEE) / 100;
+        uint256 winnerShare = totalPrize - platformShare;
+
+        // 5. 플랫폼 수수료 송금
+        if (platformShare > 0) {
+            IERC20(gameToken).transfer(feeCollector, platformShare);
+        }
+
+        // 6. 우승 상금 송금
+        if (winnerShare > 0) {
+            IERC20(gameToken).transfer(msg.sender, winnerShare);
+        }
+    }
 }
