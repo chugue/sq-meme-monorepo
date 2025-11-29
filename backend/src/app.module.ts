@@ -5,6 +5,7 @@ import { CommonModule } from './common/common.module';
 import { DbModule } from './common/db/db.module';
 import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
+import { AppController } from './app.controller';
 
 @Module({
     imports: [
@@ -17,7 +18,7 @@ import { CommentModule } from './domains/comment/comment.module';
         GameModule,
         CommentModule,
     ],
-    controllers: [],
+    controllers: [AppController],
     providers: [],
 })
 export class AppModule {}
