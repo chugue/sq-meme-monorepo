@@ -55,7 +55,7 @@ contract CommentGame is ReentrancyGuard {
         uint256 timestamp
     );
 
-    constructor(Params memory _params, address _feeCollector) {
+    constructor(Params memory _params, address _feeCollector, uint256 _initialPrize) {
         id = _params.id;
         initiator = _params.initiator;
         gameToken = _params.gameToken;
@@ -64,7 +64,7 @@ contract CommentGame is ReentrancyGuard {
         endTime = block.timestamp + _params.gameTime;
         lastCommentor = _params.initiator;
         feeCollector = _feeCollector;
-        prizePool = 0;
+        prizePool = _initialPrize;
     }
 
     /**

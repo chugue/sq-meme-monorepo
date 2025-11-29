@@ -43,7 +43,7 @@ async function main() {
     abi: artifact.abi,
     bytecode: artifact.bytecode as `0x${string}`,
     args: ["Squid Token", "SQUID"],
-    gas: 2000000n,
+    gas: 5000000n,
   });
 
   console.log("Transaction hash:", hash);

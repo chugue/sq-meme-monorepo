@@ -1,4 +1,3 @@
-import hre from "hardhat";
 import { defineChain, createWalletClient, createPublicClient, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -11,8 +10,8 @@ const insectarium = defineChain({
   },
 });
 
-const GAME_FACTORY_ADDRESS = "0xa1bd295d464e606754e896b9e81429660286f70e";
-const MOCK_ERC20_ADDRESS = "0x358db1f21730aa41b46b568cf27fefc47ee19ee4";
+const GAME_FACTORY_ADDRESS = "0x4036760d4a9cbef9b5051e06088fb76778986e37";
+const MOCK_ERC20_ADDRESS = "0xfda7278df9b004e05dbaa367fc2246a4a46271c9";
 
 async function main() {
   let privateKey = process.env.DEPLOYER_PRIVATE_KEY;
@@ -36,7 +35,18 @@ async function main() {
     transport: http(),
   });
 
-  // GameFactory ABI (createGame 함수만)
+  const erc20Abi = [
+    {
+      name: "approve",
+      type: "function",
+      inputs: [
+        { name: "spender", type: "address" },
+        { name: "amount", type: "uint256" },
+      ],
+      outputs: [{ type: "bool" }],
+    },
+  ] as const;
+
   const gameFactoryAbi = [
     {
       name: "createGame",
@@ -50,16 +60,30 @@ async function main() {
     },
   ] as const;
 
-  console.log("Creating game...");
+  const cost = parseEther("1");
 
+  // 1. 토큰 승인 (GameFactory가 토큰을 가져갈 수 있도록)
+  console.log("Approving tokens...");
+  const approveHash = await walletClient.writeContract({
+    address: MOCK_ERC20_ADDRESS,
+    abi: erc20Abi,
+    functionName: "approve",
+    args: [GAME_FACTORY_ADDRESS, cost],
+    gas: 100000n,
+  });
+  await publicClient.waitForTransactionReceipt({ hash: approveHash });
+  console.log("Tokens approved!");
+
+  // 2. 게임 생성
+  console.log("Creating game...");
   const hash = await walletClient.writeContract({
     address: GAME_FACTORY_ADDRESS,
     abi: gameFactoryAbi,
     functionName: "createGame",
     args: [
-      MOCK_ERC20_ADDRESS,  // 실제 ERC20 토큰 주소
-      BigInt(300),         // 5분 게임
-      parseEther("1"),     // 1 토큰 비용
+      MOCK_ERC20_ADDRESS,
+      BigInt(300),  // 5분 게임
+      cost,
     ],
     gas: 3000000n,
   });

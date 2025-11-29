@@ -45,6 +45,7 @@ async function main() {
     abi: artifact.abi,
     bytecode: artifact.bytecode as `0x${string}`,
     args: [account.address],
+    gas: 5000000n,
   });
 
   console.log("Transaction hash:", hash);
