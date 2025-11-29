@@ -17,7 +17,6 @@ async function main() {
     throw new Error("DEPLOYER_PRIVATE_KEY not found in environment");
   }
 
-  // Add 0x prefix if missing
   if (!privateKey.startsWith("0x")) {
     privateKey = `0x${privateKey}`;
   }
@@ -35,22 +34,22 @@ async function main() {
     transport: http(),
   });
 
-  console.log("Deploying contracts with the account:", account.address);
+  console.log("Deploying MockERC20 with account:", account.address);
 
-  // Get GameFactory artifact
-  const artifact = await hre.artifacts.readArtifact("GameFactory");
+  const artifact = await hre.artifacts.readArtifact("MockERC20");
 
-  // Deploy GameFactory
+  // Insectarium RPC가 eth_estimateGas를 지원하지 않아서 가스 한도 직접 지정
   const hash = await walletClient.deployContract({
     abi: artifact.abi,
     bytecode: artifact.bytecode as `0x${string}`,
-    args: [account.address],
+    args: ["Squid Token", "SQUID"],
+    gas: 2000000n,
   });
 
   console.log("Transaction hash:", hash);
 
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  console.log("GameFactory deployed to:", receipt.contractAddress);
+  console.log("MockERC20 deployed to:", receipt.contractAddress);
 }
 
 main().catch((error) => {

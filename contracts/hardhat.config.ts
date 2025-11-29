@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config({ path: "../.env" });
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import "@nomicfoundation/hardhat-viem/types";
 // Explicitly import hardhat-viem to ensure HRE extension
@@ -37,6 +39,13 @@ export default defineConfig({
       chainType: "l1",
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    insectarium: {
+      type: "http",
+      chainType: "l1",
+      chainId: 43522,
+      url: "https://rpc.insectarium.memecore.net",
+      accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
     },
   },
 });

@@ -10,7 +10,7 @@ import { EthereumProvider } from 'src/common/providers';
 import { GameRepository } from './game.repository';
 
 const GAME_CREATED_EVENT =
-    'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, address initiator, uint256 remainTime, uint256 endTime, uint256 cost, uint256 prizePool, bool isEnded, address lastCommentor)';
+    'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, address initiator, uint256 gameTime, uint256 endTime, uint256 cost, uint256 prizePool, address lastCommentor, bool isEnded)';
 
 @Injectable()
 export class GameService implements OnModuleInit, OnModuleDestroy {
