@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract GameFactory is Ownable {
     uint256 public gameIdCounter;
-    address[] public deployedGames;
     address public feeCollector;
+    address[] public deployedGames;
 
     event GameCreated(
         uint256 gameId,
@@ -18,8 +18,8 @@ contract GameFactory is Ownable {
         uint256 endTime,
         uint256 cost,
         uint256 prizePool,
-        bool isEnded,
         address lastCommentor
+        bool isEnded,
     );
 
     constructor(address _feeCollector) Ownable(msg.sender) {

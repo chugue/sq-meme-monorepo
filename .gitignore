@@ -23,3 +23,7 @@
 /backend/.env*
 /frontend/.env*
 /contracts/.env*
+
+/backend/node_modules
+/frontend/node_modules
+/contracts/node_modules

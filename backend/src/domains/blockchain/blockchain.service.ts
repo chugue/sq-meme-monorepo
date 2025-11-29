@@ -5,13 +5,11 @@ import {
     OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-    createPublicClient,
-    parseAbiItem,
-    PublicClient,
-    webSocket,
-} from 'viem';
+
+import * as viem from 'viem';
+import { PublicClient } from 'viem';
 import { INSECTARIUM_CHAIN } from './blockchain.constant';
+import { BlockchainRepository } from './blockchain.repository';
 
 @Injectable()
 export class BlockchainService implements OnModuleInit, OnModuleDestroy {
@@ -19,7 +17,10 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
     private client: PublicClient;
     private unwatch: () => void;
 
-    constructor(private readonly configService: ConfigService) {}
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly blockchainQuery: BlockchainRepository,
+    ) {}
 
     onModuleInit() {
         this.connect();
@@ -30,21 +31,21 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
         if (this.unwatch) this.unwatch();
     }
 
+    public getClient() {
+        return this.client;
+    }
+
     private connect() {
         this.logger.log('🔌 Connecting to Insectarium Testnet...');
 
-        this.client = createPublicClient({
+        this.client = viem.createPublicClient({
             chain: INSECTARIUM_CHAIN,
-            transport: webSocket(),
+            transport: viem.webSocket(),
         });
 
         this.logger.log('✅ Connected via WebSocket!');
 
         this.startListening();
-    }
-
-    public getClient() {
-        return this.client;
     }
 
     private startListening() {
@@ -63,7 +64,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
             return;
         }
 
-        const gameCreatedEvent = parseAbiItem(
+        const gameCreatedEvent = viem.parseAbiItem(
             'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, address initiator, uint256 remainTime, uint256 endTime, uint256 cost, uint256 prizePool, bool isEnded, address lastCommentor)',
         );
 
@@ -71,23 +72,12 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
             address: factoryAddress as `0x${string}`,
             abi: [gameCreatedEvent],
             eventName: 'GameCreated',
-            onLogs: (logs) => {
-                logs.forEach((log) => {
-                    const {
-                        gameAddr,
-                        gameTokenAddr,
-                        endTime,
-                        cost,
-                        prizePool,
-                    } = log.args;
+            onLogs: async (logs: any[]) => {
+                const rawEvents = logs.map((log) => log.args);
 
-                    this.logger.log(`🏭 New Game Created!`);
-                    this.logger.log(` - Address: ${gameAddr}`);
-                    this.logger.log(` - Token: ${gameTokenAddr}`);
-                    this.logger.log(` - Cost: ${cost?.toString()}`);
-                    this.logger.log(` - Prize Pool: ${prizePool?.toString()}`);
-                    this.logger.log(` - End Time: ${endTime?.toString()}`);
-                });
+                if (rawEvents.length > 0) {
+                    await this.blockchainQuery.createGames(rawEvents);
+                }
             },
         });
     }
