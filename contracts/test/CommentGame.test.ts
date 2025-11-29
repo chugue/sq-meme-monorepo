@@ -243,7 +243,7 @@ describe("CommentGame", function () {
 
         const endTime = await game.read.endTime();
         // endTime은 현재 블록 타임스탬프 + gameTime 근처여야 함
-        expect(endTime).to.be.greaterThan(0n);
+        expect(endTime > 0n).to.be.true;
       });
 
       it("Should have correct PLATFORM_FEE constant", async function () {
