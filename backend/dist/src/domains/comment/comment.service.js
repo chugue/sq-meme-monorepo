@@ -1,183 +1,127 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
 };
 var CommentService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommentService = void 0;
 const common_1 = require("@nestjs/common");
-const drizzle_orm_1 = require("drizzle-orm");
-const node_postgres_1 = require("drizzle-orm/node-postgres");
-const db_module_1 = require("../../common/db/db.module");
-const schema = __importStar(require("../../common/db/schema"));
+const ethers_1 = require("ethers");
+const providers_1 = require("../../common/providers");
 const types_1 = require("../../common/types");
+const comment_repository_1 = require("./comment.repository");
+const COMMENT_ADDED_EVENT = 'event CommentAdded(address indexed commentor, string message, uint256 newEndTime, uint256 prizePool, uint256 timestamp)';
 let CommentService = CommentService_1 = class CommentService {
-    db;
+    ethereumProvider;
+    commentRepository;
     logger = new common_1.Logger(CommentService_1.name);
-    constructor(db) {
-        this.db = db;
+    iface;
+    isListening = false;
+    constructor(ethereumProvider, commentRepository) {
+        this.ethereumProvider = ethereumProvider;
+        this.commentRepository = commentRepository;
+        this.iface = new ethers_1.ethers.Interface([COMMENT_ADDED_EVENT]);
+    }
+    onModuleInit() {
+        this.startListening();
+    }
+    onModuleDestroy() {
+        this.stopListening();
+    }
+    startListening() {
+        const provider = this.ethereumProvider.getProvider();
+        const topic = this.iface.getEvent('CommentAdded')?.topicHash;
+        if (!topic) {
+            this.logger.error('Failed to generate CommentAdded event topic');
+            return;
+        }
+        const filter = { topics: [topic] };
+        provider.on(filter, (log) => this.handleCommentAddedLog(log));
+        this.isListening = true;
+        this.logger.log('CommentAdded event listener started (all contracts)');
+    }
+    stopListening() {
+        if (this.isListening) {
+            this.ethereumProvider.getProvider().removeAllListeners();
+            this.isListening = false;
+            this.logger.log('CommentAdded event listener stopped');
+        }
+    }
+    async handleCommentAddedLog(log) {
+        try {
+            const decoded = this.iface.decodeEventLog('CommentAdded', log.data, log.topics);
+            const rawEvent = {
+                ...decoded.toObject(),
+                gameAddress: log.address,
+            };
+            await this.commentRepository.addComments([rawEvent]);
+        }
+        catch (error) {
+            this.logger.error(`Event processing failed: ${error.message}`);
+        }
     }
     async toggleLike(userAddress, commentId) {
         try {
             const normalizedAddress = userAddress.toLowerCase();
-            const [comment] = await this.db
-                .select({ id: schema.comments.id })
-                .from(schema.comments)
-                .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId))
-                .limit(1);
+            const comment = await this.commentRepository.findById(commentId);
             if (!comment) {
-                return types_1.Result.fail('댓글을 찾을 수 없습니다');
+                return types_1.Result.fail('Comment not found');
             }
-            const data = await this.db.transaction(async (tx) => {
-                const existingLike = await tx
-                    .select()
-                    .from(schema.commentLikes)
-                    .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.commentLikes.commentId, commentId), (0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, normalizedAddress)))
-                    .limit(1);
-                let liked;
-                if (existingLike.length > 0) {
-                    await tx
-                        .delete(schema.commentLikes)
-                        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.commentLikes.commentId, commentId), (0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, normalizedAddress)));
-                    await tx
-                        .update(schema.comments)
-                        .set({
-                        likeCount: (0, drizzle_orm_1.sql) `${schema.comments.likeCount} - 1`,
-                    })
-                        .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
-                    liked = false;
-                    this.logger.log(`좋아요 취소: 댓글 ${commentId}, 사용자 ${normalizedAddress}`);
-                }
-                else {
-                    await tx.insert(schema.commentLikes).values({
-                        commentId,
-                        userAddress: normalizedAddress,
-                    });
-                    await tx
-                        .update(schema.comments)
-                        .set({
-                        likeCount: (0, drizzle_orm_1.sql) `${schema.comments.likeCount} + 1`,
-                    })
-                        .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
-                    liked = true;
-                    this.logger.log(`좋아요 추가: 댓글 ${commentId}, 사용자 ${normalizedAddress}`);
-                }
-                const [updatedComment] = await tx
-                    .select({ likeCount: schema.comments.likeCount })
-                    .from(schema.comments)
-                    .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
-                return {
-                    liked,
-                    likeCount: updatedComment?.likeCount ?? 0,
-                };
-            });
+            const data = await this.commentRepository.toggleLike(commentId, normalizedAddress);
+            this.logger.log(`Like ${data.liked ? 'added' : 'removed'}: comment ${commentId}, user ${normalizedAddress}`);
             return types_1.Result.ok(data);
         }
         catch (error) {
-            this.logger.error(`좋아요 토글 실패: ${error.message}`);
-            return types_1.Result.fail('좋아요 처리 중 오류가 발생했습니다');
+            this.logger.error(`Toggle like failed: ${error.message}`);
+            return types_1.Result.fail('Failed to toggle like');
         }
     }
     async getLikeCount(commentId) {
         try {
-            const [comment] = await this.db
-                .select({ likeCount: schema.comments.likeCount })
-                .from(schema.comments)
-                .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
-            if (!comment) {
-                return types_1.Result.fail('댓글을 찾을 수 없습니다');
+            const result = await this.commentRepository.getLikeCount(commentId);
+            if (!result) {
+                return types_1.Result.fail('Comment not found');
             }
-            return types_1.Result.ok({ likeCount: comment.likeCount });
+            return types_1.Result.ok(result);
         }
         catch (error) {
-            this.logger.error(`좋아요 수 조회 실패: ${error.message}`);
-            return types_1.Result.fail('좋아요 수 조회 중 오류가 발생했습니다');
+            this.logger.error(`Get like count failed: ${error.message}`);
+            return types_1.Result.fail('Failed to get like count');
         }
     }
     async hasUserLiked(userAddress, commentId) {
         try {
             const normalizedAddress = userAddress.toLowerCase();
-            const [like] = await this.db
-                .select()
-                .from(schema.commentLikes)
-                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.commentLikes.commentId, commentId), (0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, normalizedAddress)))
-                .limit(1);
-            return types_1.Result.ok({ liked: !!like });
+            const result = await this.commentRepository.hasUserLiked(commentId, normalizedAddress);
+            return types_1.Result.ok(result);
         }
         catch (error) {
-            this.logger.error(`좋아요 여부 확인 실패: ${error.message}`);
-            return types_1.Result.fail('좋아요 여부 확인 중 오류가 발생했습니다');
+            this.logger.error(`Check user liked failed: ${error.message}`);
+            return types_1.Result.fail('Failed to check like status');
         }
     }
     async getUserLikedMap(userAddress, commentIds) {
         try {
-            if (commentIds.length === 0) {
-                return types_1.Result.ok(new Map());
-            }
             const normalizedAddress = userAddress.toLowerCase();
-            const likes = await this.db
-                .select({ commentId: schema.commentLikes.commentId })
-                .from(schema.commentLikes)
-                .where((0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, normalizedAddress));
-            const likedSet = new Set(likes.map((l) => l.commentId));
-            const result = new Map();
-            for (const id of commentIds) {
-                result.set(id, likedSet.has(id));
-            }
+            const result = await this.commentRepository.getUserLikedMap(normalizedAddress, commentIds);
             return types_1.Result.ok(result);
         }
         catch (error) {
-            this.logger.error(`좋아요 일괄 조회 실패: ${error.message}`);
-            return types_1.Result.fail('좋아요 일괄 조회 중 오류가 발생했습니다');
+            this.logger.error(`Get user liked map failed: ${error.message}`);
+            return types_1.Result.fail('Failed to get like map');
         }
     }
 };
 exports.CommentService = CommentService;
 exports.CommentService = CommentService = CommentService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, common_1.Inject)(db_module_1.DrizzleAsyncProvider)),
-    __metadata("design:paramtypes", [node_postgres_1.NodePgDatabase])
+    __metadata("design:paramtypes", [providers_1.EthereumProvider,
+        comment_repository_1.CommentRepository])
 ], CommentService);
 //# sourceMappingURL=comment.service.js.map

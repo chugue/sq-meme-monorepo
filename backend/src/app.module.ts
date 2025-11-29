@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { BlockchainModule } from './domains/blockchain/blockchain.module';
 
+import { CommonModule } from './common/common.module';
 import { DbModule } from './common/db/db.module';
+import { GameModule } from './domains/game/game.module';
+import { CommentModule } from './domains/comment/comment.module';
 
 @Module({
     imports: [
@@ -10,8 +12,10 @@ import { DbModule } from './common/db/db.module';
             isGlobal: true,
             envFilePath: ['.env.local', '../.env'],
         }),
+        CommonModule,
         DbModule,
-        BlockchainModule,
+        GameModule,
+        CommentModule,
     ],
     controllers: [],
     providers: [],

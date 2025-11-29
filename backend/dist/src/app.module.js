@@ -9,8 +9,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const blockchain_module_1 = require("./domains/blockchain/blockchain.module");
+const common_module_1 = require("./common/common.module");
 const db_module_1 = require("./common/db/db.module");
+const game_module_1 = require("./domains/game/game.module");
+const comment_module_1 = require("./domains/comment/comment.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -21,8 +23,10 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 envFilePath: ['.env.local', '../.env'],
             }),
+            common_module_1.CommonModule,
             db_module_1.DbModule,
-            blockchain_module_1.BlockchainModule,
+            game_module_1.GameModule,
+            comment_module_1.CommentModule,
         ],
         controllers: [],
         providers: [],

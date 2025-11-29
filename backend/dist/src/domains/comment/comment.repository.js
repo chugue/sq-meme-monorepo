@@ -103,6 +103,80 @@ let CommentRepository = CommentRepository_1 = class CommentRepository {
             }
         }
     }
+    async findById(commentId) {
+        const [comment] = await this.db
+            .select({ id: schema.comments.id })
+            .from(schema.comments)
+            .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId))
+            .limit(1);
+        return comment ?? null;
+    }
+    async toggleLike(commentId, userAddress) {
+        return await this.db.transaction(async (tx) => {
+            const existingLike = await tx
+                .select()
+                .from(schema.commentLikes)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.commentLikes.commentId, commentId), (0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, userAddress)))
+                .limit(1);
+            let liked;
+            if (existingLike.length > 0) {
+                await tx
+                    .delete(schema.commentLikes)
+                    .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.commentLikes.commentId, commentId), (0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, userAddress)));
+                await tx
+                    .update(schema.comments)
+                    .set({ likeCount: (0, drizzle_orm_1.sql) `${schema.comments.likeCount} - 1` })
+                    .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
+                liked = false;
+            }
+            else {
+                await tx.insert(schema.commentLikes).values({
+                    commentId,
+                    userAddress,
+                });
+                await tx
+                    .update(schema.comments)
+                    .set({ likeCount: (0, drizzle_orm_1.sql) `${schema.comments.likeCount} + 1` })
+                    .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
+                liked = true;
+            }
+            const [updatedComment] = await tx
+                .select({ likeCount: schema.comments.likeCount })
+                .from(schema.comments)
+                .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
+            return { liked, likeCount: updatedComment?.likeCount ?? 0 };
+        });
+    }
+    async getLikeCount(commentId) {
+        const [comment] = await this.db
+            .select({ likeCount: schema.comments.likeCount })
+            .from(schema.comments)
+            .where((0, drizzle_orm_1.eq)(schema.comments.id, commentId));
+        return comment ?? null;
+    }
+    async hasUserLiked(commentId, userAddress) {
+        const [like] = await this.db
+            .select()
+            .from(schema.commentLikes)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.commentLikes.commentId, commentId), (0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, userAddress)))
+            .limit(1);
+        return { liked: !!like };
+    }
+    async getUserLikedMap(userAddress, commentIds) {
+        if (commentIds.length === 0) {
+            return new Map();
+        }
+        const likes = await this.db
+            .select({ commentId: schema.commentLikes.commentId })
+            .from(schema.commentLikes)
+            .where((0, drizzle_orm_1.eq)(schema.commentLikes.userAddress, userAddress));
+        const likedSet = new Set(likes.map((l) => l.commentId));
+        const result = new Map();
+        for (const id of commentIds) {
+            result.set(id, likedSet.has(id));
+        }
+        return result;
+    }
 };
 exports.CommentRepository = CommentRepository;
 exports.CommentRepository = CommentRepository = CommentRepository_1 = __decorate([
