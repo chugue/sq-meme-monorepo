@@ -1,11 +1,6 @@
 import { Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import {
-    ApiCheckUserLiked,
-    ApiGetLikeCount,
-    ApiToggleLike,
-    WalletAddress,
-} from 'src/common/decorators';
+import { WalletAddress } from 'src/common/decorators';
 import { CommentService } from './comment.service';
 
 @ApiTags('Comments')
@@ -14,7 +9,7 @@ export class CommentController {
     constructor(private readonly commentService: CommentService) {}
 
     @Post(':id/like')
-    @ApiToggleLike()
+    // @ApiToggleLike()
     async toggleLike(
         @Param('id', ParseIntPipe) commentId: number,
         @WalletAddress() userAddress: string,
@@ -23,13 +18,13 @@ export class CommentController {
     }
 
     @Get(':id/like/count')
-    @ApiGetLikeCount()
+    // @ApiGetLikeCount()
     async getLikeCount(@Param('id', ParseIntPipe) commentId: number) {
         return this.commentService.getLikeCount(commentId);
     }
 
     @Get(':id/like/check')
-    @ApiCheckUserLiked()
+    // @ApiCheckUserLiked()
     async checkUserLiked(
         @Param('id', ParseIntPipe) commentId: number,
         @WalletAddress() userAddress: string,
