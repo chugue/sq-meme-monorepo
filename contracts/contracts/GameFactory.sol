@@ -14,12 +14,12 @@ contract GameFactory is Ownable {
         address indexed gameAddr,
         address indexed gameTokenAddr,
         address initiator,
-        uint256 remainTime,
+        uint256 gameTime,
         uint256 endTime,
         uint256 cost,
         uint256 prizePool,
-        address lastCommentor
-        bool isEnded,
+        address lastCommentor,
+        bool isEnded
     );
 
     constructor(address _feeCollector) Ownable(msg.sender) {
@@ -38,7 +38,7 @@ contract GameFactory is Ownable {
             initiator: msg.sender,
             gameToken: _gameToken,
             cost: _cost,
-            time: _time
+            gameTime: _time
         });
 
         CommentGame newGame = new CommentGame(params, feeCollector);
@@ -46,16 +46,16 @@ contract GameFactory is Ownable {
         deployedGames.push(address(newGame));
 
         emit GameCreated(
-            newGame.id,
+            newGame.id(),
             address(newGame),
-            newGame.gameToken,
-            newGame.initiator,
-            newGame.remainTime,
-            newGame.endTime,
-            newGame.cost,
-            newGame.prizePool,
-            newGame.isEnded,
-            newGame.lastCommentor
+            newGame.gameToken(),
+            newGame.initiator(),
+            newGame.gameTime(),
+            newGame.endTime(),
+            newGame.cost(),
+            newGame.prizePool(),
+            newGame.lastCommentor(),
+            newGame.isEnded()
         );
     }
 

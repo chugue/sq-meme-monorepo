@@ -9,17 +9,20 @@ import { ConfigService } from '@nestjs/config';
 import * as viem from 'viem';
 import { PublicClient } from 'viem';
 import { INSECTARIUM_CHAIN } from './blockchain.constant';
-import { BlockchainRepository } from './blockchain.repository';
+import { GameRepository } from '../game/game.repository';
+import { CommentRepository } from '../comment/comment.repository';
 
 @Injectable()
 export class BlockchainService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(BlockchainService.name);
     private client: PublicClient;
-    private unwatch: () => void;
+    private unwatchGameCreated: () => void;
+    private unwatchCommentAdded: () => void;
 
     constructor(
         private readonly configService: ConfigService,
-        private readonly blockchainQuery: BlockchainRepository,
+        private readonly gameRepository: GameRepository,
+        private readonly commentRepository: CommentRepository,
     ) {}
 
     onModuleInit() {
@@ -27,8 +30,9 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
     }
 
     onModuleDestroy() {
-        this.logger.log('🛑 Blockchain Service Stopping...');
-        if (this.unwatch) this.unwatch();
+        this.logger.log('🛑 Blockchain Service 종료 중...');
+        if (this.unwatchGameCreated) this.unwatchGameCreated();
+        if (this.unwatchCommentAdded) this.unwatchCommentAdded();
     }
 
     public getClient() {
@@ -36,22 +40,22 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
     }
 
     private connect() {
-        this.logger.log('🔌 Connecting to Insectarium Testnet...');
+        this.logger.log('🔌 Insectarium Testnet 연결 중...');
 
         this.client = viem.createPublicClient({
             chain: INSECTARIUM_CHAIN,
             transport: viem.webSocket(),
         });
 
-        this.logger.log('✅ Connected via WebSocket!');
+        this.logger.log('✅ WebSocket 연결 완료!');
 
         this.startListening();
     }
 
     private startListening() {
-        this.logger.log('🎧 Starting Contract Event Listener...');
+        this.logger.log('🎧 컨트랙트 이벤트 리스너 시작...');
         this.watchGameCreated();
-        // TODO: this.watchCommentAdded();
+        this.watchCommentAdded();
     }
 
     private watchGameCreated() {
@@ -60,7 +64,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
         );
 
         if (!factoryAddress) {
-            this.logger.error('🚨 GAME_FACTORY_ADDRESS is missing in .env');
+            this.logger.error('🚨 GAME_FACTORY_ADDRESS가 .env에 없습니다');
             return;
         }
 
@@ -68,7 +72,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
             'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, address initiator, uint256 remainTime, uint256 endTime, uint256 cost, uint256 prizePool, bool isEnded, address lastCommentor)',
         );
 
-        this.unwatch = this.client.watchContractEvent({
+        this.unwatchGameCreated = this.client.watchContractEvent({
             address: factoryAddress as `0x${string}`,
             abi: [gameCreatedEvent],
             eventName: 'GameCreated',
@@ -76,7 +80,27 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
                 const rawEvents = logs.map((log) => log.args);
 
                 if (rawEvents.length > 0) {
-                    await this.blockchainQuery.createGames(rawEvents);
+                    await this.gameRepository.createGames(rawEvents);
+                }
+            },
+        });
+    }
+
+    private watchCommentAdded() {
+        const commentAddedEvent = viem.parseAbiItem(
+            'event CommentAdded(address indexed commentor, string message, uint256 newEndTime, uint256 prizePool, uint256 timestamp)',
+        );
+
+        this.unwatchCommentAdded = this.client.watchEvent({
+            event: commentAddedEvent,
+            onLogs: async (logs: any[]) => {
+                const rawEvents = logs.map((log) => ({
+                    ...log.args,
+                    gameAddress: log.address, // 이벤트 발생 주소 = 게임 주소
+                }));
+
+                if (rawEvents.length > 0) {
+                    await this.commentRepository.addComments(rawEvents);
                 }
             },
         });

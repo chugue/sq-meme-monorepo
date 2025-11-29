@@ -1,0 +1,1 @@
+ALTER TABLE "squid_meme"."games" RENAME COLUMN "remain_time" TO "game_time";

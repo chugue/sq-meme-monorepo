@@ -1,5 +1,8 @@
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import "@nomicfoundation/hardhat-viem/types";
+// Explicitly import hardhat-viem to ensure HRE extension
+import "@nomicfoundation/hardhat-viem";
+
 import { configVariable, defineConfig } from "hardhat/config";
 
 export default defineConfig({

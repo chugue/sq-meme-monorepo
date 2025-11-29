@@ -30,7 +30,7 @@ contract CommentGame is ReentrancyGuard {
     address public immutable initiator;
     address public immutable gameToken;
     uint256 public immutable cost;
-    uint256 public remainTime;
+    uint256 public immutable gameTime;
     uint256 public endTime;
     address public lastCommentor;
     uint256 public prizePool;
@@ -44,13 +44,14 @@ contract CommentGame is ReentrancyGuard {
         address initiator;
         address gameToken;
         uint256 cost;
-        uint256 time;
+        uint256 gameTime;
     }
 
     event CommentAdded(
         address indexed commentor,
         string message,
         uint256 newEndTime,
+        uint256 prizePool,
         uint256 timestamp
     );
 
@@ -59,10 +60,11 @@ contract CommentGame is ReentrancyGuard {
         initiator = _params.initiator;
         gameToken = _params.gameToken;
         cost = _params.cost;
-        remainTime = _params.time;
-        endTime = block.timestamp + _params.time;
+        gameTime = _params.gameTime;
+        endTime = block.timestamp + _params.gameTime;
         lastCommentor = _params.initiator;
         feeCollector = _feeCollector;
+        prizePool = 0;
     }
 
     /**
@@ -89,10 +91,10 @@ contract CommentGame is ReentrancyGuard {
 
         // 5. 상태 업데이트
         lastCommentor = msg.sender;
-        endTime = block.timestamp + remainTime;
+        endTime = block.timestamp + gameTime;
         prizePool += cost;
 
-        emit CommentAdded(msg.sender, _message, endTime, block.timestamp);
+        emit CommentAdded(msg.sender, _message, endTime, prizePool, block.timestamp);
     }
 
     /**

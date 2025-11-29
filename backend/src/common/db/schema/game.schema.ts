@@ -22,7 +22,7 @@ export const games = squidSchema.table(
         initiator: varchar('initiator', { length: 42 }).notNull(),
 
         // 2. 시간 관련
-        remainTime: text('remain_time').notNull(), // 초기 설정된 타이머 시간 (초 단위)
+        gameTime: text('game_time').notNull(), // 초기 설정된 타이머 시간 (초 단위)
         endTime: timestamp('end_time').notNull(), // 실제 종료 시각 (Date 객체로 변환 저장)
 
         // 3. 돈 관련 (BigInt -> Text)

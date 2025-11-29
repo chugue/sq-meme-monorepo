@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { BlockchainRepository } from './blockchain.repository';
 import { BlockchainService } from './blockchain.service';
+import { GameModule } from '../game/game.module';
+import { CommentModule } from '../comment/comment.module';
 
 @Module({
-    providers: [BlockchainService, BlockchainRepository],
+    imports: [GameModule, CommentModule],
+    providers: [BlockchainService],
     exports: [BlockchainService],
 })
 export class BlockchainModule {}

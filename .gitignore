@@ -1,5 +1,8 @@
 # Node modules
 /node_modules
+/backend/node_modules
+/frontend/node_modules
+/contracts/node_modules
 
 # Compilation output
 /dist
@@ -24,6 +27,3 @@
 /frontend/.env*
 /contracts/.env*
 
-/backend/node_modules
-/frontend/node_modules
-/contracts/node_modules

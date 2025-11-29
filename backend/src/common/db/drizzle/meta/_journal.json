@@ -15,6 +15,20 @@
       "when": 1764344798327,
       "tag": "0001_amazing_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764394216219,
+      "tag": "0002_solid_warbound",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764395362544,
+      "tag": "0003_sparkling_zzzax",
+      "breakpoints": true
     }
   ]
 }
