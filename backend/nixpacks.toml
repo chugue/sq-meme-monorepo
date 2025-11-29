@@ -4,5 +4,8 @@ nixPkgs = ["nodejs_20"]
 [phases.install]
 cmds = ["npm install --include=dev"]
 
+[phases.build]
+cmds = ["npm run build", "ls -la dist/"]
+
 [start]
-cmd = "npm run build && npm run start:prod"
+cmd = "node dist/main"
