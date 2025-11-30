@@ -1,15 +1,18 @@
 export interface Comment {
-  id: string;
-  challenge_id: string;
-  player_address: string;
-  content: string;
-  created_at: string;
-  updated_at?: string;
+  id: number;
+  gameAddress: string;
+  commentor: string;
+  message: string;
+  createdAt: string;
+  likeCount?: number;
+  endTime?: string;
+  currentPrizePool?: string;
+  isWinnerComment?: boolean;
 }
 
 export interface CreateCommentInput {
-  challenge_id: string;
-  player_address: string;
-  content: string;
+  gameAddress: string;
+  commentor: string;
+  message: string;
 }
 

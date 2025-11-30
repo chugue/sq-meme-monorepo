@@ -15,9 +15,9 @@ export function createMessageHandler() {
 
                 switch (message.type) {
                     case 'GET_COMMENTS': {
-                        console.log('📥 GET_COMMENTS 요청:', message.challengeId);
+                        console.log('📥 GET_COMMENTS 요청:', message.gameAddress);
                         const response = await apiCall<{ comments: any[] }>(
-                            `/api/comments/${encodeURIComponent(message.challengeId)}`
+                            `/api/comments/${encodeURIComponent(message.gameAddress)}`
                         );
                         result = { success: true, data: response.comments || [] };
                         break;

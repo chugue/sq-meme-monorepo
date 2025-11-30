@@ -1,9 +1,9 @@
 import { browser } from 'wxt/browser';
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
-    | { type: 'GET_COMMENTS'; challengeId: string }
-    | { type: 'CREATE_COMMENT'; challengeId: string; playerAddress: string; content: string; signature?: string; message?: string }
-    | { type: 'DELETE_COMMENT'; commentId: string }
+    | { type: 'GET_COMMENTS'; gameAddress: string }
+    | { type: 'CREATE_COMMENT'; gameAddress: string; commentor: string; message: string; signature?: string }
+    | { type: 'DELETE_COMMENT'; commentId: number }
     | { type: 'HEALTH_CHECK' }
     | { type: 'OPEN_SIDE_PANEL' }
     | { type: 'GET_STORAGE'; key: string; area?: 'session' | 'local' }
@@ -54,33 +54,31 @@ export async function sendToBackground<T>(
 // API 클라이언트 (Background Script와 통신)
 export const backgroundApi = {
     // 댓글 목록 조회
-    getComments: async (challengeId: string) => {
+    getComments: async (gameAddress: string) => {
         return sendToBackground<Array<any>>({
             type: 'GET_COMMENTS',
-            challengeId,
+            gameAddress,
         });
     },
 
     // 댓글 작성
     createComment: async (input: {
-        challenge_id: string;
-        player_address: string;
-        content: string;
+        gameAddress: string;
+        commentor: string;
+        message: string;
         signature?: string;
-        message?: string;
     }) => {
         return sendToBackground<any>({
             type: 'CREATE_COMMENT',
-            challengeId: input.challenge_id,
-            playerAddress: input.player_address,
-            content: input.content,
-            signature: input.signature,
+            gameAddress: input.gameAddress,
+            commentor: input.commentor,
             message: input.message,
+            signature: input.signature,
         });
     },
 
     // 댓글 삭제
-    deleteComment: async (commentId: string) => {
+    deleteComment: async (commentId: number) => {
         return sendToBackground<void>({
             type: 'DELETE_COMMENT',
             commentId,
