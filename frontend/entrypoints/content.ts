@@ -176,10 +176,15 @@ async function injectScript(): Promise<void> {
 
 // @ts-ignore
 export default defineContentScript({
-    // app.memex.xyz 도메인에만 실행
+    // app.memex.xyz 프로필 페이지에만 실행 (/{username}/{usertag} 패턴)
     matches: [
-        'https://app.memex.xyz/*',
-        'http://app.memex.xyz/*', // 개발 환경용
+        'https://app.memex.xyz/*/*',
+        'http://app.memex.xyz/*/*', // 개발 환경용
+    ],
+    // 홈, 로그인 등의 단일 경로 페이지 제외
+    exclude_matches: [
+        'https://app.memex.xyz/',
+        'http://app.memex.xyz/',
     ],
     // @ts-ignore
     async main(ctx) {
