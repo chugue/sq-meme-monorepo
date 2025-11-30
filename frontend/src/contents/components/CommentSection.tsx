@@ -85,24 +85,32 @@ function CommentForm({
     onChange,
     cost,
     onSubmit,
+    onApprove,
     isSubmitting,
+    isApproving,
     isConnected,
+    hasAllowance,
     disabled,
 }: {
     value: string;
     onChange: (value: string) => void;
     cost: string | null;
     onSubmit: () => Promise<void>;
+    onApprove: () => Promise<void>;
     isSubmitting: boolean;
+    isApproving: boolean;
     isConnected: boolean;
+    hasAllowance: boolean | null;
     disabled?: boolean;
 }) {
-    const getButtonText = () => {
+    const getSubmitButtonText = () => {
         if (!isConnected) return 'CONNECT WALLET FIRST';
         if (isSubmitting) return 'SUBMITTING...';
         if (cost) return `SUBMIT (${cost} TOKEN)`;
         return 'SUBMIT';
     };
+
+    const needsApproval = isConnected && hasAllowance === false;
 
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="squid-comment-form">
@@ -112,20 +120,35 @@ function CommentForm({
                 placeholder="TYPE YOUR COMMENT..."
                 className="squid-comment-input"
                 rows={3}
-                disabled={disabled || isSubmitting}
+                disabled={disabled || isSubmitting || isApproving}
             />
             {cost && (
                 <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
                     Comment cost: {cost} TOKEN
                 </div>
             )}
+
+            {/* Approve 버튼 (allowance 부족 시) */}
+            {needsApproval && (
+                <button
+                    type="button"
+                    onClick={onApprove}
+                    className="squid-comment-submit"
+                    disabled={isApproving || disabled}
+                    style={{ marginTop: '8px', backgroundColor: '#f0ad4e' }}
+                >
+                    {isApproving ? 'APPROVING...' : 'APPROVE TOKEN'}
+                </button>
+            )}
+
+            {/* Submit 버튼 */}
             <button
                 type="submit"
                 className="squid-comment-submit"
-                disabled={!value.trim() || isSubmitting || !isConnected || disabled}
+                disabled={!value.trim() || isSubmitting || !isConnected || needsApproval || disabled}
                 style={{ marginTop: '8px' }}
             >
-                {getButtonText()}
+                {getSubmitButtonText()}
             </button>
         </form>
     );
@@ -196,20 +219,23 @@ export function CommentSection() {
         error: walletError,
     } = useWallet();
 
-    // 컨트랙트 훅
-    const { addComment, isSubmitting } = useCommentContract(
+    // 컨트랙트 훅 (단일 인스턴스로 통합)
+    const {
+        addComment,
+        getGameInfo,
+        checkAllowance,
+        approveToken,
+        isSubmitting,
+        isApproving,
+    } = useCommentContract(
         gameAddress as Address | null,
         address as Address | null
     );
 
     const [newComment, setNewComment] = useState('');
     const [gameCost, setGameCost] = useState<string | null>(null);
-
-    // 게임 정보(cost) 조회
-    const { getGameInfo } = useCommentContract(
-        gameAddress as Address | null,
-        address as Address | null
-    );
+    const [gameCostRaw, setGameCostRaw] = useState<bigint | null>(null);
+    const [hasAllowance, setHasAllowance] = useState<boolean | null>(null);
 
     // 컴포넌트 마운트 시 cost 조회
     useEffect(() => {
@@ -217,6 +243,8 @@ export function CommentSection() {
             if (gameAddress) {
                 try {
                     const info = await getGameInfo();
+                    // raw cost 저장
+                    setGameCostRaw(info.cost);
                     // cost를 토큰 단위로 변환 (18 decimals 가정)
                     const costInTokens = Number(info.cost) / 1e18;
                     setGameCost(costInTokens.toString());
@@ -227,6 +255,60 @@ export function CommentSection() {
         };
         fetchGameCost();
     }, [gameAddress, getGameInfo]);
+
+    // allowance 확인
+    useEffect(() => {
+        const checkTokenAllowance = async () => {
+            if (gameAddress && address && gameCostRaw !== null) {
+                try {
+                    const allowance = await checkAllowance();
+                    setHasAllowance(allowance >= gameCostRaw);
+                } catch {
+                    // getGameInfo가 먼저 호출되어야 함
+                    logger.debug('Allowance 조회 대기 중');
+                    setHasAllowance(null);
+                }
+            }
+        };
+        checkTokenAllowance();
+    }, [gameAddress, address, gameCostRaw, checkAllowance]);
+
+    /**
+     * 토큰 approve 핸들러
+     */
+    const handleApprove = useCallback(async () => {
+        if (!isConnected || !address) {
+            try {
+                await connect();
+            } catch (error) {
+                logger.error('지갑 연결 실패', error);
+            }
+            return;
+        }
+
+        try {
+            await ensureNetwork();
+            logger.info('토큰 approve 시작');
+
+            const txHash = await approveToken();
+            logger.info('토큰 approve 완료', { txHash });
+
+            // approve 성공 후 allowance 다시 확인
+            setHasAllowance(true);
+            alert(`토큰 승인이 완료되었습니다!\n이제 댓글을 작성할 수 있습니다.`);
+        } catch (error) {
+            logger.error('토큰 approve 실패', error);
+
+            if (error && typeof error === 'object' && 'code' in error) {
+                if ((error as { code: string }).code === ERROR_CODES.USER_REJECTED) {
+                    return;
+                }
+            }
+
+            const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+            alert(`토큰 승인에 실패했습니다: ${errorMessage}`);
+        }
+    }, [isConnected, address, connect, ensureNetwork, approveToken]);
 
     /**
      * 댓글 제출 핸들러 (컨트랙트 호출)
@@ -312,8 +394,11 @@ export function CommentSection() {
                 onChange={setNewComment}
                 cost={gameCost}
                 onSubmit={handleSubmit}
+                onApprove={handleApprove}
                 isSubmitting={isSubmitting}
+                isApproving={isApproving}
                 isConnected={isConnected}
+                hasAllowance={hasAllowance}
             />
 
             <div className="squid-comments-list">
