@@ -375,6 +375,44 @@
         inset -1px -1px 0px rgba(0, 0, 0, 0.3);
 }
 
+.squid-wallet-connected,
+.squid-wallet-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.squid-wallet-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.squid-wallet-button {
+    background: #1b2a49;
+    border: 2px solid #4a9eff;
+    color: #4a9eff;
+    padding: 6px 12px;
+    font-size: 9px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    transition: all 0.2s ease;
+}
+
+.squid-wallet-button:hover:not(:disabled) {
+    color: #9d4edd;
+    border-color: #9d4edd;
+    box-shadow: 0 0 10px rgba(157, 78, 221, 0.4);
+}
+
+.squid-wallet-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* 트랜잭션 해시 표시 */
 .squid-tx-hash {
     background: #16213e;

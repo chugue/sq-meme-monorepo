@@ -1,8 +1,8 @@
+import { Comment } from '@/contents/types/comment';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAtomValue } from 'jotai';
 import { currentChallengeIdAtom } from '../atoms/commentAtoms';
 import { backgroundApi } from '../lib/backgroundApi';
-import { Comment } from '@/contents/types/comment';
 
 export function useComments() {
     const queryClient = useQueryClient();
@@ -20,18 +20,24 @@ export function useComments() {
                 throw error;
             }
         },
-        refetchInterval: 5000, // 5초마다 자동 갱신
-        retry: 2,
+        retry: 1,
     });
 
     // 댓글 작성
     const createCommentMutation = useMutation({
-        mutationFn: async (input: { player_address: string; content: string }) => {
+        mutationFn: async (input: { 
+            player_address: string; 
+            content: string;
+            signature?: string;
+            message?: string;
+        }) => {
             try {
                 return await backgroundApi.createComment({
                     challenge_id: challengeId,
                     player_address: input.player_address,
                     content: input.content,
+                    signature: input.signature,
+                    message: input.message,
                 }) as Comment;
             } catch (error) {
                 console.error('댓글 작성 실패:', error);

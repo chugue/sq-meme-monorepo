@@ -13,7 +13,6 @@ export default defineWebExtConfig({
         // 프로젝트별로 프로필을 유지할 디렉토리 설정
         // 이 디렉토리에 로그인 정보, 쿠키 등이 저장되어 다음 실행 시에도 유지됩니다
         '--user-data-dir=./.wxt/chrome-data',
-        '--disable-web-security',
     ],
 
     // 프로필 변경사항 유지 (로그인, 확장 프로그램 설치 등)

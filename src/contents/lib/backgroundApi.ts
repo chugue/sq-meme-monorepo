@@ -2,10 +2,12 @@ import { browser } from 'wxt/browser';
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
     | { type: 'GET_COMMENTS'; challengeId: string }
-    | { type: 'CREATE_COMMENT'; challengeId: string; playerAddress: string; content: string }
+    | { type: 'CREATE_COMMENT'; challengeId: string; playerAddress: string; content: string; signature?: string; message?: string }
     | { type: 'DELETE_COMMENT'; commentId: string }
     | { type: 'HEALTH_CHECK' }
-    | { type: 'OPEN_SIDE_PANEL' };
+    | { type: 'OPEN_SIDE_PANEL' }
+    | { type: 'GET_STORAGE'; key: string; area?: 'session' | 'local' }
+    | { type: 'SET_STORAGE'; key: string; value: any; area?: 'session' | 'local' };
 
 export type BackgroundResponse<T = any> =
     | { success: true; data: T }
@@ -64,12 +66,16 @@ export const backgroundApi = {
         challenge_id: string;
         player_address: string;
         content: string;
+        signature?: string;
+        message?: string;
     }) => {
         return sendToBackground<any>({
             type: 'CREATE_COMMENT',
             challengeId: input.challenge_id,
             playerAddress: input.player_address,
             content: input.content,
+            signature: input.signature,
+            message: input.message,
         });
     },
 
@@ -92,6 +98,25 @@ export const backgroundApi = {
     openSidePanel: async () => {
         return sendToBackground<void>({
             type: 'OPEN_SIDE_PANEL',
+        });
+    },
+
+    // Storage 읽기
+    getStorage: async <T = any>(key: string, area: 'session' | 'local' = 'session'): Promise<T | null> => {
+        return sendToBackground<T | null>({
+            type: 'GET_STORAGE',
+            key,
+            area,
+        });
+    },
+
+    // Storage 저장
+    setStorage: async (key: string, value: any, area: 'session' | 'local' = 'session'): Promise<void> => {
+        return sendToBackground<void>({
+            type: 'SET_STORAGE',
+            key,
+            value,
+            area,
         });
     },
 };

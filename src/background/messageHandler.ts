@@ -31,6 +31,8 @@ export function createMessageHandler() {
                                 challenge_id: message.challengeId,
                                 player_address: message.playerAddress,
                                 content: message.content,
+                                signature: (message as any).signature,
+                                message: (message as any).message,
                             }),
                         });
                         result = { success: true, data: response.comment };
@@ -68,6 +70,69 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error: error instanceof Error ? error.message : '사이드 패널 열기 실패',
+                            };
+                        }
+                        break;
+                    }
+
+                    case 'GET_STORAGE': {
+                        console.log('💾 GET_STORAGE 요청:', message);
+                        try {
+                            const { browser } = await import('wxt/browser');
+                            const storage = browser?.storage || (globalThis as any).chrome?.storage;
+                            const area = (message as any).area || 'session';
+                            const storageArea = area === 'local' ? storage.local : storage.session;
+
+                            const data = await new Promise<any>((resolve, reject) => {
+                                storageArea.get([(message as any).key], (result: any) => {
+                                    const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                                    if (runtime?.lastError) {
+                                        reject(new Error(runtime.lastError.message));
+                                        return;
+                                    }
+                                    resolve(result[(message as any).key] || null);
+                                });
+                            });
+
+                            result = { success: true, data };
+                        } catch (error: any) {
+                            console.error('❌ Storage 읽기 오류:', error);
+                            result = {
+                                success: false,
+                                error: error instanceof Error ? error.message : 'Storage 읽기 실패',
+                            };
+                        }
+                        break;
+                    }
+
+                    case 'SET_STORAGE': {
+                        console.log('💾 SET_STORAGE 요청:', message);
+                        try {
+                            const { browser } = await import('wxt/browser');
+                            const storage = browser?.storage || (globalThis as any).chrome?.storage;
+                            const area = (message as any).area || 'session';
+                            const storageArea = area === 'local' ? storage.local : storage.session;
+
+                            await new Promise<void>((resolve, reject) => {
+                                storageArea.set(
+                                    { [(message as any).key]: (message as any).value },
+                                    () => {
+                                        const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                                        if (runtime?.lastError) {
+                                            reject(new Error(runtime.lastError.message));
+                                            return;
+                                        }
+                                        resolve();
+                                    }
+                                );
+                            });
+
+                            result = { success: true, data: undefined };
+                        } catch (error: any) {
+                            console.error('❌ Storage 저장 오류:', error);
+                            result = {
+                                success: false,
+                                error: error instanceof Error ? error.message : 'Storage 저장 실패',
                             };
                         }
                         break;

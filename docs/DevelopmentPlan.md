@@ -78,19 +78,29 @@
 ┌─────────────────────────────────────────────────┐
 │           MemeX 웹사이트 (app.memex.xyz)        │
 │  ┌──────────────────────────────────────────┐   │
-│  │  Content Script (UI Injection Layer)     │   │
-│  │  - URL 파싱 및 프로필 감지                │   │
-│  │  - DOM 마운트 포인트 감지                 │   │
-│  │  - React Root 마운트                      │   │
+│  │  Content Script (UI + Blockchain)        │   │
+│  │  - URL/DOM 감지 & React Root 마운트        │   │
+│  │  - Wagmi & Viem v2 (MemeCore)             │   │
+│  │  - 외부 지갑 연동 (Injected/WalletConnect) │  │
+│  │  - 지갑·트랜잭션 처리                     │   │
+│  │  - runtime.onMessage 핸들러 (API 요청만)    │   │
 │  └──────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+                      ↕️
+┌─────────────────────────────────────────────────┐
+│         Chrome Runtime Messaging Bus            │
+│  - Content → Background: Supabase/API, Storage 요청 │
+│  - Background → Content: 상태 갱신 알림             │
+│  - 단일 메시지 프로토콜 (`scope`, `action`)          │
 └─────────────────────────────────────────────────┘
                       ↕️
 ┌─────────────────────────────────────────────────┐
 │        Chrome Extension Background              │
 │  ┌──────────────────────────────────────────┐   │
-│  │  - Wagmi Config (Chain: MemeCore)        │   │
-│  │  - 지갑 생성 및 관리                      │   │
-│  │  - 트랜잭션 큐 관리                       │   │
+│  │  - Supabase REST Proxy                   │   │
+│  │  - chrome.storage 접근 (지갑/설정 메타)       │   │
+│  │  - API 응답 캐싱 & 브로드캐스트            │   │
+│  │  - 메시지 라우터 (Blockchain 제외)           │   │
 │  └──────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
                       ↕️
@@ -103,10 +113,23 @@
                       ↕️
 ┌─────────────────────────────────────────────────┐
 │          MemeCore Blockchain (EVM)              │
-│  - 스마트 컨트랙트 (향후 구현)                  │
+│  - Wagmi/Viem v2를 통한 트랜잭션                │
 │  - 토큰 트랜잭션                                │
 └─────────────────────────────────────────────────┘
 ```
+
+### 2.3 메시징 플로우 개요
+
+- **Content Script 핸들러:** API/Storage 관련 메시지만 처리하며, 블록체인/지갑 동작은 Wagmi/Viem 훅과 외부 지갑을 통해 Content 내부에서 직접 수행한다.
+- **Background 라우터:** Content에서 넘어온 `scope`(`API`, `SETTINGS`, `NOTIFY`)와 `action`을 기준으로 Supabase 호출, chrome.storage 접근, 브로드캐스트를 수행한다. 블록체인 관련 scope는 허용하지 않는다.
+- **요청-응답 규약:** `{ scope, action, payload }` 형태의 메시지를 Promise 기반으로 주고받으며, `error` 필드가 존재하면 Content 쪽에서 React Query `throw`로 처리한다.
+- **메시지 타입 중앙화:** `src/messaging/messageTypes.ts`에서 `Scope`, `Action`, `MessageEnvelope` 및 `ActionHandlers`를 정의해 Content/Background가 동일한 타입을 import한다. 모든 신규 액션은 이 파일에 추가하고 주석에 담당 모듈을 기재해 추적성을 확보한다.
+
+### 2.4 에러 & 알림 정책
+
+- Background는 모든 실패 케이스를 `sendResponse({ error, scope: 'NOTIFY' })`와 `console.warn('[squid-meme:bg]', error)` 두 경로로 기록한다.
+- Content는 `NOTIFY` scope 수신 시 `notificationsAtom`에 메시지를 push하고, 사용자에게 토스트로 안내한다.
+- 재시도 가능 오류와 치명적 오류를 구분하기 위해 `errorCode`를 선택적으로 포함하며, UX 정책은 `src/messaging/messageTypes.ts`에 Enum으로 정의한다.
 
 ---
 
@@ -116,7 +139,7 @@
 
 Jotai는 원자(Atom) 기반의 경량 상태 관리 라이브러리로, React Query와 함께 사용하여 서버 상태와 클라이언트 상태를 명확히 분리합니다.
 
-- **React Query:** 서버 상태 (API 호출, 캐싱, 동기화)
+- **React Query:** 서버 상태 (API 호출, 캐싱, 동기화, `isPending` 중심 흐름)
 - **Jotai:** 클라이언트 상태 (UI 상태, 로컬 상태, 전역 설정)
 
 ### 3.2 전역 상태 설계
@@ -260,27 +283,28 @@ export const needsDepositAtom = atom((get) => {
 
 ```typescript
 import { atom } from 'jotai';
-import { supabase } from '../lib/supabase';
 import { profileAtom } from './profileAtoms';
 
-// 방 정보 비동기 로드
+// Background API Proxy를 통한 방 정보 로드
 export const roomInfoAtom = atom(async (get) => {
   const profile = get(profileAtom);
   if (!profile) return null;
 
-  const { data, error } = await supabase
-    .from('challenges')
-    .select('*')
-    .eq('username', profile.username)
-    .eq('username_tag', profile.usernameTag)
-    .single();
+  const response = await chrome.runtime.sendMessage({
+    scope: 'API',
+    action: 'FETCH_ROOM',
+    payload: {
+      username: profile.username,
+      usernameTag: profile.usernameTag,
+    },
+  });
 
-  if (error) {
-    console.error('방 정보 조회 실패:', error);
+  if (response?.error) {
+    console.error('방 정보 조회 실패:', response.error);
     return null;
   }
 
-  return data;
+  return response?.data ?? null;
 });
 ```
 
@@ -358,64 +382,45 @@ export function useWalletState() {
 }
 ```
 
-### 3.7 Chrome Storage와의 동기화
+### 3.7 메시지 기반 Storage 동기화
 
 **파일:** `src/atoms/storageAtoms.ts`
 
 ```typescript
 import { atom } from 'jotai';
-import { atomWithStorage } from 'jotai/utils';
 
-// Chrome Storage와 동기화되는 지갑 주소
-export const gladiatorWalletStorageAtom = atomWithStorage<string | null>(
-  'gladiatorWalletAddress',
-  null,
-  {
-    getItem: async (key) => {
-      const result = await chrome.storage.local.get(key);
-      return result[key] ?? null;
-    },
-    setItem: async (key, value) => {
-      await chrome.storage.local.set({ [key]: value });
-    },
-    removeItem: async (key) => {
-      await chrome.storage.local.remove(key);
-    },
-  }
-);
-
-// 설정 정보 (다크모드 등)
 interface Settings {
   darkMode: boolean;
   autoDeposit: boolean;
   notificationEnabled: boolean;
 }
 
-export const settingsStorageAtom = atomWithStorage<Settings>(
-  'squidMemeSettings',
+// Background에서 chrome.storage를 다루고, Content는 메시지로만 접근
+export const settingsAtom = atom<Settings>(
   {
     darkMode: false,
     autoDeposit: false,
     notificationEnabled: true,
   },
-  {
-    getItem: async (key) => {
-      const result = await chrome.storage.local.get(key);
-      return result[key] ?? {
-        darkMode: false,
-        autoDeposit: false,
-        notificationEnabled: true,
-      };
-    },
-    setItem: async (key, value) => {
-      await chrome.storage.local.set({ [key]: value });
-    },
-    removeItem: async (key) => {
-      await chrome.storage.local.remove(key);
-    },
+  async (_get, set, next) => {
+    await chrome.runtime.sendMessage({
+      scope: 'SETTINGS',
+      action: 'UPDATE',
+      payload: next,
+    });
+    set(settingsAtom, next);
   }
 );
 ```
+
+> **원칙:** Content Script에서는 chrome.storage API를 직접 호출하지 않는다. 모든 지속성 관련 작업은 Background가 처리하고, Content는 메시지 인터페이스만 사용한다. 특히 지갑 키/시드는 어떤 저장소에도 기록하지 않는다.
+
+#### 3.7.1 설정 데이터 플로우
+
+1. 사용자가 UI에서 설정을 변경하면 `settingsAtom`의 write 함수가 `scope: 'SETTINGS', action: 'UPDATE'` 메시지를 Background로 전송한다.
+2. Background `src/messaging/handlers/settingsHandler.ts`는 chrome.storage에 값을 반영한 뒤, 최신 스냅샷을 `scope: 'SETTINGS_PUSH'` 메시지로 Content에 브로드캐스트한다.
+3. Content `initContentMessagingBridge()`가 이를 수신해 `applySettingsUpdate`를 호출하고, Jotai Store를 갱신한다.
+4. 필요 시 Background는 동일한 `SETTINGS_PUSH`를 popup/sidepanel에도 전달해 여러 UI가 항상 동일한 상태를 보도록 한다.
 
 ### 3.8 사용 예시
 
@@ -494,14 +499,22 @@ export function useProfileDetection() {
   const [hasRoom, setHasRoom] = useState<boolean>(false);
 
   useEffect(() => {
-    const checkProfile = () => {
+    const checkProfile = async () => {
       const params = parseProfileUrl(window.location.href);
       setProfile(params);
       
       if (params) {
-        // Supabase에서 방 유무 확인
-        checkRoomExists(params.username, params.usernameTag)
-          .then(setHasRoom);
+        const response = await chrome.runtime.sendMessage({
+          scope: 'API',
+          action: 'FETCH_ROOM',
+          payload: {
+            username: params.username,
+            usernameTag: params.usernameTag,
+          },
+        });
+        setHasRoom(Boolean(response?.data));
+      } else {
+        setHasRoom(false);
       }
     };
 
@@ -598,72 +611,86 @@ export function useMemeXProfile() {
 ### 3.3 지갑 생성 및 관리 (Gladiator Wallet)
 
 #### 목표
-- 확장 프로그램 내부에 로컬 지갑 생성
+- Content Script 내부에서 Wagmi 커넥터(Injected, WalletConnect 등)를 통해 외부 지갑 연결
+- Background와는 지갑 상태 메타만 공유하고, 체인 상호작용은 Content에서 직접 처리
 - 메인 지갑에서 소액 입금 (Arming)
 - $M 코인과 게임 토큰 관리
 
 #### 구현 세부사항
 
+**파일:** `src/config/wallet.ts`
+
+```typescript
+export const walletConfig = {
+  chain: {
+    id: Number(process.env.VITE_MEMECORE_CHAIN_ID),
+    rpcUrl: process.env.VITE_MEMECORE_RPC_URL!,
+  },
+  vaultAddress: process.env.VITE_GLADIATOR_VAULT as `0x${string}`,
+  tokens: {
+    mcoin: process.env.VITE_M_COIN_ADDRESS as `0x${string}`,
+    game: process.env.VITE_GAME_TOKEN_ADDRESS as `0x${string}`,
+  },
+} as const;
+```
+
 **파일:** `src/hooks/useGladiatorWallet.ts` (커스텀 훅)
 
 ```typescript
-import { useState, useEffect } from 'react';
-import { createWalletClient, http, parseEther, formatEther } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-
-interface WalletBalance {
-  mcoin: string;      // $M 잔액
-  gameToken: string;  // 게임 토큰 잔액
-}
+import { useCallback, useMemo } from 'react';
+import { useAccount, useBalance, useWalletClient } from 'wagmi';
+import { parseEther } from 'viem';
+import { walletConfig } from '../config/wallet';
+import { erc20Abi } from '../abi/erc20';
 
 export function useGladiatorWallet() {
-  const [privateKey, setPrivateKey] = useState<string | null>(null);
-  const [address, setAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState<WalletBalance>({ mcoin: '0', gameToken: '0' });
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
 
-  // 지갑 생성 또는 불러오기
-  useEffect(() => {
-    loadOrCreateWallet();
-  }, []);
+  const { data: mcoinBalance, refetch: refetchMCoin } = useBalance({
+    address,
+    token: walletConfig.tokens.mcoin,
+    query: { enabled: Boolean(address) },
+  });
 
-  const loadOrCreateWallet = async () => {
-    // Chrome Storage에서 기존 지갑 확인
-    const stored = await chrome.storage.local.get('gladiatorWallet');
-    
-    if (stored.gladiatorWallet?.privateKey) {
-      setPrivateKey(stored.gladiatorWallet.privateKey);
-      const account = privateKeyToAccount(stored.gladiatorWallet.privateKey as `0x${string}`);
-      setAddress(account.address);
-    } else {
-      // 새 지갑 생성
-      const newWallet = createWalletClient({
-        account: privateKeyToAccount(generatePrivateKey()),
-        transport: http()
+  const { data: gameTokenBalance, refetch: refetchGameToken } = useBalance({
+    address,
+    token: walletConfig.tokens.game,
+    query: { enabled: Boolean(address) },
+  });
+
+  const deposit = useCallback(
+    async (amount: string, token: keyof typeof walletConfig.tokens) => {
+      if (!walletClient || !address) throw new Error('지갑이 연결되지 않았습니다.');
+
+      await walletClient.writeContract({
+        address: walletConfig.tokens[token],
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [walletConfig.vaultAddress, parseEther(amount)],
       });
-      // Storage에 저장
-      await chrome.storage.local.set({
-        gladiatorWallet: {
-          privateKey: newWallet.account.privateKey,
-          address: newWallet.account.address
-        }
-      });
-      setPrivateKey(newWallet.account.privateKey);
-      setAddress(newWallet.account.address);
-    }
-  };
+
+      await Promise.all([refetchMCoin(), refetchGameToken()]);
+    },
+    [walletClient, address, refetchMCoin, refetchGameToken]
+  );
 
   return {
     address,
-    balance,
-    deposit: async (amount: string, token: 'M' | 'game') => {
-      // 충전 로직 구현
-    },
-    withdraw: async () => {
-      // 출금 로직 구현
-    }
+    isConnected,
+    balance: useMemo(
+      () => ({
+        mcoin: mcoinBalance?.formatted ?? '0',
+        gameToken: gameTokenBalance?.formatted ?? '0',
+      }),
+      [mcoinBalance?.formatted, gameTokenBalance?.formatted]
+    ),
+    deposit,
   };
 }
 ```
+
+> **중요:** 컨텐츠 스크립트는 Wagmi 커넥터(Injected, WalletConnect 등)를 통해 외부 지갑과 직접 상호작용하며, 어떤 메시지나 스토리지에도 개인키를 저장하거나 전달하지 않는다.
 
 ---
 
@@ -751,7 +778,7 @@ export function DepositPanel() {
 
 #### 구현 세부사항
 
-**파일:** `src/lib/supabase.ts`
+**파일:** `src/lib/supabase.ts` (Background 전용)
 
 ```typescript
 import { createClient } from '@supabase/supabase-js';
@@ -765,11 +792,48 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 });
 ```
 
+**파일:** `entrypoints/background.ts` (API 라우터)
+
+```typescript
+import { supabase } from '../src/lib/supabase';
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.scope !== 'API') return false;
+
+  (async () => {
+    try {
+      if (message.action === 'COMMENTS_LIST') {
+        const { data, error } = await supabase
+          .from('comments')
+          .select('*')
+          .eq('challenge_id', message.payload.challengeId)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        sendResponse({ data });
+      }
+
+      if (message.action === 'COMMENTS_CREATE') {
+        const { data, error } = await supabase
+          .from('comments')
+          .insert(message.payload)
+          .select()
+          .single();
+        if (error) throw error;
+        sendResponse({ data });
+      }
+    } catch (err) {
+      sendResponse({ error: err instanceof Error ? err.message : String(err) });
+    }
+  })();
+
+  return true; // async 응답 유지
+});
+```
+
 **파일:** `src/hooks/useComments.ts` (커스텀 훅)
 
 ```typescript
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
 
 interface Comment {
   id: string;
@@ -783,35 +847,39 @@ export function useComments(challengeId: string) {
   const queryClient = useQueryClient();
 
   // 댓글 조회
-  const { data: comments, isLoading } = useQuery({
+  const { data: comments, isPending } = useQuery({
     queryKey: ['comments', challengeId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('challenge_id', challengeId)
-        .order('created_at', { ascending: false });
+      const response = await chrome.runtime.sendMessage({
+        scope: 'API',
+        action: 'COMMENTS_LIST',
+        payload: { challengeId },
+      });
 
-      if (error) throw error;
-      return data as Comment[];
+      if (response?.error) {
+        throw new Error(response.error);
+      }
+      return response?.data as Comment[];
     },
   });
 
   // 댓글 작성
   const createComment = useMutation({
     mutationFn: async ({ content, playerAddress }: { content: string; playerAddress: string }) => {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
+      const response = await chrome.runtime.sendMessage({
+        scope: 'API',
+        action: 'COMMENTS_CREATE',
+        payload: {
           challenge_id: challengeId,
           player_address: playerAddress,
           content,
-        })
-        .select()
-        .single();
+        },
+      });
 
-      if (error) throw error;
-      return data as Comment;
+      if (response?.error) {
+        throw new Error(response.error);
+      }
+      return response?.data as Comment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
@@ -820,7 +888,7 @@ export function useComments(challengeId: string) {
 
   return {
     comments: comments || [],
-    isLoading,
+    isPending,
     createComment: createComment.mutate,
   };
 }
@@ -834,7 +902,7 @@ import { useComments } from '../hooks/useComments';
 import { useGladiatorWallet } from '../hooks/useGladiatorWallet';
 
 export function CommentSection({ challengeId }: { challengeId: string }) {
-  const { comments, isLoading, createComment } = useComments(challengeId);
+  const { comments, isPending, createComment } = useComments(challengeId);
   const { address } = useGladiatorWallet();
   const [newComment, setNewComment] = useState('');
 
@@ -862,7 +930,7 @@ export function CommentSection({ challengeId }: { challengeId: string }) {
       </form>
       
       <div className="comments-list">
-        {isLoading ? (
+        {isPending ? (
           <p>로딩 중...</p>
         ) : (
           comments.map((comment) => (
@@ -897,6 +965,7 @@ import { SquidMemeOverlay } from '../components/SquidMemeOverlay';
 import { useProfileDetection } from '../hooks/useProfileDetection';
 
 const queryClient = new QueryClient();
+import { initContentMessagingBridge } from '../messaging/contentBridge';
 
 function App() {
   const { profile, hasRoom } = useProfileDetection();
@@ -925,8 +994,41 @@ export default defineContentScript({
 
     const root = createRoot(container);
     root.render(<App />);
+
+    initContentMessagingBridge();
   },
 });
+```
+
+> Content 메시징 로직은 `src/messaging/contentBridge.ts`에서 분리 관리한다. 핸들러 초기화를 `initContentMessagingBridge()`로 묶어 `content.ts`에서는 단순히 부트스트랩만 담당한다.
+
+### 4.2 Content 메시징 브리지
+
+**파일:** `src/messaging/contentBridge.ts`
+
+```typescript
+import { applySettingsUpdate } from './handlers/settingsHandler';
+
+export function initContentMessagingBridge() {
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (sender.id !== chrome.runtime.id) return false;
+    if (message.scope !== 'SETTINGS_PUSH') return false;
+
+    applySettingsUpdate(message.payload);
+    return false;
+  });
+}
+```
+
+**파일:** `src/messaging/handlers/settingsHandler.ts`
+
+```typescript
+import { settingsAtom } from '../../atoms/storageAtoms';
+import { jotaiStore } from '../../state/store';
+
+export function applySettingsUpdate(payload: SettingsPayload) {
+  jotaiStore.set(settingsAtom, payload);
+}
 ```
 
 ### 4.2 메인 오버레이 컴포넌트
@@ -1051,7 +1153,7 @@ CREATE TABLE players (
 
 ### Phase 3: 지갑 시스템 (5일)
 - [ ] Gladiator Wallet 생성 로직
-- [ ] 지갑 저장소 (Chrome Storage) 연동
+- [ ] Background Storage Proxy + 메시징 연동
 - [ ] 지갑 관련 Atoms 생성 (Jotai)
 - [ ] 지갑 잔액 조회
 - [ ] 지갑 관리 커스텀 훅
@@ -1077,10 +1179,10 @@ CREATE TABLE players (
 - [ ] 애니메이션 효과
 
 ### Phase 7: 테스트 및 최적화 (3일)
-- [ ] 통합 테스트
-- [ ] 성능 최적화
-- [ ] 에러 핸들링 개선
-- [ ] 사용자 피드백 반영
+- [ ] 메시징 계약 테스트: Mock Background로 Content 훅/핸들러 검증
+- [ ] 지갑 통합 테스트: Testnet + Injected Wallet로 입금/알림 플로우 점검
+- [ ] Supabase 스텁 기반 React Query 검증 (캐시 무결성 확인)
+- [ ] 성능·에러 로깅 점검 및 사용자 피드백 반영
 
 ---
 
@@ -1104,7 +1206,7 @@ squid_meme/
 │   │   ├── uiAtoms.ts                # UI 상태 Atoms
 │   │   ├── derivedAtoms.ts           # 파생 상태 Atoms
 │   │   ├── asyncAtoms.ts             # 비동기 Atoms
-│   │   └── storageAtoms.ts           # Chrome Storage 동기화 Atoms
+│   │   └── storageAtoms.ts           # 메시지 기반 Storage 브리지
 │   ├── components/
 │   │   ├── JotaiProvider.tsx         # Jotai Provider (DevTools 포함)
 │   │   ├── SquidMemeOverlay.tsx      # 메인 오버레이
@@ -1122,10 +1224,14 @@ squid_meme/
 │   │   ├── urlParser.ts              # URL 파싱
 │   │   └── domParser.ts              # DOM 파싱
 │   ├── lib/
-│   │   ├── supabase.ts               # Supabase 클라이언트
+│   │   ├── supabase.ts               # (Background) Supabase 클라이언트
 │   │   └── wagmi.ts                  # Wagmi 설정
+│   ├── messaging/
+│   │   ├── contentBridge.ts          # runtime.onMessage 핸들러
+│   │   └── messageTypes.ts           # 메시지 타입/화이트리스트 정의
 │   ├── config/
-│   │   └── wagmi.ts                  # Wagmi Config (Chain, Connectors)
+│   │   ├── wagmi.ts                  # Wagmi Config (Chain, Connectors)
+│   │   └── wallet.ts                 # 체인·토큰·금고 주소 캡슐화
 │   └── types/
 │       └── index.ts                  # TypeScript 타입 정의
 ├── public/
@@ -1178,4 +1284,6 @@ VITE_M_COIN_ADDRESS=0x...
 ---
 
 **작성 완료일:** 2025-01-27  
+**다음 업데이트 예정:** 기능 구현 진행에 따라 업데이트
+
 **다음 업데이트 예정:** 기능 구현 진행에 따라 업데이트
