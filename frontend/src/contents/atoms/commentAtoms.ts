@@ -1,8 +1,9 @@
 import { atom } from 'jotai';
 import { Comment } from '@/contents/types/comment';
 
-// 현재 선택된 챌린지 ID (데모용으로 고정값 사용)
-export const currentChallengeIdAtom = atom<string>('demo-challenge-1');
+// 현재 게임 주소 (CommentGame 컨트랙트 주소)
+// null = 아직 조회 전 또는 해당 토큰에 게임 없음
+export const currentChallengeIdAtom = atom<string | null>(null);
 
 // 댓글 목록
 export const commentsAtom = atom<Comment[]>([]);

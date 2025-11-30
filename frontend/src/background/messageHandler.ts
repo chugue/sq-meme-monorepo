@@ -139,6 +139,28 @@ export function createMessageHandler() {
                         break;
                     }
 
+                    case 'GET_GAME_BY_TOKEN': {
+                        console.log('🎮 GET_GAME_BY_TOKEN 요청:', message.tokenAddress);
+                        try {
+                            const response = await apiCall<any>(
+                                `/v1/games/by-token/${encodeURIComponent(message.tokenAddress)}`
+                            );
+                            result = { success: true, data: response };
+                        } catch (error: any) {
+                            // 404는 게임이 없는 정상 케이스
+                            if (error.message?.includes('404')) {
+                                result = { success: true, data: null };
+                            } else {
+                                console.error('❌ 게임 조회 오류:', error);
+                                result = {
+                                    success: false,
+                                    error: error instanceof Error ? error.message : '게임 조회 실패',
+                                };
+                            }
+                        }
+                        break;
+                    }
+
                     default:
                         result = {
                             success: false,

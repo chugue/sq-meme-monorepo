@@ -8,10 +8,11 @@ export function useComments() {
     const queryClient = useQueryClient();
     const challengeId = useAtomValue(currentChallengeIdAtom);
 
-    // 댓글 조회
+    // 댓글 조회 (challengeId가 없으면 비활성화)
     const { data: comments = [], isLoading, refetch } = useQuery({
         queryKey: ['comments', challengeId],
         queryFn: async () => {
+            if (!challengeId) return [];
             try {
                 const data = await backgroundApi.getComments(challengeId);
                 return data as Comment[];
@@ -20,6 +21,7 @@ export function useComments() {
                 throw error;
             }
         },
+        enabled: !!challengeId,
         retry: 1,
     });
 

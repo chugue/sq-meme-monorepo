@@ -205,8 +205,22 @@ export function CommentSection() {
         location: window.location.href,
     });
 
-    // gameAddress = currentChallengeId
+    // gameAddress = currentChallengeId (null이면 게임 없음)
     const gameAddress = useAtomValue(currentChallengeIdAtom);
+
+    // 게임이 없는 경우 메시지 표시
+    if (!gameAddress) {
+        return (
+            <div className="squid-comment-section" data-testid="squid-comment-section">
+                <div className="squid-comment-header">
+                    <h3 className="squid-comment-title">COMMENTS</h3>
+                </div>
+                <div style={{ padding: '16px', textAlign: 'center', color: '#888' }}>
+                    이 프로필에는 아직 게임이 생성되지 않았습니다.
+                </div>
+            </div>
+        );
+    }
 
     const { comments, isLoading, refetch } = useComments();
     const {

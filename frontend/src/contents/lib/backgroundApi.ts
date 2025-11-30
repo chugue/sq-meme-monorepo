@@ -8,7 +8,8 @@ export type BackgroundMessage =
     | { type: 'HEALTH_CHECK' }
     | { type: 'OPEN_SIDE_PANEL' }
     | { type: 'GET_STORAGE'; key: string; area?: 'session' | 'local' }
-    | { type: 'SET_STORAGE'; key: string; value: any; area?: 'session' | 'local' };
+    | { type: 'SET_STORAGE'; key: string; value: any; area?: 'session' | 'local' }
+    | { type: 'GET_GAME_BY_TOKEN'; tokenAddress: string };
 
 export type BackgroundResponse<T = any> =
     | { success: true; data: T }
@@ -118,4 +119,29 @@ export const backgroundApi = {
             area,
         });
     },
+
+    // 토큰 주소로 게임 정보 조회
+    getGameByToken: async (tokenAddress: string) => {
+        return sendToBackground<GameInfo | null>({
+            type: 'GET_GAME_BY_TOKEN',
+            tokenAddress,
+        });
+    },
 };
+
+// 게임 정보 타입
+export interface GameInfo {
+    id: number;
+    gameId: string;
+    gameAddress: string;
+    gameToken: string;
+    tokenSymbol: string | null;
+    tokenName: string | null;
+    initiator: string;
+    gameTime: string;
+    endTime: string;
+    cost: string;
+    prizePool: string;
+    isEnded: boolean;
+    lastCommentor: string;
+}
