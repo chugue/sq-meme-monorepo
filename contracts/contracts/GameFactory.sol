@@ -33,7 +33,7 @@ contract GameFactory is Ownable {
         uint256 cost,
         uint256 prizePool,
         address lastCommentor,
-        bool isEnded
+        bool isClaimed
     );
 
     constructor(address _feeCollector) Ownable(msg.sender) {
@@ -48,10 +48,9 @@ contract GameFactory is Ownable {
         // 0. 해당 토큰으로 이미 게임이 있는지 확인
         address existingGame = gameByToken[_gameToken].gameAddress;
         if (existingGame != address(0)) {
-            // 기존 게임이 있으면, 종료되었는지 확인 (시간 만료 또는 상금 수령됨)
+            // 기존 게임이 있으면, 종료되었는지 확인 (시간 만료)
             CommentGame game = CommentGame(existingGame);
-            bool isGameEnded = game.isEnded() || block.timestamp >= game.endTime();
-            require(isGameEnded, "Active game already exists for this token");
+            require(block.timestamp >= game.endTime(), "Active game already exists for this token");
         }
 
         // 1. 생성자로부터 첫 참가비 수령
@@ -100,7 +99,7 @@ contract GameFactory is Ownable {
             newGame.cost(),
             newGame.prizePool(),
             newGame.lastCommentor(),
-            newGame.isEnded()
+            newGame.isClaimed()
         );
     }
 

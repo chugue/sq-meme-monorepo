@@ -5,25 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-// Phase1: 핵심 컨트렉트 설계
-/**
- * 1. 데이터 구조 정의 - Game 상태를 저장할 struct설계
- * 2. GameFactory 컨트렉트 - createGame() 함수와 이벤트
- * 3. CommentGame 컨트렉트 - 개별 게임 로직 (댓글 작성, 타이머, 상금 분배)
- */
-
-// Phase2: 핵심 기능 구현
-/**
- * 4. 댓글 작성 로직 - 비용지불 + 타이머 리셋
- * 5. 게임 종료 로직 - 타이머 만료시 승자에게 상금
- * 6. 상금 풀 관리 - 수수료 구조
- */
-
-// Phase3: 보안 및 테스트
-/**
- * 7. 접근 제어 및 예외 처리
- * 8. 테스트 케이스 작성
- */
 
 contract CommentGame is ReentrancyGuard {
     uint256 public immutable id;
@@ -34,7 +15,7 @@ contract CommentGame is ReentrancyGuard {
     uint256 public endTime;
     address public lastCommentor;
     uint256 public prizePool;
-    bool public isEnded;
+    bool public isClaimed;    // 상금 수령 여부
     // 플랫폼 수수료
     uint256 public constant PLATFORM_FEE = 2;
     address public immutable feeCollector;
@@ -69,17 +50,14 @@ contract CommentGame is ReentrancyGuard {
 
     /**
      * @notice 게임에 댓글을 등록하고 참가비를 지불합니다.
-     * @dev 호출 전에 반드시 ERC20 approv가 선행되어야 합니다.
+     * @dev 호출 전에 반드시 ERC20 approve가 선행되어야 합니다.
      * @param _message 등록할 댓글 내용
      */
     function addComment(string memory _message) external nonReentrant {
         // 1. 게임 종료 여부 확인 (시간 체크)
         require(block.timestamp < endTime, "Game already ended");
 
-        // 2. 게임 종료 여부 확인 (변수 체크)
-        require(!isEnded, "Game already ended");
-
-        // 3. 토큰 승인 여부 확인
+        // 2. 토큰 승인 여부 확인
         uint256 allowance = IERC20(gameToken).allowance(
             msg.sender,
             address(this)
@@ -105,10 +83,10 @@ contract CommentGame is ReentrancyGuard {
         // 1. Checks (검증)
         require(block.timestamp >= endTime, "Game not ended yet");
         require(msg.sender == lastCommentor, "Only winner can withdraw");
-        require(!isEnded, "Already withdrawn");
+        require(!isClaimed, "Prize already claimed");
 
         // 2. Effects (상태 변경)
-        isEnded = true;
+        isClaimed = true;
 
         // 3. Interactions (상호작용 - 송금)
         uint256 totalPrize = prizePool;
