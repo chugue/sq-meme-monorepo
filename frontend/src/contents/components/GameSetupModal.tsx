@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Address } from 'viem';
+import { useCreateGame, type CreateGameStep } from '../hooks/useCreateGame';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 import { useWallet } from '../hooks/useWallet';
 import './GameSetupModal.css';
@@ -44,6 +45,7 @@ export function GameSetupModal({
         time: '3600',     // 기본값: 1시간 (3600초)
         firstComment: '',
     });
+    const [tokenDecimals, setTokenDecimals] = useState<number>(18); // 토큰 decimals (기본값 18)
 
     // 모달이 닫히지 않았으면 렌더링하지 않음
     if (!isOpen) return null;
@@ -98,7 +100,10 @@ export function GameSetupModal({
                         <BalanceCheckStep
                             tokenAddress={tokenAddress}
                             tokenSymbol={tokenSymbol}
-                            onNext={() => setStep('settings')}
+                            onNext={(decimals) => {
+                                setTokenDecimals(decimals);
+                                setStep('settings');
+                            }}
                             onClose={handleClose}
                         />
                     )}
@@ -118,6 +123,7 @@ export function GameSetupModal({
                             settings={settings}
                             tokenAddress={tokenAddress}
                             tokenSymbol={tokenSymbol}
+                            decimals={tokenDecimals}
                             isProcessing={step === 'processing'}
                             onConfirm={() => setStep('processing')}
                             onBack={() => setStep('settings')}
@@ -148,7 +154,7 @@ function BalanceCheckStep({
 }: {
     tokenAddress: Address;
     tokenSymbol: string;
-    onNext: () => void;
+    onNext: (decimals: number) => void;
     onClose: () => void;
 }) {
     const { address } = useWallet();
@@ -242,7 +248,7 @@ function BalanceCheckStep({
                         {isLoading ? 'Checking...' : 'Check Balance'}
                     </button>
                 ) : hasBalance ? (
-                    <button type="button" className="squid-btn-primary" onClick={onNext}>
+                    <button type="button" className="squid-btn-primary" onClick={() => onNext(tokenInfo?.decimals ?? 18)}>
                         Next
                     </button>
                 ) : (
@@ -388,6 +394,7 @@ function ConfirmStep({
     settings,
     tokenAddress,
     tokenSymbol,
+    decimals,
     isProcessing,
     onConfirm,
     onBack,
@@ -396,34 +403,40 @@ function ConfirmStep({
     settings: GameSettings;
     tokenAddress: Address;
     tokenSymbol: string;
+    decimals: number;
     isProcessing: boolean;
     onConfirm: () => void;
     onBack: () => void;
     onComplete: (gameAddress: string) => void;
 }) {
-    const [status, setStatus] = useState<string>('');
-    const [error, setError] = useState<string | null>(null);
+    const {
+        step: txStep,
+        status: txStatus,
+        error: txError,
+        gameAddress,
+        createGame,
+        reset: resetCreateGame,
+    } = useCreateGame();
+
+    // 트랜잭션 완료 시 콜백
+    useEffect(() => {
+        if (txStep === 'complete' && gameAddress) {
+            onComplete(gameAddress);
+        }
+    }, [txStep, gameAddress, onComplete]);
 
     const handleConfirm = async () => {
         onConfirm();
-        setError(null);
+        resetCreateGame();
 
-        try {
-            // TODO: 실제 트랜잭션 구현 (4단계에서)
-            setStatus('1/3 토큰 승인 중...');
-            await new Promise(resolve => setTimeout(resolve, 1500));
+        // cost를 bigint로 변환 (decimals 적용)
+        const costInWei = BigInt(settings.cost) * (10n ** BigInt(decimals));
 
-            setStatus('2/3 게임 생성 중...');
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            setStatus('3/3 첫 댓글 작성 중...');
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // 임시 게임 주소
-            onComplete('0x1234567890123456789012345678901234567890');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : '트랜잭션 실패');
-        }
+        await createGame({
+            tokenAddress,
+            cost: costInWei,
+            time: Number(settings.time),
+        });
     };
 
     const formatTime = (seconds: string) => {
@@ -433,6 +446,24 @@ function ConfirmStep({
         if (s >= 60) return `${Math.floor(s / 60)}분`;
         return `${s}초`;
     };
+
+    // 트랜잭션 단계별 상태 메시지
+    const getStatusMessage = (step: CreateGameStep): string => {
+        switch (step) {
+            case 'approve':
+                return '1/2 토큰 승인 중...';
+            case 'create':
+                return '2/2 게임 생성 중...';
+            case 'complete':
+                return '완료!';
+            case 'error':
+                return '오류 발생';
+            default:
+                return txStatus || 'Processing...';
+        }
+    };
+
+    const showProcessing = isProcessing || txStep === 'approve' || txStep === 'create';
 
     return (
         <div className="squid-step-content">
@@ -462,16 +493,16 @@ function ConfirmStep({
                 </div>
             </div>
 
-            {isProcessing && (
+            {showProcessing && (
                 <div className="squid-processing-status">
                     <div className="squid-loading-spinner" />
-                    <span>{status || 'Processing...'}</span>
+                    <span>{getStatusMessage(txStep)}</span>
                 </div>
             )}
 
-            {error && (
+            {txError && (
                 <div className="squid-error-box">
-                    {error}
+                    {txError}
                 </div>
             )}
 
@@ -480,7 +511,7 @@ function ConfirmStep({
                     type="button"
                     className="squid-btn-secondary"
                     onClick={onBack}
-                    disabled={isProcessing}
+                    disabled={showProcessing}
                 >
                     Back
                 </button>
@@ -488,9 +519,9 @@ function ConfirmStep({
                     type="button"
                     className="squid-btn-primary squid-btn-create"
                     onClick={handleConfirm}
-                    disabled={isProcessing}
+                    disabled={showProcessing}
                 >
-                    {isProcessing ? 'Creating...' : 'CREATE GAME'}
+                    {showProcessing ? 'Creating...' : 'CREATE GAME'}
                 </button>
             </div>
         </div>
