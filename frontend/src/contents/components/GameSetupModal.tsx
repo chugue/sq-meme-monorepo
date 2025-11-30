@@ -5,8 +5,10 @@
  * - 토큰 잔액 확인, 게임 설정 입력, 트랜잭션 실행
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Address } from 'viem';
+import { useTokenBalance } from '../hooks/useTokenBalance';
+import { useWallet } from '../hooks/useWallet';
 import './GameSetupModal.css';
 
 // 게임 설정 단계
@@ -149,20 +151,35 @@ function BalanceCheckStep({
     onNext: () => void;
     onClose: () => void;
 }) {
-    // TODO: 실제 잔액 조회 구현 (2단계에서)
-    const [isLoading, setIsLoading] = useState(false);
-    const [balance, setBalance] = useState<string | null>(null);
-    const [hasBalance, setHasBalance] = useState<boolean | null>(null);
+    const { address } = useWallet();
+    const { tokenInfo, isLoading, error, checkBalance, hasBalance } = useTokenBalance();
+    const [isChecked, setIsChecked] = useState(false);
 
-    // 임시: 잔액이 있다고 가정
-    const checkBalance = useCallback(async () => {
-        setIsLoading(true);
-        // TODO: 실제 balanceOf 호출
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setBalance('1000');
-        setHasBalance(true);
-        setIsLoading(false);
-    }, []);
+    // 잔액 조회 핸들러
+    const handleCheckBalance = useCallback(async () => {
+        if (!address) return;
+        await checkBalance(tokenAddress, address as Address);
+        setIsChecked(true);
+    }, [address, tokenAddress, checkBalance]);
+
+    // 모달 열릴 때 자동으로 잔액 조회
+    useEffect(() => {
+        if (address && !isChecked && !isLoading) {
+            handleCheckBalance();
+        }
+    }, [address, isChecked, isLoading, handleCheckBalance]);
+
+    // Trade 버튼 클릭 - MemeX Trade 페이지로 이동
+    const handleTrade = () => {
+        // 현재 페이지의 Trade 버튼 클릭 시뮬레이션
+        const tradeButton = document.querySelector('button:has-text("Trade")') as HTMLButtonElement;
+        if (tradeButton) {
+            tradeButton.click();
+        } else {
+            // Trade 버튼이 없으면 알림
+            alert('Trade 버튼을 찾을 수 없습니다. 페이지에서 직접 Trade를 클릭해주세요.');
+        }
+    };
 
     return (
         <div className="squid-step-content">
@@ -179,20 +196,33 @@ function BalanceCheckStep({
                 <span className="squid-value">{tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}</span>
             </div>
 
-            {balance !== null && (
+            {isLoading && (
+                <div className="squid-balance-box">
+                    <span className="squid-label">Your Balance</span>
+                    <span className="squid-value">Loading...</span>
+                </div>
+            )}
+
+            {error && (
+                <div className="squid-error-box">
+                    {error}
+                </div>
+            )}
+
+            {tokenInfo && (
                 <div className="squid-balance-box">
                     <span className="squid-label">Your Balance</span>
                     <span className={`squid-value ${hasBalance ? 'has-balance' : 'no-balance'}`}>
-                        {balance} {tokenSymbol}
+                        {tokenInfo.balanceFormatted} {tokenInfo.symbol || tokenSymbol}
                     </span>
                 </div>
             )}
 
-            {hasBalance === false && (
+            {isChecked && !hasBalance && !isLoading && (
                 <div className="squid-warning-box">
                     <p>토큰 잔액이 부족합니다.</p>
                     <p>Trade 버튼을 눌러 토큰을 구매해주세요.</p>
-                    <button type="button" className="squid-trade-button">
+                    <button type="button" className="squid-trade-button" onClick={handleTrade}>
                         TRADE {tokenSymbol}
                     </button>
                 </div>
@@ -202,12 +232,12 @@ function BalanceCheckStep({
                 <button type="button" className="squid-btn-secondary" onClick={onClose}>
                     Cancel
                 </button>
-                {balance === null ? (
+                {!isChecked || isLoading ? (
                     <button
                         type="button"
                         className="squid-btn-primary"
-                        onClick={checkBalance}
-                        disabled={isLoading}
+                        onClick={handleCheckBalance}
+                        disabled={isLoading || !address}
                     >
                         {isLoading ? 'Checking...' : 'Check Balance'}
                     </button>
@@ -215,7 +245,15 @@ function BalanceCheckStep({
                     <button type="button" className="squid-btn-primary" onClick={onNext}>
                         Next
                     </button>
-                ) : null}
+                ) : (
+                    <button
+                        type="button"
+                        className="squid-btn-primary"
+                        onClick={handleCheckBalance}
+                    >
+                        Refresh
+                    </button>
+                )}
             </div>
         </div>
     );
