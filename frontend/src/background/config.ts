@@ -1,3 +1,3 @@
-// 서버 API 기본 URL
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// 서버 API 기본 URL (NestJS 백엔드 포트: 3000)
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
