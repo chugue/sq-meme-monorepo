@@ -12,7 +12,7 @@ describe("CommentGame", function () {
     const publicClient = await connection.viem.getPublicClient();
 
     // 1. Mock Token 배포
-    const token = await connection.viem.deployContract("MockToken");
+    const token = await connection.viem.deployContract("MockERC20", ["MockERC20", "MTK"]);
 
     // 2. Game Factory 배포
     const factory = await connection.viem.deployContract("GameFactory", [
@@ -23,6 +23,10 @@ describe("CommentGame", function () {
     const mintAmount = parseEther("1000");
     await token.write.mint([user1.account.address, mintAmount]);
     await token.write.mint([user2.account.address, mintAmount]);
+
+    // 4. deployer가 factory에 토큰 approve (createGame용)
+    const approveAmount = parseEther("10000");
+    await token.write.approve([factory.address, approveAmount]);
 
     return {
       factory,
@@ -117,7 +121,7 @@ describe("CommentGame", function () {
       it("Should increment gameIdCounter after each game creation", async function () {
         const connection = await hre.network.connect();
         const { loadFixture } = connection.networkHelpers;
-        const { factory, token, publicClient } =
+        const { factory, token, deployer, publicClient, connection: conn } =
           await loadFixture(deployGameFixture);
 
         const cost = parseEther("10");
@@ -128,8 +132,13 @@ describe("CommentGame", function () {
         await publicClient.waitForTransactionReceipt({ hash });
         expect(await factory.read.gameIdCounter()).to.equal(1n);
 
-        // 두 번째 게임 생성
-        hash = await factory.write.createGame([token.address, timer, cost]);
+        // 두 번째 게임 생성 (다른 토큰 사용 - gameByToken 제약)
+        const token2 = await conn.viem.deployContract("MockERC20", ["MockToken2", "MTK2"]);
+        await token2.write.mint([deployer.account.address, parseEther("1000")]);
+        hash = await token2.write.approve([factory.address, cost]);
+        await publicClient.waitForTransactionReceipt({ hash });
+
+        hash = await factory.write.createGame([token2.address, timer, cost]);
         await publicClient.waitForTransactionReceipt({ hash });
         expect(await factory.read.gameIdCounter()).to.equal(2n);
       });
@@ -137,17 +146,23 @@ describe("CommentGame", function () {
       it("Should store deployed game addresses in array", async function () {
         const connection = await hre.network.connect();
         const { loadFixture } = connection.networkHelpers;
-        const { factory, token, publicClient } =
+        const { factory, token, deployer, publicClient, connection: conn } =
           await loadFixture(deployGameFixture);
 
         const cost = parseEther("10");
         const timer = 600n;
 
-        // 게임 2개 생성
+        // 게임 1 생성
         let hash = await factory.write.createGame([token.address, timer, cost]);
         await publicClient.waitForTransactionReceipt({ hash });
 
-        hash = await factory.write.createGame([token.address, timer, cost]);
+        // 게임 2 생성 (다른 토큰 사용 - gameByToken 제약)
+        const token2 = await conn.viem.deployContract("MockERC20", ["MockToken2", "MTK2"]);
+        await token2.write.mint([deployer.account.address, parseEther("1000")]);
+        hash = await token2.write.approve([factory.address, cost]);
+        await publicClient.waitForTransactionReceipt({ hash });
+
+        hash = await factory.write.createGame([token2.address, timer, cost]);
         await publicClient.waitForTransactionReceipt({ hash });
 
         const game1 = await factory.read.deployedGames([0n]);
@@ -272,7 +287,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -312,7 +327,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인 및 댓글 추가
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -348,7 +363,7 @@ describe("CommentGame", function () {
 
         // User1 댓글
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -365,7 +380,7 @@ describe("CommentGame", function () {
 
         // User2 댓글
         const tokenAsUser2 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user2 } },
         );
@@ -429,7 +444,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -470,7 +485,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인 및 댓글 추가
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -520,7 +535,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인 및 댓글 추가
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -581,7 +596,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인 및 댓글 추가
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -622,7 +637,7 @@ describe("CommentGame", function () {
 
         // User1이 댓글 작성 (winner)
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -672,7 +687,7 @@ describe("CommentGame", function () {
 
         // 토큰 승인 및 댓글 추가
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -726,7 +741,7 @@ describe("CommentGame", function () {
 
         // User1, User2 각각 댓글 (총 100 ETH 상금풀)
         const tokenAsUser1 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user1 } },
         );
@@ -742,7 +757,7 @@ describe("CommentGame", function () {
         await publicClient.waitForTransactionReceipt({ hash });
 
         const tokenAsUser2 = await conn.viem.getContractAt(
-          "MockToken",
+          "MockERC20",
           token.address,
           { client: { wallet: user2 } },
         );
@@ -823,7 +838,7 @@ describe("CommentGame", function () {
       it("Should create multiple games with different parameters", async function () {
         const connection = await hre.network.connect();
         const { loadFixture } = connection.networkHelpers;
-        const { factory, token, publicClient, connection: conn } =
+        const { factory, token, deployer, publicClient, connection: conn } =
           await loadFixture(deployGameFixture);
 
         // 게임 1: 작은 비용, 긴 타이머
@@ -834,9 +849,14 @@ describe("CommentGame", function () {
         ]);
         await publicClient.waitForTransactionReceipt({ hash });
 
-        // 게임 2: 큰 비용, 짧은 타이머
+        // 게임 2: 큰 비용, 짧은 타이머 (다른 토큰 사용 - gameByToken 제약)
+        const token2 = await conn.viem.deployContract("MockERC20", ["MockToken2", "MTK2"]);
+        await token2.write.mint([deployer.account.address, parseEther("1000")]);
+        hash = await token2.write.approve([factory.address, parseEther("100")]);
+        await publicClient.waitForTransactionReceipt({ hash });
+
         hash = await factory.write.createGame([
-          token.address,
+          token2.address,
           60n,
           parseEther("100"),
         ]);
