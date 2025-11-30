@@ -1,0 +1,1 @@
+ALTER TABLE "squid_meme"."games" ADD COLUMN "updated_at" timestamp DEFAULT now();

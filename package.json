@@ -1,0 +1,15 @@
+{
+  "name": "squid-meme-monorepo",
+  "private": true,
+  "workspaces": [
+    "contracts",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces",
+    "test:backend": "npm test --workspace=backend",
+    "test:backend:e2e": "npm run test:e2e --workspace=backend",
+    "test:contracts": "npm test --workspace=contracts"
+  }
+}
