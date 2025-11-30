@@ -33,11 +33,15 @@ export const gameFactoryABI = [
         stateMutability: 'view',
         type: 'function',
     },
-    // 토큰별 게임 조회
+    // 토큰별 게임 조회 (반환: GameInfo 구조체)
     {
         inputs: [{ internalType: 'address', name: '', type: 'address' }],
-        name: 'gamesByToken',
-        outputs: [{ internalType: 'address', name: '', type: 'address' }],
+        name: 'gameByToken',
+        outputs: [
+            { internalType: 'address', name: 'gameAddress', type: 'address' },
+            { internalType: 'string', name: 'tokenSymbol', type: 'string' },
+            { internalType: 'string', name: 'tokenName', type: 'string' },
+        ],
         stateMutability: 'view',
         type: 'function',
     },
@@ -61,5 +65,5 @@ export const gameFactoryABI = [
     },
 ] as const;
 
-// GameFactory 컨트랙트 주소
-export const GAME_FACTORY_ADDRESS = '0x203b76f941d6ff95da8abd803329d39d7633773e';
+// GameFactory 컨트랙트 주소 (환경변수 사용)
+export const GAME_FACTORY_ADDRESS = import.meta.env.VITE_GAME_FACTORY_ADDRESS || '0xe5115025d3e7f171372aade2214188b4ba5f6da9';

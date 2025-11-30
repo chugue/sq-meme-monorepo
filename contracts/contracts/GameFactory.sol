@@ -45,8 +45,14 @@ contract GameFactory is Ownable {
         uint256 _time,
         uint _cost
     ) external {
-        // 0. 해당 토큰으로 이미 게임이 생성되었는지 확인
-        require(gameByToken[_gameToken].gameAddress == address(0), "Game already exists for this token");
+        // 0. 해당 토큰으로 이미 게임이 있는지 확인
+        address existingGame = gameByToken[_gameToken].gameAddress;
+        if (existingGame != address(0)) {
+            // 기존 게임이 있으면, 종료되었는지 확인 (시간 만료 또는 상금 수령됨)
+            CommentGame game = CommentGame(existingGame);
+            bool isGameEnded = game.isEnded() || block.timestamp >= game.endTime();
+            require(isGameEnded, "Active game already exists for this token");
+        }
 
         // 1. 생성자로부터 첫 참가비 수령
         require(

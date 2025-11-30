@@ -8,6 +8,7 @@
  * - 테스트 가능한 구조
  */
 
+import { encodeFunctionData, decodeFunctionResult, type Abi } from 'viem';
 import { INJECTED_CONFIG } from './injected/config';
 import { logger } from './injected/logger';
 import { isInjectedScriptReadyMessage, isInjectedScriptResponse } from './injected/messageValidator';
@@ -400,6 +401,109 @@ export async function getSessionStorage(key: string): Promise<unknown> {
     return sendEthereumRequest<unknown>('GET_SESSION_STORAGE', [{ key }]);
 }
 
+/**
+ * 컨트랙트 읽기 (eth_call)
+ */
+export interface ReadContractParams {
+    address: string;
+    abi: Abi;
+    functionName: string;
+    args?: readonly unknown[];
+}
+
+export async function readContract<T = unknown>(params: ReadContractParams): Promise<T> {
+    const { address, abi, functionName, args = [] } = params;
+
+    // ABI에서 함수 찾기
+    const abiItem = abi.find(
+        (item) => item.type === 'function' && item.name === functionName
+    );
+
+    if (!abiItem || abiItem.type !== 'function') {
+        throw new InjectedScriptErrorClass(
+            `Function ${functionName} not found in ABI`,
+            ERROR_CODES.INVALID_MESSAGE
+        );
+    }
+
+    // calldata 인코딩
+    const data = encodeFunctionData({
+        abi,
+        functionName,
+        args: args as unknown[],
+    });
+
+    logger.debug('readContract 호출', { address, functionName, args });
+
+    // eth_call 실행
+    const result = await sendEthereumRequest<string>('eth_call', [
+        { to: address, data },
+        'latest',
+    ]);
+
+    // 결과 디코딩
+    const decoded = decodeFunctionResult({
+        abi,
+        functionName,
+        data: result as `0x${string}`,
+    });
+
+    logger.debug('readContract 결과', { functionName, decoded });
+
+    return decoded as T;
+}
+
+/**
+ * 컨트랙트 쓰기 (eth_sendTransaction)
+ */
+export interface WriteContractParams {
+    address: string;
+    abi: Abi;
+    functionName: string;
+    args?: readonly unknown[];
+    value?: bigint;
+}
+
+export async function writeContract(params: WriteContractParams): Promise<string> {
+    const { address, abi, functionName, args = [], value } = params;
+
+    // 현재 연결된 계정 가져오기
+    const accounts = await getAccounts();
+    if (accounts.length === 0) {
+        throw new InjectedScriptErrorClass(
+            'No connected account',
+            ERROR_CODES.PROVIDER_NOT_AVAILABLE
+        );
+    }
+    const from = accounts[0];
+
+    // calldata 인코딩
+    const data = encodeFunctionData({
+        abi,
+        functionName,
+        args: args as unknown[],
+    });
+
+    logger.debug('writeContract 호출', { address, functionName, args, value, from });
+
+    // 트랜잭션 파라미터 구성
+    const txParams: TransactionParams = {
+        from,
+        to: address,
+        data,
+    };
+
+    if (value !== undefined && value > 0n) {
+        txParams.value = `0x${value.toString(16)}`;
+    }
+
+    // eth_sendTransaction 실행
+    const txHash = await sendTransaction(txParams);
+
+    logger.info('writeContract 트랜잭션 전송', { functionName, txHash });
+
+    return txHash;
+}
 
 /**
  * Injected API 객체
@@ -416,6 +520,8 @@ export const injectedApi = {
     addAndSwitchNetwork,
     ensureNetwork,
     getSessionStorage,
+    readContract,
+    writeContract,
 } as const;
 
 // 타입 export

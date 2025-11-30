@@ -7,6 +7,7 @@
 
 import { useCallback, useState } from 'react';
 import type { Address } from 'viem';
+import { memeCoreChain } from '../config/wagmi';
 import { injectedApi } from '../lib/injectedApi';
 import { logger } from '../lib/injected/logger';
 
@@ -35,6 +36,10 @@ const ERC20_BALANCE_OF_ABI = [
     },
 ] as const;
 
+// 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
+// MemeX 사이트의 토큰은 다른 네트워크에 있으므로 MockToken 사용
+const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS || '0xfda7278df9b004e05dbaa367fc2246a4a46271c9') as Address;
+
 interface TokenInfo {
     balance: bigint;
     balanceFormatted: string;
@@ -46,7 +51,7 @@ interface UseTokenBalanceReturn {
     tokenInfo: TokenInfo | null;
     isLoading: boolean;
     error: string | null;
-    checkBalance: (tokenAddress: Address, walletAddress: Address) => Promise<TokenInfo | null>;
+    checkBalance: (tokenAddress: Address, walletAddress: Address, siteSymbol?: string) => Promise<TokenInfo | null>;
     hasBalance: boolean;
 }
 
@@ -63,39 +68,67 @@ export function useTokenBalance(): UseTokenBalanceReturn {
      */
     const checkBalance = useCallback(async (
         tokenAddress: Address,
-        walletAddress: Address
+        walletAddress: Address,
+        siteSymbol?: string  // MemeX 사이트에서 가져온 심볼 (UI 표시용)
     ): Promise<TokenInfo | null> => {
         setIsLoading(true);
         setError(null);
 
-        try {
-            logger.info('토큰 잔액 조회 시작', { tokenAddress, walletAddress });
+        // MemeX 사이트의 토큰은 다른 네트워크에 있으므로 MockToken 사용
+        const actualTokenAddress = MOCK_ERC20_ADDRESS;
 
-            // readContract를 통해 balanceOf, decimals, symbol 조회
-            const [balanceResult, decimalsResult, symbolResult] = await Promise.all([
+        try {
+            logger.info('토큰 잔액 조회 시작', {
+                originalTokenAddress: tokenAddress,
+                actualTokenAddress,
+                walletAddress,
+                siteSymbol,
+            });
+
+            // MemeCore 네트워크로 전환 (컨트랙트가 MemeCore에 배포됨)
+            try {
+                await injectedApi.ensureNetwork(memeCoreChain.id);
+                logger.info('MemeCore 네트워크 전환 완료');
+            } catch (networkError) {
+                // 네트워크 전환 실패 시 체인 추가 시도
+                logger.warn('네트워크 전환 실패, 체인 추가 시도', { error: String(networkError) });
+                try {
+                    await injectedApi.addAndSwitchNetwork({
+                        chainId: `0x${memeCoreChain.id.toString(16)}`,
+                        chainName: memeCoreChain.name,
+                        nativeCurrency: memeCoreChain.nativeCurrency,
+                        rpcUrls: [...memeCoreChain.rpcUrls.default.http],
+                        blockExplorerUrls: memeCoreChain.blockExplorers?.default
+                            ? [memeCoreChain.blockExplorers.default.url]
+                            : undefined,
+                    });
+                    logger.info('MemeCore 체인 추가 및 전환 완료');
+                } catch (addError) {
+                    logger.error('체인 추가 실패', { error: String(addError) });
+                    throw new Error('MemeCore 네트워크로 전환할 수 없습니다. MetaMask에서 수동으로 전환해주세요.');
+                }
+            }
+
+            // readContract를 통해 balanceOf, decimals 조회 (MockToken 사용)
+            const [balanceResult, decimalsResult] = await Promise.all([
                 injectedApi.readContract({
-                    address: tokenAddress,
+                    address: actualTokenAddress,
                     abi: ERC20_BALANCE_OF_ABI,
                     functionName: 'balanceOf',
                     args: [walletAddress],
                 }),
                 injectedApi.readContract({
-                    address: tokenAddress,
+                    address: actualTokenAddress,
                     abi: ERC20_BALANCE_OF_ABI,
                     functionName: 'decimals',
                     args: [],
                 }),
-                injectedApi.readContract({
-                    address: tokenAddress,
-                    abi: ERC20_BALANCE_OF_ABI,
-                    functionName: 'symbol',
-                    args: [],
-                }).catch(() => 'TOKEN'), // symbol이 없는 경우 기본값
             ]);
 
             const balance = balanceResult as bigint;
             const decimals = Number(decimalsResult);
-            const symbol = symbolResult as string;
+            // 사이트에서 가져온 심볼 사용 (없으면 기본값)
+            const symbol = siteSymbol || 'TOKEN';
 
             // 포맷된 잔액 계산
             const balanceFormatted = formatBalance(balance, decimals);

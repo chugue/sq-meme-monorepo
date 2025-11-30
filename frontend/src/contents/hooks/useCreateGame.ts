@@ -3,17 +3,72 @@
  *
  * 1. approve - 토큰을 GameFactory에 승인
  * 2. createGame - GameFactory에서 게임 생성
- *
- * 참고: 첫 댓글은 게임 생성 시 자동으로 initiator가 lastCommentor가 됨
+ * 3. firstComment - 첫 댓글 작성 (토큰 승인 후 addComment 호출)
  */
 
 import { useCallback, useState } from 'react';
 import type { Address } from 'viem';
 import { GAME_FACTORY_ADDRESS, gameFactoryABI } from '../lib/contract/abis/gameFactory';
 import { createContractClient } from '../lib/contract/contractClient';
-import { injectedApi } from '../lib/injectedApi';
+import { injectedApi, sendEthereumRequest } from '../lib/injectedApi';
 import { logger } from '../lib/injected/logger';
 import { useWallet } from './useWallet';
+
+// 블록 타임스탬프 응답 타입
+interface BlockResponse {
+    timestamp: string;
+}
+
+/**
+ * 최신 블록의 타임스탬프를 가져옵니다.
+ * 클라이언트 시간 대신 블록체인 시간을 사용하여 정확한 비교가 가능합니다.
+ */
+async function getBlockTimestamp(): Promise<bigint> {
+    try {
+        const block = await sendEthereumRequest<BlockResponse>('eth_getBlockByNumber', ['latest', false]);
+        // timestamp는 hex 문자열 (예: "0x6756a1b0")
+        return BigInt(block.timestamp);
+    } catch (err) {
+        logger.warn('블록 타임스탬프 조회 실패, 클라이언트 시간 사용', { error: String(err) });
+        // 실패 시 클라이언트 시간 폴백
+        return BigInt(Math.floor(Date.now() / 1000));
+    }
+}
+
+// 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
+const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS || '0xfda7278df9b004e05dbaa367fc2246a4a46271c9') as Address;
+
+// CommentGame ABI (게임 상태 확인 및 댓글 작성용)
+const COMMENT_GAME_ABI = [
+    {
+        inputs: [],
+        name: 'isEnded',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'endTime',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'cost',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: '_message', type: 'string' }],
+        name: 'addComment',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+] as const;
 
 // ERC20 ABI (approve만 필요)
 const ERC20_ABI = [
@@ -39,12 +94,20 @@ const ERC20_ABI = [
     },
 ] as const;
 
-export type CreateGameStep = 'idle' | 'approve' | 'create' | 'complete' | 'error';
+export type CreateGameStep = 'idle' | 'checking' | 'approve' | 'create' | 'firstComment' | 'complete' | 'error';
 
 export interface GameSettings {
     tokenAddress: Address;
     cost: bigint;      // 댓글 비용 (wei 단위)
     time: number;      // 타이머 (초)
+    firstComment: string;  // 첫 댓글 내용 (필수)
+}
+
+export interface ExistingGameInfo {
+    gameAddress: Address;
+    tokenSymbol: string;
+    tokenName: string;
+    isEnded: boolean;
 }
 
 export interface UseCreateGameReturn {
@@ -53,7 +116,9 @@ export interface UseCreateGameReturn {
     error: string | null;
     txHash: string | null;
     gameAddress: string | null;
+    existingGame: ExistingGameInfo | null;
     createGame: (settings: GameSettings) => Promise<string | null>;
+    checkExistingGame: (tokenAddress: Address) => Promise<ExistingGameInfo | null>;
     reset: () => void;
 }
 
@@ -67,6 +132,7 @@ export function useCreateGame(): UseCreateGameReturn {
     const [error, setError] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [gameAddress, setGameAddress] = useState<string | null>(null);
+    const [existingGame, setExistingGame] = useState<ExistingGameInfo | null>(null);
 
     /**
      * 상태 초기화
@@ -77,6 +143,89 @@ export function useCreateGame(): UseCreateGameReturn {
         setError(null);
         setTxHash(null);
         setGameAddress(null);
+        setExistingGame(null);
+    }, []);
+
+    /**
+     * 기존 게임 확인
+     * @param tokenAddress 토큰 주소 (MemeX 사이트에서 가져온 주소, 실제로는 MockERC20 사용)
+     */
+    const checkExistingGame = useCallback(async (tokenAddress: Address): Promise<ExistingGameInfo | null> => {
+        try {
+            setStep('checking');
+            setStatus('기존 게임 확인 중...');
+
+            // MemeX 사이트의 토큰은 다른 네트워크에 있으므로 MockToken 사용
+            const actualTokenAddress = MOCK_ERC20_ADDRESS;
+
+            logger.info('기존 게임 확인', {
+                originalTokenAddress: tokenAddress,
+                actualTokenAddress
+            });
+
+            const factoryClient = createContractClient({
+                address: GAME_FACTORY_ADDRESS as Address,
+                abi: gameFactoryABI,
+            });
+
+            // gameByToken으로 게임 정보 조회 (튜플 반환: [gameAddress, tokenSymbol, tokenName])
+            const gameInfo = await factoryClient.read<readonly [Address, string, string]>({
+                functionName: 'gameByToken',
+                args: [actualTokenAddress],
+            });
+
+            const [gameAddr, tokenSymbol, tokenName] = gameInfo.data;
+
+            // 게임이 없는 경우 (주소가 0x0)
+            if (!gameAddr || gameAddr === '0x0000000000000000000000000000000000000000') {
+                logger.info('기존 게임 없음');
+                setExistingGame(null);
+                setStep('idle');
+                setStatus('');
+                return null;
+            }
+
+            // 게임이 있으면 종료 여부 확인
+            const gameClient = createContractClient({
+                address: gameAddr,
+                abi: COMMENT_GAME_ABI,
+            });
+
+            const [isEndedResult, endTimeResult, currentTime] = await Promise.all([
+                gameClient.read<boolean>({ functionName: 'isEnded' }),
+                gameClient.read<bigint>({ functionName: 'endTime' }),
+                getBlockTimestamp(), // 블록체인 시간 사용
+            ]);
+
+            const isEnded = isEndedResult.data;
+            const endTime = endTimeResult.data;
+            const isGameEnded = isEnded || currentTime >= endTime;
+
+            const existingGameInfo: ExistingGameInfo = {
+                gameAddress: gameAddr,
+                tokenSymbol,
+                tokenName,
+                isEnded: isGameEnded,
+            };
+
+            logger.info('기존 게임 발견', {
+                gameAddress: gameAddr,
+                tokenSymbol,
+                tokenName,
+                isEnded: isGameEnded,
+                endTime: endTime.toString(),
+            });
+
+            setExistingGame(existingGameInfo);
+            setStep('idle');
+            setStatus('');
+            return existingGameInfo;
+        } catch (err) {
+            logger.error('기존 게임 확인 실패', err);
+            setStep('idle');
+            setStatus('');
+            return null;
+        }
     }, []);
 
     /**
@@ -93,8 +242,12 @@ export function useCreateGame(): UseCreateGameReturn {
             // 네트워크 확인
             await ensureNetwork();
 
+            // MemeX 사이트의 토큰은 다른 네트워크에 있으므로 MockToken 사용
+            const actualTokenAddress = MOCK_ERC20_ADDRESS;
+
             logger.info('게임 생성 플로우 시작', {
-                tokenAddress: settings.tokenAddress,
+                originalTokenAddress: settings.tokenAddress,
+                actualTokenAddress,
                 cost: settings.cost.toString(),
                 time: settings.time,
                 creator: userAddress,
@@ -108,7 +261,7 @@ export function useCreateGame(): UseCreateGameReturn {
 
             // 현재 allowance 확인
             const currentAllowance = await injectedApi.readContract({
-                address: settings.tokenAddress,
+                address: actualTokenAddress,
                 abi: ERC20_ABI,
                 functionName: 'allowance',
                 args: [userAddress as Address, GAME_FACTORY_ADDRESS as Address],
@@ -124,7 +277,7 @@ export function useCreateGame(): UseCreateGameReturn {
                 });
 
                 const approveResult = await injectedApi.writeContract({
-                    address: settings.tokenAddress,
+                    address: actualTokenAddress,
                     abi: ERC20_ABI,
                     functionName: 'approve',
                     args: [GAME_FACTORY_ADDRESS as Address, settings.cost],
@@ -153,7 +306,7 @@ export function useCreateGame(): UseCreateGameReturn {
             const result = await factoryClient.write(
                 {
                     functionName: 'createGame',
-                    args: [settings.tokenAddress, BigInt(settings.time), settings.cost],
+                    args: [actualTokenAddress, BigInt(settings.time), settings.cost],
                 },
                 userAddress as Address
             );
@@ -169,20 +322,83 @@ export function useCreateGame(): UseCreateGameReturn {
             // GameCreated 이벤트를 파싱해서 gameAddress를 얻어야 함
             // 일단은 백엔드 API나 gameByToken으로 조회하는 방식으로 대체
 
-            // gameByToken으로 게임 주소 조회
+            // gameByToken으로 게임 주소 조회 (GameInfo 구조체 반환)
+            let createdGameAddress: string | null = null;
             try {
-                const gameInfo = await factoryClient.read<{ gameAddress: Address }>({
+                const gameInfo = await factoryClient.read<readonly [Address, string, string]>({
                     functionName: 'gameByToken',
-                    args: [settings.tokenAddress],
+                    args: [actualTokenAddress],
                 });
 
-                if (gameInfo.data && gameInfo.data.gameAddress !== '0x0000000000000000000000000000000000000000') {
-                    setGameAddress(gameInfo.data.gameAddress);
-                    logger.info('게임 주소 조회 완료', { gameAddress: gameInfo.data.gameAddress });
+                // gameInfo.data는 [gameAddress, tokenSymbol, tokenName] 튜플
+                const [retrievedGameAddress] = gameInfo.data;
+
+                if (retrievedGameAddress && retrievedGameAddress !== '0x0000000000000000000000000000000000000000') {
+                    createdGameAddress = retrievedGameAddress;
+                    setGameAddress(retrievedGameAddress);
+                    logger.info('게임 주소 조회 완료', { gameAddress: retrievedGameAddress });
+                } else {
+                    logger.warn('게임 주소가 0x0 - 게임 생성 실패 가능성', { data: gameInfo.data });
                 }
             } catch (err) {
-                logger.warn('게임 주소 조회 실패', err);
+                logger.error('게임 주소 조회 실패', err);
             }
+
+            // ============================================
+            // Step 3: First Comment - 첫 댓글 작성 (필수)
+            // ============================================
+            if (!createdGameAddress) {
+                throw new Error('게임 주소를 조회할 수 없습니다.');
+            }
+
+            setStep('firstComment');
+            setStatus('첫 댓글 작성 중... (3/3)');
+
+            // 게임 컨트랙트에 토큰 approve 필요 (게임의 cost만큼)
+            const gameAllowance = await injectedApi.readContract({
+                address: actualTokenAddress,
+                abi: ERC20_ABI,
+                functionName: 'allowance',
+                args: [userAddress as Address, createdGameAddress as Address],
+            }) as bigint;
+
+            logger.info('게임에 대한 allowance', { gameAllowance: gameAllowance.toString() });
+
+            if (gameAllowance < settings.cost) {
+                logger.info('게임에 Approve 필요');
+
+                const gameApproveResult = await injectedApi.writeContract({
+                    address: actualTokenAddress,
+                    abi: ERC20_ABI,
+                    functionName: 'approve',
+                    args: [createdGameAddress as Address, settings.cost],
+                });
+
+                logger.info('게임 Approve 트랜잭션 전송됨', { hash: gameApproveResult });
+                setStatus('게임 토큰 승인 대기 중...');
+
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+
+            // addComment 호출
+            const gameClient = createContractClient({
+                address: createdGameAddress as Address,
+                abi: COMMENT_GAME_ABI,
+            });
+
+            const commentResult = await gameClient.write(
+                {
+                    functionName: 'addComment',
+                    args: [settings.firstComment],
+                },
+                userAddress as Address
+            );
+
+            logger.info('첫 댓글 트랜잭션 전송됨', { hash: commentResult.hash });
+            setStatus('첫 댓글 확인 대기 중...');
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            logger.info('첫 댓글 작성 완료');
 
             // ============================================
             // Complete
@@ -192,10 +408,11 @@ export function useCreateGame(): UseCreateGameReturn {
 
             logger.info('게임 생성 플로우 완료', {
                 txHash: result.hash,
-                gameAddress: gameAddress,
+                gameAddress: createdGameAddress,
             });
 
-            return result.hash;
+            // 게임 주소를 반환 (ConfirmStep에서 직접 사용하기 위해)
+            return createdGameAddress;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : '게임 생성 실패';
             logger.error('게임 생성 플로우 오류', err);
@@ -211,7 +428,9 @@ export function useCreateGame(): UseCreateGameReturn {
         error,
         txHash,
         gameAddress,
+        existingGame,
         createGame,
+        checkExistingGame,
         reset,
     };
 }

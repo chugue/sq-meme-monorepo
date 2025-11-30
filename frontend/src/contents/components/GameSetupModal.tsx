@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Address } from 'viem';
-import { useCreateGame, type CreateGameStep } from '../hooks/useCreateGame';
+import { useCreateGame, type CreateGameStep, type ExistingGameInfo } from '../hooks/useCreateGame';
 import { useTokenBalance } from '../hooks/useTokenBalance';
 import { useWallet } from '../hooks/useWallet';
 import './GameSetupModal.css';
@@ -21,6 +21,7 @@ interface GameSetupModalProps {
     tokenAddress: Address;
     tokenSymbol?: string;
     onGameCreated?: (gameAddress: string) => void;
+    onExistingGameFound?: (gameAddress: string) => void; // 진행 중인 게임 발견 시
 }
 
 interface GameSettings {
@@ -38,6 +39,7 @@ export function GameSetupModal({
     tokenAddress,
     tokenSymbol = 'TOKEN',
     onGameCreated,
+    onExistingGameFound,
 }: GameSetupModalProps) {
     const [step, setStep] = useState<SetupStep>('balance-check');
     const [settings, setSettings] = useState<GameSettings>({
@@ -46,9 +48,51 @@ export function GameSetupModal({
         firstComment: '',
     });
     const [tokenDecimals, setTokenDecimals] = useState<number>(18); // 토큰 decimals (기본값 18)
+    const [realTokenSymbol, setRealTokenSymbol] = useState<string>(tokenSymbol); // 실제 토큰 심볼
+    const [isCheckingExistingGame, setIsCheckingExistingGame] = useState(false);
+
+    const { checkExistingGame } = useCreateGame();
+
+    // 모달 열릴 때 기존 게임 확인
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const checkGame = async () => {
+            setIsCheckingExistingGame(true);
+            const existingGame = await checkExistingGame(tokenAddress);
+            setIsCheckingExistingGame(false);
+
+            // 진행 중인 게임이 있으면 콜백 호출하고 모달 닫기
+            if (existingGame && !existingGame.isEnded) {
+                onExistingGameFound?.(existingGame.gameAddress);
+                onClose();
+            }
+        };
+
+        checkGame();
+    }, [isOpen, tokenAddress, checkExistingGame, onExistingGameFound, onClose]);
 
     // 모달이 닫히지 않았으면 렌더링하지 않음
     if (!isOpen) return null;
+
+    // 기존 게임 확인 중이면 로딩 표시
+    if (isCheckingExistingGame) {
+        return (
+            <div className="squid-modal-backdrop">
+                <div className="squid-modal-container">
+                    <div className="squid-modal-header">
+                        <h2 className="squid-modal-title">CREATE GAME</h2>
+                    </div>
+                    <div className="squid-modal-content">
+                        <div className="squid-step-content">
+                            <div className="squid-loading-spinner" />
+                            <p style={{ marginTop: '16px', textAlign: 'center' }}>기존 게임 확인 중...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // 모달 닫기 핸들러
     const handleClose = () => {
@@ -100,8 +144,9 @@ export function GameSetupModal({
                         <BalanceCheckStep
                             tokenAddress={tokenAddress}
                             tokenSymbol={tokenSymbol}
-                            onNext={(decimals) => {
+                            onNext={(decimals, symbol) => {
                                 setTokenDecimals(decimals);
+                                setRealTokenSymbol(symbol);
                                 setStep('settings');
                             }}
                             onClose={handleClose}
@@ -111,7 +156,7 @@ export function GameSetupModal({
                     {step === 'settings' && (
                         <SettingsStep
                             settings={settings}
-                            tokenSymbol={tokenSymbol}
+                            tokenSymbol={realTokenSymbol}
                             onChange={setSettings}
                             onNext={() => setStep('confirm')}
                             onBack={() => setStep('balance-check')}
@@ -122,7 +167,7 @@ export function GameSetupModal({
                         <ConfirmStep
                             settings={settings}
                             tokenAddress={tokenAddress}
-                            tokenSymbol={tokenSymbol}
+                            tokenSymbol={realTokenSymbol}
                             decimals={tokenDecimals}
                             isProcessing={step === 'processing'}
                             onConfirm={() => setStep('processing')}
@@ -154,7 +199,7 @@ function BalanceCheckStep({
 }: {
     tokenAddress: Address;
     tokenSymbol: string;
-    onNext: (decimals: number) => void;
+    onNext: (decimals: number, symbol: string) => void;
     onClose: () => void;
 }) {
     const { address } = useWallet();
@@ -164,9 +209,10 @@ function BalanceCheckStep({
     // 잔액 조회 핸들러
     const handleCheckBalance = useCallback(async () => {
         if (!address) return;
-        await checkBalance(tokenAddress, address as Address);
+        // 세 번째 인자로 사이트 심볼 전달 (MockToken 사용 시 UI에 표시될 심볼)
+        await checkBalance(tokenAddress, address as Address, tokenSymbol);
         setIsChecked(true);
-    }, [address, tokenAddress, checkBalance]);
+    }, [address, tokenAddress, tokenSymbol, checkBalance]);
 
     // 모달 열릴 때 자동으로 잔액 조회
     useEffect(() => {
@@ -248,7 +294,7 @@ function BalanceCheckStep({
                         {isLoading ? 'Checking...' : 'Check Balance'}
                     </button>
                 ) : hasBalance ? (
-                    <button type="button" className="squid-btn-primary" onClick={() => onNext(tokenInfo?.decimals ?? 18)}>
+                    <button type="button" className="squid-btn-primary" onClick={() => onNext(tokenInfo?.decimals ?? 18, tokenInfo?.symbol ?? tokenSymbol)}>
                         Next
                     </button>
                 ) : (
@@ -413,17 +459,9 @@ function ConfirmStep({
         step: txStep,
         status: txStatus,
         error: txError,
-        gameAddress,
         createGame,
         reset: resetCreateGame,
     } = useCreateGame();
-
-    // 트랜잭션 완료 시 콜백
-    useEffect(() => {
-        if (txStep === 'complete' && gameAddress) {
-            onComplete(gameAddress);
-        }
-    }, [txStep, gameAddress, onComplete]);
 
     const handleConfirm = async () => {
         onConfirm();
@@ -432,11 +470,18 @@ function ConfirmStep({
         // cost를 bigint로 변환 (decimals 적용)
         const costInWei = BigInt(settings.cost) * (10n ** BigInt(decimals));
 
-        await createGame({
+        // createGame이 반환하는 게임 주소를 직접 사용
+        const createdGameAddress = await createGame({
             tokenAddress,
             cost: costInWei,
             time: Number(settings.time),
+            firstComment: settings.firstComment,
         });
+
+        // 게임 주소가 반환되면 완료 콜백 호출
+        if (createdGameAddress) {
+            onComplete(createdGameAddress);
+        }
     };
 
     const formatTime = (seconds: string) => {
@@ -451,9 +496,11 @@ function ConfirmStep({
     const getStatusMessage = (step: CreateGameStep): string => {
         switch (step) {
             case 'approve':
-                return '1/2 토큰 승인 중...';
+                return '1/3 토큰 승인 중...';
             case 'create':
-                return '2/2 게임 생성 중...';
+                return '2/3 게임 생성 중...';
+            case 'firstComment':
+                return '3/3 첫 댓글 작성 중...';
             case 'complete':
                 return '완료!';
             case 'error':
@@ -463,7 +510,7 @@ function ConfirmStep({
         }
     };
 
-    const showProcessing = isProcessing || txStep === 'approve' || txStep === 'create';
+    const showProcessing = isProcessing || txStep === 'approve' || txStep === 'create' || txStep === 'firstComment';
 
     return (
         <div className="squid-step-content">
