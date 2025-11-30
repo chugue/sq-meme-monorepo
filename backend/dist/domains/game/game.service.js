@@ -67,7 +67,11 @@ let GameService = GameService_1 = class GameService {
         try {
             const decoded = this.iface.decodeEventLog('GameCreated', log.data, log.topics);
             const rawEvent = decoded.toObject();
-            await this.gameRepository.createGames([rawEvent]);
+            this.logger.debug(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            const result = await this.gameRepository.createGames([rawEvent]);
+            if (result.length === 0) {
+                this.logger.warn('⚠️ 게임 저장 결과가 비어있음 - 검증 실패 또는 DB 오류');
+            }
         }
         catch (error) {
             this.logger.error(`Event processing failed: ${error.message}`);

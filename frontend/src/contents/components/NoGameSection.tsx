@@ -155,6 +155,12 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 tokenAddress={tokenContract.contractAddress as Address}
                 tokenSymbol={tokenContract.username ? `$${tokenContract.username.toUpperCase()}` : 'TOKEN'}
                 onGameCreated={handleGameCreated}
+                onExistingGameFound={(gameAddress) => {
+                    // 기존 게임 발견 시 모달 닫고 게임 UI로 전환
+                    setIsModalOpen(false);
+                    onGameCreated?.(gameAddress);
+                    window.location.reload();
+                }}
             />
         </div>
     );

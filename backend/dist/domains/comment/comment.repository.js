@@ -103,6 +103,13 @@ let CommentRepository = CommentRepository_1 = class CommentRepository {
             }
         }
     }
+    async findByGameAddress(gameAddress) {
+        return await this.db
+            .select()
+            .from(schema.comments)
+            .where((0, drizzle_orm_1.eq)(schema.comments.gameAddress, gameAddress.toLowerCase()))
+            .orderBy(schema.comments.createdAt);
+    }
     async findById(commentId) {
         const [comment] = await this.db
             .select({ id: schema.comments.id })

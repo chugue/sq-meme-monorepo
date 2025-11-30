@@ -15,6 +15,17 @@ export declare class CommentRepository {
     private readonly logger;
     constructor(db: NodePgDatabase<typeof schema>);
     addComments(rawEvents: unknown[]): Promise<void>;
+    findByGameAddress(gameAddress: string): Promise<{
+        id: number;
+        gameAddress: string;
+        commentor: string;
+        message: string;
+        likeCount: number;
+        endTime: Date;
+        currentPrizePool: string;
+        isWinnerComment: boolean;
+        createdAt: Date;
+    }[]>;
     findById(commentId: number): Promise<{
         id: number;
     } | null>;

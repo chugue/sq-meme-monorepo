@@ -16,10 +16,11 @@ export function createMessageHandler() {
                 switch (message.type) {
                     case 'GET_COMMENTS': {
                         console.log('📥 GET_COMMENTS 요청:', message.gameAddress);
-                        const response = await apiCall<{ comments: any[] }>(
-                            `/api/comments/${encodeURIComponent(message.gameAddress)}`
+                        const response = await apiCall<{ success: boolean; data: { comments: any[] } }>(
+                            `/v1/comments/game/${encodeURIComponent(message.gameAddress)}`
                         );
-                        result = { success: true, data: response.comments || [] };
+                        // Result wrapper에서 comments 추출
+                        result = { success: true, data: response.data?.comments || [] };
                         break;
                     }
 
@@ -147,8 +148,10 @@ export function createMessageHandler() {
                             );
                             result = { success: true, data: response };
                         } catch (error: any) {
-                            // 404는 게임이 없는 정상 케이스
-                            if (error.message?.includes('404')) {
+                            // 404는 게임이 없는 정상 케이스 (Not Found 또는 404 포함)
+                            const errorMsg = error.message || '';
+                            if (errorMsg.includes('404') || errorMsg.includes('Not Found')) {
+                                console.log('🎮 게임 없음 (404):', message.tokenAddress);
                                 result = { success: true, data: null };
                             } else {
                                 console.error('❌ 게임 조회 오류:', error);

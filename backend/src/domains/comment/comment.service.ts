@@ -81,6 +81,19 @@ export class CommentService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    /**
+     * @description 게임 주소로 댓글 목록 조회
+     */
+    async getCommentsByGame(gameAddress: string) {
+        try {
+            const comments = await this.commentRepository.findByGameAddress(gameAddress);
+            return Result.ok({ comments });
+        } catch (error) {
+            this.logger.error(`Get comments by game failed: ${error.message}`);
+            return Result.fail('Failed to get comments');
+        }
+    }
+
     async toggleLike(
         userAddress: string,
         commentId: number,

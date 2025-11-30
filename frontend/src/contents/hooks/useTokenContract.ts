@@ -3,14 +3,21 @@
  *
  * - injected.js에서 캐시한 토큰 컨트랙트 정보를 감지
  * - 백엔드 API를 통해 게임 주소 조회
+ * - 백엔드에 없으면 블록체인에서 직접 조회
  */
 
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
+import type { Address } from 'viem';
 import { currentChallengeIdAtom } from '../atoms/commentAtoms';
 import { tokenContractAtom, isTokenContractLoadingAtom, tokenContractErrorAtom, TokenContractInfo } from '../atoms/tokenContractAtoms';
 import { backgroundApi, GameInfo } from '../lib/backgroundApi';
+import { GAME_FACTORY_ADDRESS, gameFactoryABI } from '../lib/contract/abis/gameFactory';
+import { createContractClient } from '../lib/contract/contractClient';
 import { logger } from '../lib/injected/logger';
+
+// 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
+const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS || '0xfda7278df9b004e05dbaa367fc2246a4a46271c9') as Address;
 
 const MESSAGE_SOURCE = {
     TOKEN_CONTRACT_CACHED: 'TOKEN_CONTRACT_CACHED',
@@ -26,7 +33,48 @@ export function useTokenContract() {
     const lastTokenAddressRef = useRef<string | null>(null);
 
     /**
+     * 블록체인에서 직접 게임 정보 조회
+     */
+    const fetchGameFromBlockchain = useCallback(async (): Promise<string | null> => {
+        try {
+            logger.info('블록체인에서 게임 조회 시작', { tokenAddress: MOCK_ERC20_ADDRESS });
+
+            const factoryClient = createContractClient({
+                address: GAME_FACTORY_ADDRESS as Address,
+                abi: gameFactoryABI,
+            });
+
+            // gameByToken으로 게임 정보 조회 (튜플 반환: [gameAddress, tokenSymbol, tokenName])
+            const gameInfo = await factoryClient.read<readonly [Address, string, string]>({
+                functionName: 'gameByToken',
+                args: [MOCK_ERC20_ADDRESS],
+            });
+
+            const [gameAddr, tokenSymbol, tokenName] = gameInfo.data;
+
+            // 게임이 없는 경우 (주소가 0x0)
+            if (!gameAddr || gameAddr === '0x0000000000000000000000000000000000000000') {
+                logger.info('블록체인에 게임 없음');
+                return null;
+            }
+
+            logger.info('블록체인에서 게임 발견', {
+                gameAddress: gameAddr,
+                tokenSymbol,
+                tokenName,
+            });
+
+            return gameAddr;
+        } catch (err) {
+            logger.error('블록체인 게임 조회 실패', err);
+            return null;
+        }
+    }, []);
+
+    /**
      * 토큰 주소로 게임 정보 조회
+     * 1. 먼저 백엔드 API 조회
+     * 2. 백엔드에 없으면 블록체인에서 직접 조회
      */
     const fetchGameByToken = useCallback(async (tokenAddress: string): Promise<GameInfo | null> => {
         // 중복 조회 방지
@@ -42,10 +90,11 @@ export function useTokenContract() {
         try {
             logger.info('토큰 주소로 게임 조회 시작', { tokenAddress });
 
+            // 1. 백엔드 API에서 게임 조회
             const game = await backgroundApi.getGameByToken(tokenAddress);
 
             if (game) {
-                logger.info('게임 정보 조회 성공', {
+                logger.info('백엔드에서 게임 정보 조회 성공', {
                     gameAddress: game.gameAddress,
                     tokenSymbol: game.tokenSymbol,
                 });
@@ -54,11 +103,41 @@ export function useTokenContract() {
                 setGameAddress(game.gameAddress);
 
                 return game;
-            } else {
-                logger.info('해당 토큰으로 생성된 게임 없음', { tokenAddress });
-                setGameAddress(null);
-                return null;
             }
+
+            // 2. 백엔드에 없으면 블록체인에서 직접 조회
+            logger.info('백엔드에 게임 없음, 블록체인 조회 시도');
+            const blockchainGameAddress = await fetchGameFromBlockchain();
+
+            if (blockchainGameAddress) {
+                logger.info('블록체인에서 기존 게임 발견, 댓글 UI로 전환', {
+                    gameAddress: blockchainGameAddress,
+                });
+
+                // 게임 주소를 설정하여 댓글 UI가 표시되도록 함
+                setGameAddress(blockchainGameAddress);
+
+                // 부분적인 GameInfo 반환 (백엔드에 없으므로 최소 정보만)
+                return {
+                    id: 0,
+                    gameId: '0',
+                    gameAddress: blockchainGameAddress,
+                    gameToken: MOCK_ERC20_ADDRESS,
+                    tokenSymbol: null,
+                    tokenName: null,
+                    initiator: '',
+                    gameTime: '0',
+                    endTime: '0',
+                    cost: '0',
+                    prizePool: '0',
+                    isEnded: false,
+                    lastCommentor: '',
+                } as GameInfo;
+            }
+
+            logger.info('게임 없음 (백엔드 및 블록체인 모두)', { tokenAddress });
+            setGameAddress(null);
+            return null;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : '게임 조회 실패';
             logger.error('게임 조회 실패', err);
@@ -67,7 +146,7 @@ export function useTokenContract() {
         } finally {
             setIsLoading(false);
         }
-    }, [setIsLoading, setError, setGameAddress]);
+    }, [setIsLoading, setError, setGameAddress, fetchGameFromBlockchain]);
 
     /**
      * 토큰 컨트랙트 정보 저장 및 게임 조회

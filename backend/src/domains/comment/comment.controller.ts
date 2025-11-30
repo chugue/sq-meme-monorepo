@@ -8,6 +8,11 @@ import { CommentService } from './comment.service';
 export class CommentController {
     constructor(private readonly commentService: CommentService) {}
 
+    @Get('game/:gameAddress')
+    async getCommentsByGame(@Param('gameAddress') gameAddress: string) {
+        return this.commentService.getCommentsByGame(gameAddress);
+    }
+
     @Post(':id/like')
     // @ApiToggleLike()
     async toggleLike(

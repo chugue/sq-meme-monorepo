@@ -14,6 +14,13 @@ export declare class CommentService implements OnModuleInit, OnModuleDestroy {
     private startListening;
     private stopListening;
     private handleCommentAddedLog;
+    getCommentsByGame(gameAddress: string): Promise<{
+        success: false;
+        errorMessage: string;
+    } | {
+        success: true;
+        data: unknown;
+    }>;
     toggleLike(userAddress: string, commentId: number): Promise<Result<ToggleLikeResult>>;
     getLikeCount(commentId: number): Promise<Result<LikeCountResult>>;
     hasUserLiked(userAddress: string, commentId: number): Promise<Result<UserLikedResult>>;

@@ -79,6 +79,17 @@ export class CommentRepository {
     }
 
     /**
+     * @description 게임 주소로 댓글 목록 조회
+     */
+    async findByGameAddress(gameAddress: string) {
+        return await this.db
+            .select()
+            .from(schema.comments)
+            .where(eq(schema.comments.gameAddress, gameAddress.toLowerCase()))
+            .orderBy(schema.comments.createdAt);
+    }
+
+    /**
      * @description 댓글 존재 여부 확인
      */
     async findById(commentId: number): Promise<{ id: number } | null> {

@@ -66,6 +66,16 @@ let CommentService = CommentService_1 = class CommentService {
             this.logger.error(`Event processing failed: ${error.message}`);
         }
     }
+    async getCommentsByGame(gameAddress) {
+        try {
+            const comments = await this.commentRepository.findByGameAddress(gameAddress);
+            return types_1.Result.ok({ comments });
+        }
+        catch (error) {
+            this.logger.error(`Get comments by game failed: ${error.message}`);
+            return types_1.Result.fail('Failed to get comments');
+        }
+    }
     async toggleLike(userAddress, commentId) {
         try {
             const normalizedAddress = userAddress.toLowerCase();

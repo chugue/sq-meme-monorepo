@@ -59,6 +59,8 @@ export const gameFactoryABI = [
             { indexed: false, internalType: 'uint256', name: 'endTime', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'cost', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'prizePool', type: 'uint256' },
+            { indexed: false, internalType: 'address', name: 'lastCommentor', type: 'address' },
+            { indexed: false, internalType: 'bool', name: 'isEnded', type: 'bool' },
         ],
         name: 'GameCreated',
         type: 'event',

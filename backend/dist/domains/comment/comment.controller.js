@@ -22,6 +22,9 @@ let CommentController = class CommentController {
     constructor(commentService) {
         this.commentService = commentService;
     }
+    async getCommentsByGame(gameAddress) {
+        return this.commentService.getCommentsByGame(gameAddress);
+    }
     async toggleLike(commentId, userAddress) {
         return this.commentService.toggleLike(userAddress, commentId);
     }
@@ -33,6 +36,13 @@ let CommentController = class CommentController {
     }
 };
 exports.CommentController = CommentController;
+__decorate([
+    (0, common_1.Get)('game/:gameAddress'),
+    __param(0, (0, common_1.Param)('gameAddress')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CommentController.prototype, "getCommentsByGame", null);
 __decorate([
     (0, common_1.Post)(':id/like'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

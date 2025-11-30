@@ -66,7 +66,8 @@ let GameRepository = GameRepository_1 = class GameRepository {
             .map((event) => {
             const result = game_validator_1.GameCreatedEventSchema.safeParse(event);
             if (!result.success) {
-                this.logger.error(`Invalid event data: ${result.error}`);
+                this.logger.error(`❌ 검증 실패 - ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
+                this.logger.debug(`원본 데이터: ${JSON.stringify(event, (_, v) => typeof v === 'bigint' ? `BigInt(${v})` : v)}`);
                 return null;
             }
             const data = result.data;
