@@ -2,7 +2,8 @@ import { browser } from 'wxt/browser';
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
     | { type: 'GET_COMMENTS'; gameAddress: string }
-    | { type: 'CREATE_COMMENT'; gameAddress: string; commentor: string; message: string; signature?: string }
+    // NOTE: CREATE_COMMENT는 더 이상 사용하지 않음 - 프론트엔드에서 직접 스마트 컨트랙트 호출
+    // | { type: 'CREATE_COMMENT'; gameAddress: string; commentor: string; message: string; signature?: string }
     | { type: 'DELETE_COMMENT'; commentId: number }
     | { type: 'HEALTH_CHECK' }
     | { type: 'OPEN_SIDE_PANEL' }
@@ -61,21 +62,21 @@ export const backgroundApi = {
         });
     },
 
-    // 댓글 작성
-    createComment: async (input: {
-        gameAddress: string;
-        commentor: string;
-        message: string;
-        signature?: string;
-    }) => {
-        return sendToBackground<any>({
-            type: 'CREATE_COMMENT',
-            gameAddress: input.gameAddress,
-            commentor: input.commentor,
-            message: input.message,
-            signature: input.signature,
-        });
-    },
+    // NOTE: createComment는 더 이상 사용하지 않음 - 프론트엔드에서 직접 스마트 컨트랙트 호출
+    // createComment: async (input: {
+    //     gameAddress: string;
+    //     commentor: string;
+    //     message: string;
+    //     signature?: string;
+    // }) => {
+    //     return sendToBackground<any>({
+    //         type: 'CREATE_COMMENT',
+    //         gameAddress: input.gameAddress,
+    //         commentor: input.commentor,
+    //         message: input.message,
+    //         signature: input.signature,
+    //     });
+    // },
 
     // 댓글 삭제
     deleteComment: async (commentId: number) => {

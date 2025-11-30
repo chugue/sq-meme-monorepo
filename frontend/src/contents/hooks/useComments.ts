@@ -9,7 +9,7 @@ export function useComments() {
     const challengeId = useAtomValue(currentChallengeIdAtom);
 
     // 댓글 조회
-    const { data: comments = [], isLoading } = useQuery({
+    const { data: comments = [], isLoading, refetch } = useQuery({
         queryKey: ['comments', challengeId],
         queryFn: async () => {
             try {
@@ -23,36 +23,35 @@ export function useComments() {
         retry: 1,
     });
 
-    // 댓글 작성
-    const createCommentMutation = useMutation({
-        mutationFn: async (input: { 
-            player_address: string; 
-            content: string;
-            signature?: string;
-            message?: string;
-        }) => {
-            try {
-                return await backgroundApi.createComment({
-                    challenge_id: challengeId,
-                    player_address: input.player_address,
-                    content: input.content,
-                    signature: input.signature,
-                    message: input.message,
-                }) as Comment;
-            } catch (error) {
-                console.error('댓글 작성 실패:', error);
-                throw error;
-            }
-        },
-        onSuccess: () => {
-            // 댓글 목록 새로고침
-            queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
-        },
-    });
+    // NOTE: 댓글 작성은 더 이상 백엔드 API를 통해 하지 않음 - useCommentContract 훅을 통해 직접 컨트랙트 호출
+    // const createCommentMutation = useMutation({
+    //     mutationFn: async (input: {
+    //         player_address: string;
+    //         content: string;
+    //         signature?: string;
+    //         message?: string;
+    //     }) => {
+    //         try {
+    //             return await backgroundApi.createComment({
+    //                 challenge_id: challengeId,
+    //                 player_address: input.player_address,
+    //                 content: input.content,
+    //                 signature: input.signature,
+    //                 message: input.message,
+    //             }) as Comment;
+    //         } catch (error) {
+    //             console.error('댓글 작성 실패:', error);
+    //             throw error;
+    //         }
+    //     },
+    //     onSuccess: () => {
+    //         queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
+    //     },
+    // });
 
-    // 댓글 삭제
+    // 댓글 삭제 (백엔드 스키마에서 id는 serial = number)
     const deleteCommentMutation = useMutation({
-        mutationFn: async (commentId: string) => {
+        mutationFn: async (commentId: number) => {
             try {
                 await backgroundApi.deleteComment(commentId);
             } catch (error) {
@@ -68,8 +67,11 @@ export function useComments() {
     return {
         comments,
         isLoading,
-        createComment: createCommentMutation.mutateAsync,
+        refetch,
+        // NOTE: createComment는 더 이상 사용하지 않음 - useCommentContract 훅 사용
+        // createComment: createCommentMutation.mutateAsync,
         deleteComment: deleteCommentMutation.mutateAsync,
-        isSubmitting: createCommentMutation.isPending,
+        // NOTE: isSubmitting은 useCommentContract 훅에서 제공
+        // isSubmitting: createCommentMutation.isPending,
     };
 }

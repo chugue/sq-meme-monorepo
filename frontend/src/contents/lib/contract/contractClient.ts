@@ -19,7 +19,6 @@ import type {
 } from './types';
 import { injectedApi } from '../injectedApi';
 import { logger } from '../injected/logger';
-import { ERROR_CODES, InjectedScriptErrorClass } from '../injected/types';
 
 /**
  * 컨트랙트 클라이언트 클래스

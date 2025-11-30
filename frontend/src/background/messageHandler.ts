@@ -23,21 +23,22 @@ export function createMessageHandler() {
                         break;
                     }
 
-                    case 'CREATE_COMMENT': {
-                        console.log('📝 CREATE_COMMENT 요청:', message);
-                        const response = await apiCall<{ comment: any }>('/api/comments', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                challenge_id: message.challengeId,
-                                player_address: message.playerAddress,
-                                content: message.content,
-                                signature: (message as any).signature,
-                                message: (message as any).message,
-                            }),
-                        });
-                        result = { success: true, data: response.comment };
-                        break;
-                    }
+                    // NOTE: CREATE_COMMENT는 더 이상 사용하지 않음 - 프론트엔드에서 직접 스마트 컨트랙트 호출
+                    // case 'CREATE_COMMENT': {
+                    //     console.log('📝 CREATE_COMMENT 요청:', message);
+                    //     const response = await apiCall<{ comment: any }>('/api/comments', {
+                    //         method: 'POST',
+                    //         body: JSON.stringify({
+                    //             challenge_id: message.challengeId,
+                    //             player_address: message.playerAddress,
+                    //             content: message.content,
+                    //             signature: (message as any).signature,
+                    //             message: (message as any).message,
+                    //         }),
+                    //     });
+                    //     result = { success: true, data: response.comment };
+                    //     break;
+                    // }
 
                     case 'DELETE_COMMENT': {
                         console.log('🗑️ DELETE_COMMENT 요청:', message.commentId);
