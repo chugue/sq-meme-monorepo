@@ -16,7 +16,7 @@
     },
     "include": [
         "src/**/*",
-        "extension/entrypoints/**/*",
+        "entrypoints/**/*",
         "src/injected.js"
     ]
 }
