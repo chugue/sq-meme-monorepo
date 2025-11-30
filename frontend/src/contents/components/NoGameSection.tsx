@@ -3,17 +3,16 @@
  *
  * - 토큰은 있지만 게임이 없는 경우 표시
  * - 게임 생성 버튼 제공 (휘황찬란한 UI)
+ * - CREATE GAME 클릭 시 GameSetupModal 오픈
  */
 
 import { useAtomValue } from 'jotai';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { Address } from 'viem';
 import { tokenContractAtom } from '../atoms/tokenContractAtoms';
 import { useWallet } from '../hooks/useWallet';
-import { useGameFactory } from '../hooks/useGameFactory';
-import { logger } from '../lib/injected/logger';
-import { ERROR_CODES } from '../lib/injectedApi';
 import { formatAddress } from '../utils/messageFormatter';
+import { GameSetupModal } from './GameSetupModal';
 import './CommentSection.css';
 
 interface NoGameSectionProps {
@@ -29,80 +28,40 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
         isConnected,
         address,
         connect,
-        ensureNetwork,
         isLoading: walletLoading,
         error: walletError,
     } = useWallet();
 
-    const { createGame, isCreating } = useGameFactory();
-
-    const [txHash, setTxHash] = useState<string | null>(null);
-    const [createError, setCreateError] = useState<string | null>(null);
+    // 모달 상태
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     /**
-     * 게임 생성 핸들러
+     * CREATE GAME 버튼 클릭 핸들러
      */
-    const handleCreateGame = useCallback(async () => {
-        if (!tokenContract?.contractAddress) {
-            setCreateError('토큰 주소를 찾을 수 없습니다.');
-            return;
-        }
-
+    const handleCreateGameClick = async () => {
         // 지갑 연결 확인
         if (!isConnected || !address) {
             try {
                 await connect();
             } catch (error) {
-                logger.error('지갑 연결 실패', error);
-                return;
+                console.error('지갑 연결 실패', error);
             }
             return;
         }
 
-        setCreateError(null);
-        setTxHash(null);
+        // 모달 오픈
+        setIsModalOpen(true);
+    };
 
-        try {
-            // 네트워크 확인 및 전환
-            await ensureNetwork();
-
-            logger.info('게임 생성 시작', {
-                tokenAddress: tokenContract.contractAddress,
-                creator: address,
-            });
-
-            // GameFactory.createGame 호출
-            const hash = await createGame(tokenContract.contractAddress as Address);
-
-            setTxHash(hash);
-            logger.info('게임 생성 트랜잭션 전송됨', { txHash: hash });
-
-            // 성공 알림
-            alert(`게임 생성 트랜잭션이 전송되었습니다!\n트랜잭션: ${hash.slice(0, 10)}...\n\n잠시 후 페이지를 새로고침해주세요.`);
-
-            // 콜백 호출 (있으면)
-            if (onGameCreated) {
-                // 실제 게임 주소는 이벤트에서 얻어야 하지만, 일단 트랜잭션 해시로 대체
-                onGameCreated(hash);
-            }
-        } catch (error) {
-            logger.error('게임 생성 오류', error);
-
-            // 사용자 거부는 조용히 처리
-            if (error && typeof error === 'object' && 'code' in error) {
-                if ((error as { code: string }).code === ERROR_CODES.USER_REJECTED) {
-                    return;
-                }
-                if ((error as { code: string }).code === ERROR_CODES.PROVIDER_NOT_AVAILABLE) {
-                    setCreateError('네트워크 전환이 필요합니다. MetaMask에서 MemeCore 네트워크로 전환해주세요.');
-                    return;
-                }
-            }
-
-            const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-            setCreateError(errorMessage);
-        }
-    }, [tokenContract, isConnected, address, connect, ensureNetwork, createGame, onGameCreated]);
+    /**
+     * 게임 생성 완료 핸들러
+     */
+    const handleGameCreated = (gameAddress: string) => {
+        setIsModalOpen(false);
+        onGameCreated?.(gameAddress);
+        // 페이지 새로고침하여 게임 UI 표시
+        window.location.reload();
+    };
 
     // 토큰이 없으면 표시하지 않음
     if (!tokenContract) {
@@ -174,34 +133,29 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 {/* 게임 생성 버튼 */}
                 <button
                     type="button"
-                    onClick={handleCreateGame}
+                    onClick={handleCreateGameClick}
                     className="squid-create-game-button"
-                    disabled={isCreating || !isConnected}
+                    disabled={!isConnected}
                 >
-                    {isCreating ? (
-                        <>
-                            <span className="squid-loading-spinner" />
-                            CREATING GAME...
-                        </>
-                    ) : (
-                        'CREATE GAME'
-                    )}
+                    CREATE GAME
                 </button>
 
                 {/* 에러 메시지 */}
-                {(createError || walletError) && (
+                {walletError && (
                     <div className="squid-tx-error" style={{ marginTop: '12px' }}>
-                        {createError || walletError}
-                    </div>
-                )}
-
-                {/* 트랜잭션 해시 */}
-                {txHash && (
-                    <div style={{ marginTop: '12px', fontSize: '10px', color: '#4ade80' }}>
-                        TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                        {walletError}
                     </div>
                 )}
             </div>
+
+            {/* 게임 설정 모달 */}
+            <GameSetupModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                tokenAddress={tokenContract.contractAddress as Address}
+                tokenSymbol={tokenContract.username ? `$${tokenContract.username.toUpperCase()}` : 'TOKEN'}
+                onGameCreated={handleGameCreated}
+            />
         </div>
     );
 }

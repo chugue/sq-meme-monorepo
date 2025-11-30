@@ -3,6 +3,8 @@ export declare const GameCreatedEventSchema: z.ZodObject<{
     gameId: z.ZodPipe<z.ZodBigInt, z.ZodTransform<string, bigint>>;
     gameAddr: z.ZodString;
     gameTokenAddr: z.ZodString;
+    tokenSymbol: z.ZodString;
+    tokenName: z.ZodString;
     initiator: z.ZodString;
     gameTime: z.ZodPipe<z.ZodBigInt, z.ZodTransform<string, bigint>>;
     endTime: z.ZodPipe<z.ZodBigInt, z.ZodTransform<Date, bigint>>;

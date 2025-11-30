@@ -1,3 +1,3 @@
-export declare const WalletAddress: (...dataOrPipes: ({
+export declare const WalletAddress: (...dataOrPipes: (import("@nestjs/common").PipeTransform<any, any> | import("@nestjs/common").Type<import("@nestjs/common").PipeTransform<any, any>> | {
     required?: boolean;
-} | import("@nestjs/common").PipeTransform<any, any> | import("@nestjs/common").Type<import("@nestjs/common").PipeTransform<any, any>> | undefined)[]) => ParameterDecorator;
+} | undefined)[]) => ParameterDecorator;

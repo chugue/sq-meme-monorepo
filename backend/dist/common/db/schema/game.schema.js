@@ -8,6 +8,8 @@ exports.games = common_1.squidSchema.table('games', {
     gameId: (0, pg_core_1.text)('game_id').notNull(),
     gameAddress: (0, pg_core_1.varchar)('game_address', { length: 42 }).notNull(),
     gameToken: (0, pg_core_1.varchar)('game_token', { length: 42 }).notNull(),
+    tokenSymbol: (0, pg_core_1.varchar)('token_symbol', { length: 32 }),
+    tokenName: (0, pg_core_1.varchar)('token_name', { length: 128 }),
     initiator: (0, pg_core_1.varchar)('initiator', { length: 42 }).notNull(),
     gameTime: (0, pg_core_1.text)('game_time').notNull(),
     endTime: (0, pg_core_1.timestamp)('end_time').notNull(),
@@ -23,6 +25,7 @@ exports.games = common_1.squidSchema.table('games', {
     return {
         statusIdx: (0, pg_core_1.index)('status_idx').on(table.isEnded),
         addressIdx: (0, pg_core_1.index)('game_address_idx').on(table.gameAddress),
+        tokenIdx: (0, pg_core_1.index)('game_token_idx').on(table.gameToken),
     };
 });
 //# sourceMappingURL=game.schema.js.map

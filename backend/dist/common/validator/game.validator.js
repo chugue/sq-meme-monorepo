@@ -6,6 +6,8 @@ exports.GameCreatedEventSchema = zod_1.z.object({
     gameId: zod_1.z.bigint().transform((v) => v.toString()),
     gameAddr: zod_1.z.string().startsWith('0x'),
     gameTokenAddr: zod_1.z.string().startsWith('0x'),
+    tokenSymbol: zod_1.z.string(),
+    tokenName: zod_1.z.string(),
     initiator: zod_1.z.string().startsWith('0x'),
     gameTime: zod_1.z.bigint().transform((v) => v.toString()),
     endTime: zod_1.z.bigint().transform((v) => new Date(Number(v) * 1000)),

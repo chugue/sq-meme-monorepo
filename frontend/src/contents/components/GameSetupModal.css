@@ -1,0 +1,479 @@
+/* ===================================
+   Game Setup Modal Styles
+   =================================== */
+
+/* 모달 배경 */
+.squid-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 모달 컨테이너 */
+.squid-modal-container {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid #ff006e;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 0 40px rgba(255, 0, 110, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 모달 헤더 */
+.squid-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 0, 110, 0.3);
+}
+
+.squid-modal-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ff006e;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.squid-modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.squid-modal-close:hover:not(:disabled) {
+    color: #ff006e;
+}
+
+.squid-modal-close:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* 단계 표시 */
+.squid-modal-steps {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 24px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.squid-step {
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #666;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s;
+}
+
+.squid-step.active {
+    color: #fff;
+    background: linear-gradient(135deg, #ff006e, #ff4d94);
+    box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
+}
+
+/* 모달 컨텐츠 */
+.squid-modal-content {
+    padding: 24px;
+}
+
+/* 단계별 컨텐츠 */
+.squid-step-content {
+    text-align: center;
+}
+
+.squid-step-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.squid-success-icon {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.squid-step-title {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.squid-step-description {
+    margin: 0 0 24px;
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.6;
+}
+
+/* 토큰 주소 박스 */
+.squid-token-address-box,
+.squid-balance-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.squid-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.squid-value {
+    font-size: 13px;
+    color: #fff;
+    font-family: monospace;
+}
+
+.squid-value.has-balance {
+    color: #4ade80;
+}
+
+.squid-value.no-balance {
+    color: #ff4444;
+}
+
+/* 경고 박스 */
+.squid-warning-box {
+    padding: 16px;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.squid-warning-box p {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: #ff8888;
+}
+
+.squid-trade-button {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #ff6b6b, #ff4444);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.2s;
+}
+
+.squid-trade-button:hover {
+    transform: scale(1.02);
+}
+
+/* 입력 그룹 */
+.squid-input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.squid-input-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.squid-input-hint {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: #888;
+    margin-top: 2px;
+}
+
+.squid-input-with-suffix {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.squid-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.squid-input:focus {
+    outline: none;
+    border-color: #ff006e;
+}
+
+.squid-input.error {
+    border-color: #ff4444;
+}
+
+.squid-input-suffix {
+    font-size: 13px;
+    color: #888;
+    min-width: 50px;
+}
+
+.squid-input-error {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #ff4444;
+}
+
+/* 타이머 프리셋 버튼 */
+.squid-time-presets {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.squid-time-presets button {
+    flex: 1;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #aaa;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.squid-time-presets button:hover {
+    background: rgba(255, 0, 110, 0.2);
+    border-color: #ff006e;
+    color: #fff;
+}
+
+/* 텍스트 영역 */
+.squid-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.squid-textarea:focus {
+    outline: none;
+    border-color: #ff006e;
+}
+
+.squid-textarea.error {
+    border-color: #ff4444;
+}
+
+/* 확인 요약 */
+.squid-confirm-summary {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.squid-confirm-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.squid-confirm-item:last-child {
+    border-bottom: none;
+}
+
+.squid-confirm-label {
+    font-size: 12px;
+    color: #888;
+}
+
+.squid-confirm-value {
+    font-size: 13px;
+    color: #fff;
+    text-align: right;
+    max-width: 60%;
+}
+
+.squid-comment-preview {
+    font-style: italic;
+    color: #aaa;
+}
+
+/* 처리 상태 */
+.squid-processing-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 0, 110, 0.1);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    color: #ff006e;
+    font-size: 13px;
+}
+
+/* 에러 박스 */
+.squid-error-box {
+    padding: 12px 16px;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #ff8888;
+    font-size: 12px;
+    margin-bottom: 16px;
+}
+
+/* 버튼 그룹 */
+.squid-button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.squid-btn-secondary,
+.squid-btn-primary {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.squid-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #aaa;
+}
+
+.squid-btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.squid-btn-primary {
+    background: linear-gradient(135deg, #ff006e, #ff4d94);
+    border: none;
+    color: #fff;
+}
+
+.squid-btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 0, 110, 0.4);
+}
+
+.squid-btn-primary:disabled,
+.squid-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.squid-btn-create {
+    background: linear-gradient(135deg, #00ff88, #00cc6a);
+}
+
+.squid-btn-create:hover:not(:disabled) {
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+}
+
+/* 로딩 스피너 */
+.squid-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ff006e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 반응형 */
+@media (max-width: 480px) {
+    .squid-modal-container {
+        width: 95%;
+        max-height: 85vh;
+    }
+
+    .squid-modal-header {
+        padding: 16px 20px;
+    }
+
+    .squid-modal-content {
+        padding: 20px;
+    }
+
+    .squid-modal-steps {
+        padding: 12px 16px;
+    }
+
+    .squid-step {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+}

@@ -75,6 +75,44 @@ export declare const games: import("drizzle-orm/pg-core").PgTableWithColumns<{
         }, {}, {
             length: 42;
         }>;
+        tokenSymbol: import("drizzle-orm/pg-core").PgColumn<{
+            name: "token_symbol";
+            tableName: "games";
+            dataType: "string";
+            columnType: "PgVarchar";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: 32;
+        }>;
+        tokenName: import("drizzle-orm/pg-core").PgColumn<{
+            name: "token_name";
+            tableName: "games";
+            dataType: "string";
+            columnType: "PgVarchar";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: 128;
+        }>;
         initiator: import("drizzle-orm/pg-core").PgColumn<{
             name: "initiator";
             tableName: "games";
