@@ -4,6 +4,8 @@ export const GameCreatedEventSchema = z.object({
     gameId: z.bigint().transform((v) => v.toString()),
     gameAddr: z.string().startsWith('0x'),
     gameTokenAddr: z.string().startsWith('0x'),
+    tokenSymbol: z.string(),
+    tokenName: z.string(),
     initiator: z.string().startsWith('0x'),
     gameTime: z.bigint().transform((v) => v.toString()),
     endTime: z.bigint().transform((v) => new Date(Number(v) * 1000)),

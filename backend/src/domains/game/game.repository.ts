@@ -37,6 +37,8 @@ export class GameRepository {
                     gameId: data.gameId,
                     gameAddress: data.gameAddr,
                     gameToken: data.gameTokenAddr,
+                    tokenSymbol: data.tokenSymbol,
+                    tokenName: data.tokenName,
                     initiator: data.initiator,
                     gameTime: data.gameTime,
                     endTime: data.endTime,
@@ -63,6 +65,28 @@ export class GameRepository {
         } catch (error) {
             this.logger.error(`❌ 게임 저장 실패: ${error.message}`);
             return [];
+        }
+    }
+
+    /**
+     * @description 토큰 주소로 게임을 조회합니다.
+     * @param tokenAddress 게임 토큰 주소 (0x...)
+     * @returns 게임 정보 또는 null
+     */
+    async findByTokenAddress(tokenAddress: string) {
+        try {
+            const result = await this.db
+                .select()
+                .from(schema.games)
+                .where(eq(schema.games.gameToken, tokenAddress.toLowerCase()))
+                .limit(1);
+
+            return result[0] || null;
+        } catch (error) {
+            this.logger.error(
+                `❌ 토큰 주소로 게임 조회 실패 ${tokenAddress}: ${error.message}`,
+            );
+            return null;
         }
     }
 

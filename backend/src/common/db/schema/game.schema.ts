@@ -19,6 +19,8 @@ export const games = squidSchema.table(
         gameId: text('game_id').notNull(), // 컨트랙트상의 ID (uint256)
         gameAddress: varchar('game_address', { length: 42 }).notNull(),
         gameToken: varchar('game_token', { length: 42 }).notNull(),
+        tokenSymbol: varchar('token_symbol', { length: 32 }), // 토큰 심볼 (예: MTK)
+        tokenName: varchar('token_name', { length: 128 }), // 토큰 이름 (예: MockToken)
         initiator: varchar('initiator', { length: 42 }).notNull(),
 
         // 2. 시간 관련
@@ -43,6 +45,7 @@ export const games = squidSchema.table(
             // ⚡️ 검색 속도를 위한 인덱스 추가
             statusIdx: index('status_idx').on(table.isEnded), // 끝난 게임 vs 안 끝난 게임
             addressIdx: index('game_address_idx').on(table.gameAddress), // 주소로 게임 찾기
+            tokenIdx: index('game_token_idx').on(table.gameToken), // 토큰 주소로 게임 찾기
         };
     },
 );
