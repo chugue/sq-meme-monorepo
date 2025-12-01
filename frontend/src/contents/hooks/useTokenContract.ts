@@ -152,9 +152,9 @@ export function useTokenContract() {
      * 1. 먼저 백엔드 API 조회
      * 2. 백엔드에 없으면 블록체인에서 직접 조회
      */
-    const fetchGameByToken = useCallback(async (tokenAddress: string): Promise<GameInfo | null> => {
-        // 중복 조회 방지
-        if (lastTokenAddressRef.current === tokenAddress) {
+    const fetchGameByToken = useCallback(async (tokenAddress: string, forceRefresh = false): Promise<GameInfo | null> => {
+        // 중복 조회 방지 (forceRefresh가 아닌 경우에만)
+        if (!forceRefresh && lastTokenAddressRef.current === tokenAddress) {
             logger.debug('이미 조회한 토큰 주소', { tokenAddress });
             return null;
         }
@@ -280,6 +280,8 @@ export function useTokenContract() {
                     const tokenInfo = cachedTokens[cacheKey];
                     if (tokenInfo) {
                         logger.info('초기 토큰 정보 발견', tokenInfo);
+                        // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
+                        lastTokenAddressRef.current = null;
                         handleTokenContractCached(tokenInfo);
                     }
                 }

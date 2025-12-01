@@ -18,7 +18,7 @@ contract GameFactory is Ownable {
         string tokenName;
     }
 
-    // 토큰 주소 → 게임 정보 매핑 (1 토큰 = 1 게임)
+    // 토큰 주소 → 현재 활성 게임 정보 매핑 (종료된 게임은 새 게임으로 교체됨)
     mapping(address => GameInfo) public gameByToken;
 
     event GameCreated(
