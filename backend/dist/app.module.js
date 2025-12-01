@@ -47,6 +47,7 @@ const common_module_1 = require("./common/common.module");
 const db_module_1 = require("./common/db/db.module");
 const game_module_1 = require("./domains/game/game.module");
 const comment_module_1 = require("./domains/comment/comment.module");
+const transaction_module_1 = require("./domains/transaction/transaction.module");
 const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
@@ -65,6 +66,7 @@ exports.AppModule = AppModule = __decorate([
             db_module_1.DbModule,
             game_module_1.GameModule,
             comment_module_1.CommentModule,
+            transaction_module_1.TransactionModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

@@ -6,6 +6,7 @@ import { CommonModule } from './common/common.module';
 import { DbModule } from './common/db/db.module';
 import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
+import { TransactionModule } from './domains/transaction/transaction.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -25,6 +26,7 @@ import { AppController } from './app.controller';
         DbModule,
         GameModule,
         CommentModule,
+        TransactionModule,
     ],
     controllers: [AppController],
     providers: [],
