@@ -14,7 +14,6 @@ export class CommentController {
     }
 
     @Post(':id/like')
-    // @ApiToggleLike()
     async toggleLike(
         @Param('id', ParseIntPipe) commentId: number,
         @WalletAddress() userAddress: string,
@@ -23,13 +22,11 @@ export class CommentController {
     }
 
     @Get(':id/like/count')
-    // @ApiGetLikeCount()
     async getLikeCount(@Param('id', ParseIntPipe) commentId: number) {
         return this.commentService.getLikeCount(commentId);
     }
 
     @Get(':id/like/check')
-    // @ApiCheckUserLiked()
     async checkUserLiked(
         @Param('id', ParseIntPipe) commentId: number,
         @WalletAddress() userAddress: string,
