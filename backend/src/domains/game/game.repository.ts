@@ -4,7 +4,10 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
 import { NewGame } from 'src/common/db/schema/game.schema';
-import { GameCreatedEventSchema } from 'src/common/validator/game.validator';
+import {
+    CreateGameDtoSchema,
+    GameCreatedEventSchema,
+} from 'src/common/validator/game.validator';
 
 @Injectable()
 export class GameRepository {
@@ -114,5 +117,68 @@ export class GameRepository {
             );
             throw error;
         }
+    }
+
+    /**
+     * @description 프론트엔드에서 전송한 게임 데이터를 검증하고 저장
+     * @returns 생성된 게임 주소 또는 null (중복/실패 시)
+     */
+    async createFromFrontend(
+        rawData: unknown,
+    ): Promise<{ gameAddress: string } | null> {
+        const result = CreateGameDtoSchema.safeParse(rawData);
+        if (!result.success) {
+            this.logger.error(`Invalid game data: ${result.error.message}`);
+            return null;
+        }
+
+        const dto = result.data;
+
+        // 중복 체크 (txHash unique 제약조건으로도 방어됨)
+        const existing = await this.findByTxHash(dto.txHash);
+        if (existing) {
+            this.logger.warn(`중복 게임 생성 요청: txHash ${dto.txHash}`);
+            return existing;
+        }
+
+        try {
+            const [game] = await this.db
+                .insert(schema.games)
+                .values({
+                    txHash: dto.txHash,
+                    gameId: dto.gameId,
+                    gameAddress: dto.gameAddr,
+                    gameToken: dto.gameTokenAddr,
+                    tokenSymbol: dto.tokenSymbol,
+                    tokenName: dto.tokenName,
+                    initiator: dto.initiator,
+                    gameTime: dto.gameTime,
+                    endTime: new Date(Number(dto.endTime) * 1000),
+                    cost: dto.cost,
+                    prizePool: dto.prizePool,
+                    lastCommentor: dto.lastCommentor,
+                    isClaimed: dto.isClaimed,
+                })
+                .returning({ gameAddress: schema.games.gameAddress });
+
+            this.logger.log(`✅ 게임 저장 완료: ${game.gameAddress}`);
+            return { gameAddress: game.gameAddress };
+        } catch (error) {
+            this.logger.error(`❌ 게임 저장 실패: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * @description txHash로 게임 조회
+     */
+    async findByTxHash(txHash: string): Promise<{ gameAddress: string } | null> {
+        const [game] = await this.db
+            .select({ gameAddress: schema.games.gameAddress })
+            .from(schema.games)
+            .where(eq(schema.games.txHash, txHash))
+            .limit(1);
+
+        return game ?? null;
     }
 }

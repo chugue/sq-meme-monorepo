@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
+import { Result } from 'src/common/types';
 import { GameRepository } from './game.repository';
 
 const PRIZE_CLAIMED_EVENT =
@@ -88,6 +89,24 @@ export class GameService {
                 error.stack,
             );
             return false;
+        }
+    }
+
+    /**
+     * @description 프론트엔드에서 전송한 게임 데이터를 저장
+     */
+    async createGame(data: unknown): Promise<Result<{ gameAddress: string }>> {
+        try {
+            const result = await this.gameRepository.createFromFrontend(data);
+
+            if (!result) {
+                return Result.fail('게임 저장에 실패했습니다.');
+            }
+
+            return Result.ok(result);
+        } catch (error) {
+            this.logger.error(`Create game failed: ${error.message}`);
+            return Result.fail('게임 저장에 실패했습니다.');
         }
     }
 }

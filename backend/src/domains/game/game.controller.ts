@@ -1,11 +1,33 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    HttpStatus,
+    NotFoundException,
+    Param,
+    Post,
+} from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GameRepository } from './game.repository';
+import { GameService } from './game.service';
 
 @ApiTags('Games')
 @Controller('/v1/games')
 export class GameController {
-    constructor(private readonly gameRepository: GameRepository) {}
+    constructor(
+        private readonly gameRepository: GameRepository,
+        private readonly gameService: GameService,
+    ) {}
+
+    /**
+     * 프론트엔드에서 트랜잭션 완료 후 게임 데이터 저장
+     */
+    @Post()
+    @HttpCode(HttpStatus.CREATED)
+    async createGame(@Body() body: unknown) {
+        return this.gameService.createGame(body);
+    }
 
     @Get('by-token/:tokenAddress')
     @ApiOperation({ summary: '토큰 주소로 게임 조회' })

@@ -15,6 +15,9 @@ export const games = squidSchema.table(
         // 내부 관리용 ID (1, 2, 3...)
         id: serial('id').primaryKey(),
 
+        // 트랜잭션 해시 (중복 체크용)
+        txHash: varchar('tx_hash', { length: 66 }).unique(),
+
         // 1. 게임 기본 정보
         gameId: text('game_id').notNull(), // 컨트랙트상의 ID (uint256)
         gameAddress: varchar('game_address', { length: 42 }).notNull(),
