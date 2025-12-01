@@ -45,7 +45,7 @@ export class GameRepository {
                     endTime: data.endTime,
                     cost: data.cost,
                     prizePool: data.prizePool,
-                    isEnded: data.isClaimed,
+                    isClaimed: data.isClaimed,
                     lastCommentor: data.lastCommentor,
                 } as NewGame;
             })
@@ -100,7 +100,7 @@ export class GameRepository {
             endTime?: Date;
             prizePool?: string;
             lastCommentor?: string;
-            isEnded?: boolean;
+            isClaimed?: boolean;
         },
     ) {
         try {

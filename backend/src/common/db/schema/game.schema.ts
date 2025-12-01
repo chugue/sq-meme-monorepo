@@ -32,7 +32,9 @@ export const games = squidSchema.table(
         prizePool: text('prize_pool').default('0').notNull(),
 
         // 4. 상태 관련
-        isEnded: boolean('is_ended').default(false).notNull(),
+        // isClaimed: 상금 수령 여부 (컨트랙트에서 전송)
+        // 게임 종료 여부(isEnded)는 endTime과 현재 시간 비교로 계산
+        isClaimed: boolean('is_claimed').default(false).notNull(),
         lastCommentor: varchar('last_commentor', { length: 42 }).notNull(),
 
         createdAt: timestamp('created_at').defaultNow(),
@@ -43,7 +45,7 @@ export const games = squidSchema.table(
     (table) => {
         return {
             // ⚡️ 검색 속도를 위한 인덱스 추가
-            statusIdx: index('status_idx').on(table.isEnded), // 끝난 게임 vs 안 끝난 게임
+            claimedIdx: index('claimed_idx').on(table.isClaimed), // 상금 수령 여부
             addressIdx: index('game_address_idx').on(table.gameAddress), // 주소로 게임 찾기
             tokenIdx: index('game_token_idx').on(table.gameToken), // 토큰 주소로 게임 찾기
         };

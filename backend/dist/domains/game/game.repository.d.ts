@@ -19,7 +19,7 @@ export declare class GameRepository {
         endTime: Date;
         cost: string;
         prizePool: string;
-        isEnded: boolean;
+        isClaimed: boolean;
         lastCommentor: string;
         createdAt: Date | null;
         updatedAt: Date | null;
@@ -28,6 +28,6 @@ export declare class GameRepository {
         endTime?: Date;
         prizePool?: string;
         lastCommentor?: string;
-        isEnded?: boolean;
+        isClaimed?: boolean;
     }): Promise<void>;
 }

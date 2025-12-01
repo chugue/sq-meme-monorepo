@@ -2,8 +2,10 @@
  * CommentGame 컨트랙트 상호작용 훅
  *
  * - addComment: 댓글 작성 (컨트랙트 트랜잭션)
- * - 게임 정보 조회 (prizePool, endTime, isEnded 등)
+ * - 게임 정보 조회 (prizePool, endTime, isClaimed 등)
  * - ERC20 approve/allowance 관리
+ *
+ * 참고: 컨트랙트에 isEnded 함수 없음, blockTimestamp >= endTime으로 게임 종료 판단
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -13,9 +15,6 @@ import { erc20ABI } from '../lib/contract/abis/erc20';
 import { createContractClient } from '../lib/contract/contractClient';
 import { logger } from '../lib/injected/logger';
 
-// 큰 금액 approve (100만 토큰, 18 decimals)
-const LARGE_APPROVE_AMOUNT = BigInt('1000000000000000000000000');
-
 export interface UseCommentContractReturn {
     // 댓글 작성
     addComment: (message: string) => Promise<string>;
@@ -23,6 +22,7 @@ export interface UseCommentContractReturn {
     getGameInfo: () => Promise<GameInfo>;
     // ERC20 관련
     checkAllowance: () => Promise<bigint>;
+    getTokenBalance: () => Promise<bigint>;
     approveToken: (amount?: bigint) => Promise<string>;
     ensureAllowance: (requiredAmount: bigint) => Promise<void>;
     // 상태
@@ -34,7 +34,7 @@ export interface UseCommentContractReturn {
 export interface GameInfo {
     prizePool: bigint;
     endTime: bigint;
-    isEnded: boolean;
+    isClaimed: boolean;
     lastCommentor: Address;
     cost: bigint;
     gameToken: Address;
@@ -135,10 +135,10 @@ export function useCommentContract(
         }
 
         try {
-            const [prizePool, endTime, isEnded, lastCommentor, cost, gameTokenResult] = await Promise.all([
+            const [prizePool, endTime, isClaimed, lastCommentor, cost, gameTokenResult] = await Promise.all([
                 contractClient.read<bigint>({ functionName: 'prizePool' }),
                 contractClient.read<bigint>({ functionName: 'endTime' }),
-                contractClient.read<boolean>({ functionName: 'isEnded' }),
+                contractClient.read<boolean>({ functionName: 'isClaimed' }),
                 contractClient.read<Address>({ functionName: 'lastCommentor' }),
                 contractClient.read<bigint>({ functionName: 'cost' }),
                 contractClient.read<Address>({ functionName: 'gameToken' }),
@@ -150,7 +150,7 @@ export function useCommentContract(
             return {
                 prizePool: prizePool.data,
                 endTime: endTime.data,
-                isEnded: isEnded.data,
+                isClaimed: isClaimed.data,
                 lastCommentor: lastCommentor.data,
                 cost: cost.data,
                 gameToken: gameTokenResult.data,
@@ -186,12 +186,36 @@ export function useCommentContract(
     }, [tokenClient, userAddress, gameAddress]);
 
     /**
-     * ERC20 approve 실행
-     * @param amount approve할 금액 (기본값: 큰 금액)
+     * 사용자의 토큰 잔액 조회
+     * @returns 토큰 잔액
+     */
+    const getTokenBalance = useCallback(async (): Promise<bigint> => {
+        if (!tokenClient) {
+            throw new Error('토큰 정보가 없습니다. 먼저 getGameInfo를 호출하세요.');
+        }
+        if (!userAddress) {
+            throw new Error('지갑이 연결되지 않았습니다.');
+        }
+
+        try {
+            const result = await tokenClient.read<bigint>({
+                functionName: 'balanceOf',
+                args: [userAddress],
+            });
+            return result.data;
+        } catch (err) {
+            logger.error('토큰 잔액 조회 실패', err);
+            throw err;
+        }
+    }, [tokenClient, userAddress]);
+
+    /**
+     * ERC20 approve 실행 (잔액 기반)
+     * @param amount approve할 금액 (미지정 시 잔액 전체 또는 cost*10 중 작은 값)
      * @returns 트랜잭션 해시
      */
     const approveToken = useCallback(
-        async (amount: bigint = LARGE_APPROVE_AMOUNT): Promise<string> => {
+        async (amount?: bigint): Promise<string> => {
             if (!tokenClient) {
                 throw new Error('토큰 정보가 없습니다. 먼저 getGameInfo를 호출하세요.');
             }
@@ -203,16 +227,27 @@ export function useCommentContract(
             setError(null);
 
             try {
+                // amount가 지정되지 않으면 잔액 기반으로 계산
+                let approveAmount = amount;
+                if (!approveAmount) {
+                    const balance = await getTokenBalance();
+                    approveAmount = balance;
+                    logger.info('잔액 기반 approve 금액 계산', {
+                        balance: balance.toString(),
+                        approveAmount: approveAmount.toString(),
+                    });
+                }
+
                 logger.info('토큰 approve 시작', {
                     gameAddress,
                     userAddress,
-                    amount: amount.toString(),
+                    amount: approveAmount.toString(),
                 });
 
                 const result = await tokenClient.write(
                     {
                         functionName: 'approve',
-                        args: [gameAddress, amount],
+                        args: [gameAddress, approveAmount],
                     },
                     userAddress
                 );
@@ -231,7 +266,7 @@ export function useCommentContract(
                 setIsApproving(false);
             }
         },
-        [tokenClient, userAddress, gameAddress]
+        [tokenClient, userAddress, gameAddress, getTokenBalance]
     );
 
     /**
@@ -257,6 +292,7 @@ export function useCommentContract(
         addComment,
         getGameInfo,
         checkAllowance,
+        getTokenBalance,
         approveToken,
         ensureAllowance,
         isSubmitting,

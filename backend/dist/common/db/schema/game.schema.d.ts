@@ -200,8 +200,8 @@ export declare const games: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        isEnded: import("drizzle-orm/pg-core").PgColumn<{
-            name: "is_ended";
+        isClaimed: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_claimed";
             tableName: "games";
             dataType: "boolean";
             columnType: "PgBoolean";

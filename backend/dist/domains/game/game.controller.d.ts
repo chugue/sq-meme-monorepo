@@ -14,7 +14,7 @@ export declare class GameController {
         endTime: Date;
         cost: string;
         prizePool: string;
-        isEnded: boolean;
+        isClaimed: boolean;
         lastCommentor: string;
         createdAt: Date | null;
         updatedAt: Date | null;

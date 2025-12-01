@@ -39,14 +39,8 @@ async function getBlockTimestamp(): Promise<bigint> {
 const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS || '0xfda7278df9b004e05dbaa367fc2246a4a46271c9') as Address;
 
 // CommentGame ABI (게임 상태 확인 및 댓글 작성용)
+// 참고: 컨트랙트에 isEnded 함수 없음, endTime과 블록 타임스탬프로 종료 여부 판단
 const COMMENT_GAME_ABI = [
-    {
-        inputs: [],
-        name: 'isEnded',
-        outputs: [{ name: '', type: 'bool' }],
-        stateMutability: 'view',
-        type: 'function',
-    },
     {
         inputs: [],
         name: 'endTime',
@@ -70,7 +64,7 @@ const COMMENT_GAME_ABI = [
     },
 ] as const;
 
-// ERC20 ABI (approve만 필요)
+// ERC20 ABI (approve, allowance, balanceOf 필요)
 const ERC20_ABI = [
     {
         inputs: [
@@ -88,6 +82,13 @@ const ERC20_ABI = [
             { name: 'spender', type: 'address' },
         ],
         name: 'allowance',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'balanceOf',
         outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function',
@@ -185,21 +186,19 @@ export function useCreateGame(): UseCreateGameReturn {
                 return null;
             }
 
-            // 게임이 있으면 종료 여부 확인
+            // 게임이 있으면 종료 여부 확인 (blockTimestamp >= endTime)
             const gameClient = createContractClient({
                 address: gameAddr,
                 abi: COMMENT_GAME_ABI,
             });
 
-            const [isEndedResult, endTimeResult, currentTime] = await Promise.all([
-                gameClient.read<boolean>({ functionName: 'isEnded' }),
+            const [endTimeResult, currentTime] = await Promise.all([
                 gameClient.read<bigint>({ functionName: 'endTime' }),
                 getBlockTimestamp(), // 블록체인 시간 사용
             ]);
 
-            const isEnded = isEndedResult.data;
             const endTime = endTimeResult.data;
-            const isGameEnded = isEnded || currentTime >= endTime;
+            const isGameEnded = currentTime >= endTime;
 
             const existingGameInfo: ExistingGameInfo = {
                 gameAddress: gameAddr,
@@ -254,10 +253,20 @@ export function useCreateGame(): UseCreateGameReturn {
             });
 
             // ============================================
-            // Step 1: Approve - 토큰 승인
+            // Step 1: Approve - 토큰 승인 (잔액 기반)
             // ============================================
             setStep('approve');
             setStatus('토큰 승인 중... (1/2)');
+
+            // 사용자의 토큰 잔액 조회
+            const userBalance = await injectedApi.readContract({
+                address: actualTokenAddress,
+                abi: ERC20_ABI,
+                functionName: 'balanceOf',
+                args: [userAddress as Address],
+            }) as bigint;
+
+            logger.info('사용자 토큰 잔액', { balance: userBalance.toString() });
 
             // 현재 allowance 확인
             const currentAllowance = await injectedApi.readContract({
@@ -269,18 +278,19 @@ export function useCreateGame(): UseCreateGameReturn {
 
             logger.info('현재 allowance', { currentAllowance: currentAllowance.toString() });
 
-            // allowance가 부족하면 approve 실행
+            // allowance가 부족하면 잔액만큼 approve 실행
             if (currentAllowance < settings.cost) {
-                logger.info('Approve 필요', {
+                logger.info('Approve 필요 (잔액 기반)', {
                     currentAllowance: currentAllowance.toString(),
                     requiredCost: settings.cost.toString(),
+                    approveAmount: userBalance.toString(),
                 });
 
                 const approveResult = await injectedApi.writeContract({
                     address: actualTokenAddress,
                     abi: ERC20_ABI,
                     functionName: 'approve',
-                    args: [GAME_FACTORY_ADDRESS as Address, settings.cost],
+                    args: [GAME_FACTORY_ADDRESS as Address, userBalance],
                 });
 
                 logger.info('Approve 트랜잭션 전송됨', { hash: approveResult });
@@ -354,7 +364,15 @@ export function useCreateGame(): UseCreateGameReturn {
             setStep('firstComment');
             setStatus('첫 댓글 작성 중... (3/3)');
 
-            // 게임 컨트랙트에 토큰 approve 필요 (게임의 cost만큼)
+            // 게임 컨트랙트에 토큰 approve 필요 (잔액 기반)
+            // 최신 잔액 조회 (GameFactory에서 토큰이 차감되었을 수 있음)
+            const currentBalance = await injectedApi.readContract({
+                address: actualTokenAddress,
+                abi: ERC20_ABI,
+                functionName: 'balanceOf',
+                args: [userAddress as Address],
+            }) as bigint;
+
             const gameAllowance = await injectedApi.readContract({
                 address: actualTokenAddress,
                 abi: ERC20_ABI,
@@ -362,16 +380,21 @@ export function useCreateGame(): UseCreateGameReturn {
                 args: [userAddress as Address, createdGameAddress as Address],
             }) as bigint;
 
-            logger.info('게임에 대한 allowance', { gameAllowance: gameAllowance.toString() });
+            logger.info('게임에 대한 allowance', {
+                gameAllowance: gameAllowance.toString(),
+                currentBalance: currentBalance.toString(),
+            });
 
             if (gameAllowance < settings.cost) {
-                logger.info('게임에 Approve 필요');
+                logger.info('게임에 Approve 필요 (잔액 기반)', {
+                    approveAmount: currentBalance.toString(),
+                });
 
                 const gameApproveResult = await injectedApi.writeContract({
                     address: actualTokenAddress,
                     abi: ERC20_ABI,
                     functionName: 'approve',
-                    args: [createdGameAddress as Address, settings.cost],
+                    args: [createdGameAddress as Address, currentBalance],
                 });
 
                 logger.info('게임 Approve 트랜잭션 전송됨', { hash: gameApproveResult });

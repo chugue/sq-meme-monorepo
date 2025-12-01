@@ -82,7 +82,7 @@ let GameRepository = GameRepository_1 = class GameRepository {
                 endTime: data.endTime,
                 cost: data.cost,
                 prizePool: data.prizePool,
-                isEnded: data.isClaimed,
+                isClaimed: data.isClaimed,
                 lastCommentor: data.lastCommentor,
             };
         })

@@ -15,7 +15,7 @@ exports.games = common_1.squidSchema.table('games', {
     endTime: (0, pg_core_1.timestamp)('end_time').notNull(),
     cost: (0, pg_core_1.text)('cost').notNull(),
     prizePool: (0, pg_core_1.text)('prize_pool').default('0').notNull(),
-    isEnded: (0, pg_core_1.boolean)('is_ended').default(false).notNull(),
+    isClaimed: (0, pg_core_1.boolean)('is_claimed').default(false).notNull(),
     lastCommentor: (0, pg_core_1.varchar)('last_commentor', { length: 42 }).notNull(),
     createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)('updated_at')
@@ -23,7 +23,7 @@ exports.games = common_1.squidSchema.table('games', {
         .$onUpdate(() => new Date()),
 }, (table) => {
     return {
-        statusIdx: (0, pg_core_1.index)('status_idx').on(table.isEnded),
+        claimedIdx: (0, pg_core_1.index)('claimed_idx').on(table.isClaimed),
         addressIdx: (0, pg_core_1.index)('game_address_idx').on(table.gameAddress),
         tokenIdx: (0, pg_core_1.index)('game_token_idx').on(table.gameToken),
     };
