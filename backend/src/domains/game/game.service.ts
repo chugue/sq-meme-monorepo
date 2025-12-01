@@ -64,12 +64,16 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         // WebSocket 연결 상태 확인
         try {
             const network = await provider.getNetwork();
-            this.logger.log(`🌐 Connected to network: ${network.name} (chainId: ${network.chainId})`);
+            this.logger.log(
+                `🌐 Connected to network: ${network.name} (chainId: ${network.chainId})`,
+            );
 
             const blockNumber = await provider.getBlockNumber();
             this.logger.log(`📦 Current block number: ${blockNumber}`);
         } catch (error) {
-            this.logger.error(`❌ WebSocket connection check failed: ${error.message}`);
+            this.logger.error(
+                `❌ WebSocket connection check failed: ${error.message}`,
+            );
         }
 
         const filter = {
@@ -80,7 +84,9 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`🔍 Filter: ${JSON.stringify(filter)}`);
 
         provider.on(filter, (log) => {
-            this.logger.log(`📨 Raw log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.logger.log(
+                `📨 Raw log received: ${JSON.stringify(log, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`,
+            );
             this.handleGameCreatedLog(log);
         });
 
@@ -89,14 +95,23 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         );
 
         // PrizeClaimed 이벤트 리스너 (모든 CommentGame 컨트랙트에서 발생)
-        const prizeClaimedTopic = this.prizeClaimedIface.getEvent('PrizeClaimed')?.topicHash;
+        const prizeClaimedTopic =
+            this.prizeClaimedIface.getEvent('PrizeClaimed')?.topicHash;
         if (prizeClaimedTopic) {
+            this.logger.log(`📋 PrizeClaimed topic hash: ${prizeClaimedTopic}`);
+
             const prizeClaimedFilter = {
                 topics: [prizeClaimedTopic],
             };
 
+            this.logger.log(
+                `🔍 PrizeClaimed Filter: ${JSON.stringify(prizeClaimedFilter)}`,
+            );
+
             provider.on(prizeClaimedFilter, (log) => {
-                this.logger.log(`🏆 PrizeClaimed log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+                this.logger.log(
+                    `🏆 PrizeClaimed log received: ${JSON.stringify(log, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`,
+                );
                 this.handlePrizeClaimedLog(log);
             });
 
@@ -125,12 +140,16 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
             // Convert ethers.Result to plain object and pass to repository
             const rawEvent = decoded.toObject();
 
-            this.logger.log(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.logger.log(
+                `📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`,
+            );
 
             const result = await this.gameRepository.createGames([rawEvent]);
 
             if (result.length === 0) {
-                this.logger.warn('⚠️ 게임 저장 결과가 비어있음 - 검증 실패 또는 DB 오류');
+                this.logger.warn(
+                    '⚠️ 게임 저장 결과가 비어있음 - 검증 실패 또는 DB 오류',
+                );
             }
         } catch (error) {
             this.logger.error(`Event processing failed: ${error.message}`);
@@ -153,7 +172,9 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
             const rawEvent = decoded.toObject();
             const gameAddress = log.address.toLowerCase();
 
-            this.logger.log(`🏆 PrizeClaimed 이벤트 수신: gameAddress=${gameAddress}, winner=${rawEvent.winner}`);
+            this.logger.log(
+                `🏆 PrizeClaimed 이벤트 수신: gameAddress=${gameAddress}, winner=${rawEvent.winner}`,
+            );
 
             // DB 업데이트: isClaimed = true
             await this.gameRepository.updateGameState(gameAddress, {
@@ -162,7 +183,9 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
 
             this.logger.log(`✅ 게임 상금 수령 완료 처리: ${gameAddress}`);
         } catch (error) {
-            this.logger.error(`PrizeClaimed event processing failed: ${error.message}`);
+            this.logger.error(
+                `PrizeClaimed event processing failed: ${error.message}`,
+            );
         }
     }
 }

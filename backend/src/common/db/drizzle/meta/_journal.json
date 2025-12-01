@@ -50,6 +50,20 @@
       "when": 1764567335989,
       "tag": "0006_redundant_pepper_potts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1764574042403,
+      "tag": "0007_supreme_lady_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1764574089046,
+      "tag": "0008_tiresome_shen",
+      "breakpoints": true
     }
   ]
 }

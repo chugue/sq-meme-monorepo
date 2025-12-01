@@ -10,6 +10,7 @@ import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import type { Address } from "viem";
 import { currentChallengeIdAtom, isGameEndedAtom } from "../atoms/commentAtoms";
+import { tokenContractAtom } from "../atoms/tokenContractAtoms";
 import { useCommentContract } from "../hooks/useCommentContract";
 import { useComments } from "../hooks/useComments";
 import { useWallet } from "../hooks/useWallet";
@@ -84,9 +85,11 @@ function WalletConnectionUI({
 function TokenBalanceDisplay({
   balance,
   isConnected,
+  tokenSymbol,
 }: {
   balance: string | null;
   isConnected: boolean;
+  tokenSymbol?: string | null;
 }) {
   if (!isConnected || balance === null) return null;
 
@@ -101,7 +104,8 @@ function TokenBalanceDisplay({
         color: "#4a9eff",
       }}
     >
-      보유량: {balance} TOKEN
+      보유량: {balance}{" "}
+      {tokenSymbol ? `$${tokenSymbol.toUpperCase()}` : "TOKEN"}
     </div>
   );
 }
@@ -121,6 +125,7 @@ function CommentForm({
   isConnected,
   hasAllowance,
   disabled,
+  tokenSymbol,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -133,11 +138,13 @@ function CommentForm({
   isConnected: boolean;
   hasAllowance: boolean | null;
   disabled?: boolean;
+  tokenSymbol?: string | null;
 }) {
   const getSubmitButtonText = () => {
     if (!isConnected) return "CONNECT WALLET FIRST";
     if (isSubmitting) return "SUBMITTING...";
-    if (cost) return `SUBMIT (${cost} TOKEN)`;
+    const symbol = tokenSymbol ? tokenSymbol.toUpperCase() : "TOKEN";
+    if (cost) return `SUBMIT (${cost} ${symbol})`;
     return "SUBMIT";
   };
 
@@ -152,7 +159,11 @@ function CommentForm({
       className="squid-comment-form"
     >
       {/* 토큰 잔액 표시 */}
-      <TokenBalanceDisplay balance={tokenBalance} isConnected={isConnected} />
+      <TokenBalanceDisplay
+        balance={tokenBalance}
+        isConnected={isConnected}
+        tokenSymbol={tokenSymbol}
+      />
 
       <textarea
         value={value}
@@ -164,7 +175,7 @@ function CommentForm({
       />
       {cost && (
         <div style={{ fontSize: "11px", color: "#888", marginTop: "4px" }}>
-          1회 비용: {cost} TOKEN
+          1회 비용: {cost} {tokenSymbol ? tokenSymbol.toUpperCase() : "TOKEN"}
         </div>
       )}
 
@@ -257,6 +268,8 @@ export function CommentSection() {
   const gameAddress = useAtomValue(currentChallengeIdAtom);
   // 게임 종료 여부 (blockTimestamp >= endTime 기준)
   const isGameEnded = useAtomValue(isGameEndedAtom);
+  // 토큰 정보
+  const tokenContract = useAtomValue(tokenContractAtom);
 
   // 모든 훅을 조건문 전에 호출 (React hooks 규칙 준수)
   const { comments, isLoading, refetch } = useComments();
@@ -492,6 +505,7 @@ export function CommentSection() {
         isApproving={isApproving}
         isConnected={isConnected}
         hasAllowance={hasAllowance}
+        tokenSymbol={tokenContract?.symbol}
       />
 
       <div className="squid-comments-list">

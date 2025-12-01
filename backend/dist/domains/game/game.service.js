@@ -67,17 +67,19 @@ let GameService = GameService_1 = class GameService {
         };
         this.logger.log(`🔍 Filter: ${JSON.stringify(filter)}`);
         provider.on(filter, (log) => {
-            this.logger.log(`📨 Raw log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.logger.log(`📨 Raw log received: ${JSON.stringify(log, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`);
             this.handleGameCreatedLog(log);
         });
         this.logger.log(`✅ GameCreated event listener started (Factory: ${factoryAddress})`);
         const prizeClaimedTopic = this.prizeClaimedIface.getEvent('PrizeClaimed')?.topicHash;
         if (prizeClaimedTopic) {
+            this.logger.log(`📋 PrizeClaimed topic hash: ${prizeClaimedTopic}`);
             const prizeClaimedFilter = {
                 topics: [prizeClaimedTopic],
             };
+            this.logger.log(`🔍 PrizeClaimed Filter: ${JSON.stringify(prizeClaimedFilter)}`);
             provider.on(prizeClaimedFilter, (log) => {
-                this.logger.log(`🏆 PrizeClaimed log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+                this.logger.log(`🏆 PrizeClaimed log received: ${JSON.stringify(log, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`);
                 this.handlePrizeClaimedLog(log);
             });
             this.logger.log(`✅ PrizeClaimed event listener started`);
@@ -95,7 +97,7 @@ let GameService = GameService_1 = class GameService {
         try {
             const decoded = this.gameCreatedIface.decodeEventLog('GameCreated', log.data, log.topics);
             const rawEvent = decoded.toObject();
-            this.logger.log(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.logger.log(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => (typeof v === 'bigint' ? v.toString() : v))}`);
             const result = await this.gameRepository.createGames([rawEvent]);
             if (result.length === 0) {
                 this.logger.warn('⚠️ 게임 저장 결과가 비어있음 - 검증 실패 또는 DB 오류');

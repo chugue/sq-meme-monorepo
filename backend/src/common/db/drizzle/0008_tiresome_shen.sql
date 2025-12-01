@@ -1,0 +1,1 @@
+ALTER TABLE "squid_meme"."pending_transactions" ALTER COLUMN "retry_count" SET DATA TYPE integer;
