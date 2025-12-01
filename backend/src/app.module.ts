@@ -1,18 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import * as path from 'path';
 
 import { CommonModule } from './common/common.module';
 import { DbModule } from './common/db/db.module';
 import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
-import { TransactionModule } from './domains/transaction/transaction.module';
 import { AppController } from './app.controller';
 
 @Module({
     imports: [
-        ScheduleModule.forRoot(),
         ConfigModule.forRoot({
             isGlobal: true,
             // 환경변수 우선순위:
@@ -28,7 +25,6 @@ import { AppController } from './app.controller';
         DbModule,
         GameModule,
         CommentModule,
-        TransactionModule,
     ],
     controllers: [AppController],
     providers: [],

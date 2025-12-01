@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS "squid_meme"."pending_transactions" CASCADE;
