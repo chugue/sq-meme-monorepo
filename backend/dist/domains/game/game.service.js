@@ -36,7 +36,7 @@ let GameService = GameService_1 = class GameService {
     onModuleDestroy() {
         this.stopListening();
     }
-    startListening() {
+    async startListening() {
         const factoryAddress = this.configService.get('GAME_FACTORY_ADDRESS');
         if (!factoryAddress) {
             this.logger.warn('GAME_FACTORY_ADDRESS is not configured, skipping listener');
@@ -48,13 +48,27 @@ let GameService = GameService_1 = class GameService {
             this.logger.error('Failed to generate GameCreated event topic');
             return;
         }
+        this.logger.log(`📋 Event topic hash: ${topic}`);
+        try {
+            const network = await provider.getNetwork();
+            this.logger.log(`🌐 Connected to network: ${network.name} (chainId: ${network.chainId})`);
+            const blockNumber = await provider.getBlockNumber();
+            this.logger.log(`📦 Current block number: ${blockNumber}`);
+        }
+        catch (error) {
+            this.logger.error(`❌ WebSocket connection check failed: ${error.message}`);
+        }
         const filter = {
             address: factoryAddress,
             topics: [topic],
         };
-        provider.on(filter, (log) => this.handleGameCreatedLog(log));
+        this.logger.log(`🔍 Filter: ${JSON.stringify(filter)}`);
+        provider.on(filter, (log) => {
+            this.logger.log(`📨 Raw log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.handleGameCreatedLog(log);
+        });
         this.isListening = true;
-        this.logger.log(`GameCreated event listener started (Factory: ${factoryAddress})`);
+        this.logger.log(`✅ GameCreated event listener started (Factory: ${factoryAddress})`);
     }
     stopListening() {
         if (this.isListening) {
@@ -67,7 +81,7 @@ let GameService = GameService_1 = class GameService {
         try {
             const decoded = this.iface.decodeEventLog('GameCreated', log.data, log.topics);
             const rawEvent = decoded.toObject();
-            this.logger.debug(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.logger.log(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
             const result = await this.gameRepository.createGames([rawEvent]);
             if (result.length === 0) {
                 this.logger.warn('⚠️ 게임 저장 결과가 비어있음 - 검증 실패 또는 DB 오류');

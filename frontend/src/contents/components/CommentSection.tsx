@@ -9,7 +9,7 @@
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import type { Address } from 'viem';
-import { currentChallengeIdAtom } from '../atoms/commentAtoms';
+import { currentChallengeIdAtom, isGameEndedAtom } from '../atoms/commentAtoms';
 import { useCommentContract } from '../hooks/useCommentContract';
 import { useComments } from '../hooks/useComments';
 import { useWallet } from '../hooks/useWallet';
@@ -208,9 +208,11 @@ export function CommentSection() {
 
     // gameAddress = currentChallengeId (null이면 게임 없음)
     const gameAddress = useAtomValue(currentChallengeIdAtom);
+    // 게임 종료 여부 (blockTimestamp >= endTime 기준)
+    const isGameEnded = useAtomValue(isGameEndedAtom);
 
-    // 게임이 없는 경우 NoGameSection 표시
-    if (!gameAddress) {
+    // 게임이 없거나 종료된 경우 NoGameSection 표시
+    if (!gameAddress || isGameEnded) {
         return <NoGameSection />;
     }
 

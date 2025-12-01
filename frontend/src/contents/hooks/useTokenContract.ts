@@ -75,10 +75,10 @@ export function useTokenContract() {
                 try {
                     logger.info('종료된 게임 추가 정보 조회 시작', { gameAddress });
 
-                    // lastCommentor, isEnded (isClaimed 역할), prizePool 조회
+                    // lastCommentor, isClaimed, prizePool 조회
                     const [lastCommentorResult, isClaimedResult, prizePoolResult] = await Promise.all([
                         gameClient.read<Address>({ functionName: 'lastCommentor' }),
-                        gameClient.read<boolean>({ functionName: 'isEnded' }), // 컨트랙트의 isEnded는 claim 완료 여부
+                        gameClient.read<boolean>({ functionName: 'isClaimed' }),
                         gameClient.read<bigint>({ functionName: 'prizePool' }),
                     ]);
 

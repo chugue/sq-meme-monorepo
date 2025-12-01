@@ -34,7 +34,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         this.stopListening();
     }
 
-    private startListening() {
+    private async startListening() {
         const factoryAddress = this.configService.get<string>(
             'GAME_FACTORY_ADDRESS',
         );
@@ -54,16 +54,34 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
             return;
         }
 
+        this.logger.log(`📋 Event topic hash: ${topic}`);
+
+        // WebSocket 연결 상태 확인
+        try {
+            const network = await provider.getNetwork();
+            this.logger.log(`🌐 Connected to network: ${network.name} (chainId: ${network.chainId})`);
+
+            const blockNumber = await provider.getBlockNumber();
+            this.logger.log(`📦 Current block number: ${blockNumber}`);
+        } catch (error) {
+            this.logger.error(`❌ WebSocket connection check failed: ${error.message}`);
+        }
+
         const filter = {
             address: factoryAddress,
             topics: [topic],
         };
 
-        provider.on(filter, (log) => this.handleGameCreatedLog(log));
+        this.logger.log(`🔍 Filter: ${JSON.stringify(filter)}`);
+
+        provider.on(filter, (log) => {
+            this.logger.log(`📨 Raw log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.handleGameCreatedLog(log);
+        });
         this.isListening = true;
 
         this.logger.log(
-            `GameCreated event listener started (Factory: ${factoryAddress})`,
+            `✅ GameCreated event listener started (Factory: ${factoryAddress})`,
         );
     }
 
@@ -86,7 +104,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
             // Convert ethers.Result to plain object and pass to repository
             const rawEvent = decoded.toObject();
 
-            this.logger.debug(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+            this.logger.log(`📥 GameCreated 이벤트 수신: ${JSON.stringify(rawEvent, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
 
             const result = await this.gameRepository.createGames([rawEvent]);
 

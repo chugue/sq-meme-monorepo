@@ -69,10 +69,10 @@ export const commentGameABI = [
         stateMutability: 'view',
         type: 'function',
     },
-    // 게임 종료 여부 조회
+    // 상금 수령 여부 조회
     {
         inputs: [],
-        name: 'isEnded',
+        name: 'isClaimed',
         outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
         stateMutability: 'view',
         type: 'function',

@@ -84,6 +84,10 @@
                     const [, username, userTag] = profileMatch;
                     const cacheKey = `${username}#${userTag}`;
 
+                    // 이미 같은 토큰이 캐시되어 있는지 확인 (중복 메시지 방지)
+                    const existingCache = tokenContractCache.get(cacheKey);
+                    const isNewToken = !existingCache || existingCache.contractAddress !== contractAddress;
+
                     // DOM에서 토큰 심볼 파싱 (.Profile_symbol__TEC9N 요소)
                     let tokenSymbol = null;
                     try {
@@ -95,7 +99,7 @@
                         // DOM 파싱 실패는 무시
                     }
 
-                    // 캐시에 저장
+                    // 캐시에 저장 (항상 업데이트 - timestamp 갱신)
                     tokenContractCache.set(cacheKey, {
                         id,
                         contractAddress,
@@ -122,30 +126,33 @@
                         // 저장 실패는 무시
                     }
 
-                    log.info('✅ 토큰 컨트랙트 주소 캐시됨', {
-                        username,
-                        userTag,
-                        id,
-                        contractAddress,
-                        symbol: tokenSymbol,
-                        cacheKey
-                    });
+                    // 새로운 토큰일 때만 로그 및 메시지 전송 (중복 방지)
+                    if (isNewToken) {
+                        log.info('✅ 토큰 컨트랙트 주소 캐시됨', {
+                            username,
+                            userTag,
+                            id,
+                            contractAddress,
+                            symbol: tokenSymbol,
+                            cacheKey
+                        });
 
-                    // Content Script에 토큰 컨트랙트 캐시 알림
-                    window.postMessage(
-                        {
-                            source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
-                            data: {
-                                id,
-                                contractAddress,
-                                username,
-                                userTag,
-                                symbol: tokenSymbol,
-                                timestamp: Date.now()
+                        // Content Script에 토큰 컨트랙트 캐시 알림 (최초 1회만)
+                        window.postMessage(
+                            {
+                                source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
+                                data: {
+                                    id,
+                                    contractAddress,
+                                    username,
+                                    userTag,
+                                    symbol: tokenSymbol,
+                                    timestamp: Date.now()
+                                },
                             },
-                        },
-                        '*'
-                    );
+                            '*'
+                        );
+                    }
                 }
             }
 
