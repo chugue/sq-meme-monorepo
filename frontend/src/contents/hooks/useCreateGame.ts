@@ -8,8 +8,10 @@
 
 import { useCallback, useState } from 'react';
 import type { Address } from 'viem';
+import { backendApi, type CreateCommentRequest, type CreateGameRequest } from '../lib/api/backendApi';
 import { GAME_FACTORY_ADDRESS, gameFactoryABI } from '../lib/contract/abis/gameFactory';
 import { createContractClient } from '../lib/contract/contractClient';
+import { parseCommentAddedEvent, parseGameCreatedEvent } from '../lib/contract/eventParser';
 import { injectedApi, sendEthereumRequest } from '../lib/injectedApi';
 import { logger } from '../lib/injected/logger';
 import { useWallet } from './useWallet';
@@ -325,33 +327,83 @@ export function useCreateGame(): UseCreateGameReturn {
             setTxHash(result.hash);
             setStatus('트랜잭션 확인 대기 중...');
 
-            // 트랜잭션 완료 대기 (간단히 5초 대기)
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            // 트랜잭션 확정 대기
+            const createGameReceipt = await injectedApi.waitForTransaction(result.hash);
 
-            // TODO: 이벤트에서 게임 주소 추출 (지금은 임시로 처리)
-            // GameCreated 이벤트를 파싱해서 gameAddress를 얻어야 함
-            // 일단은 백엔드 API나 gameByToken으로 조회하는 방식으로 대체
+            logger.info('게임 생성 트랜잭션 확정됨', {
+                hash: result.hash,
+                blockNumber: createGameReceipt.blockNumber,
+                logsCount: createGameReceipt.logs.length,
+            });
 
-            // gameByToken으로 게임 주소 조회 (GameInfo 구조체 반환)
+            // GameCreated 이벤트 파싱
+            const gameCreatedEvent = parseGameCreatedEvent(
+                createGameReceipt.logs,
+                GAME_FACTORY_ADDRESS
+            );
+
             let createdGameAddress: string | null = null;
-            try {
-                const gameInfo = await factoryClient.read<readonly [Address, string, string]>({
-                    functionName: 'gameByToken',
-                    args: [actualTokenAddress],
+
+            if (gameCreatedEvent) {
+                createdGameAddress = gameCreatedEvent.gameAddr;
+                setGameAddress(createdGameAddress);
+
+                logger.info('GameCreated 이벤트 파싱 완료', {
+                    gameId: gameCreatedEvent.gameId.toString(),
+                    gameAddr: gameCreatedEvent.gameAddr,
+                    tokenSymbol: gameCreatedEvent.tokenSymbol,
                 });
 
-                // gameInfo.data는 [gameAddress, tokenSymbol, tokenName] 튜플
-                const [retrievedGameAddress] = gameInfo.data;
+                // 백엔드 API 호출 - 게임 데이터 저장
+                const gameApiRequest: CreateGameRequest = {
+                    txHash: result.hash,
+                    gameId: gameCreatedEvent.gameId.toString(),
+                    gameAddr: gameCreatedEvent.gameAddr,
+                    gameTokenAddr: gameCreatedEvent.gameTokenAddr,
+                    tokenSymbol: gameCreatedEvent.tokenSymbol,
+                    tokenName: gameCreatedEvent.tokenName,
+                    initiator: gameCreatedEvent.initiator,
+                    gameTime: gameCreatedEvent.gameTime.toString(),
+                    endTime: gameCreatedEvent.endTime.toString(),
+                    cost: gameCreatedEvent.cost.toString(),
+                    prizePool: gameCreatedEvent.prizePool.toString(),
+                    lastCommentor: gameCreatedEvent.lastCommentor,
+                    isClaimed: gameCreatedEvent.isClaimed,
+                };
 
-                if (retrievedGameAddress && retrievedGameAddress !== '0x0000000000000000000000000000000000000000') {
-                    createdGameAddress = retrievedGameAddress;
-                    setGameAddress(retrievedGameAddress);
-                    logger.info('게임 주소 조회 완료', { gameAddress: retrievedGameAddress });
+                const gameApiResponse = await backendApi.saveGame(gameApiRequest);
+
+                if (gameApiResponse.success) {
+                    logger.info('백엔드에 게임 저장 완료', {
+                        gameAddress: gameApiResponse.data?.gameAddress,
+                    });
                 } else {
-                    logger.warn('게임 주소가 0x0 - 게임 생성 실패 가능성', { data: gameInfo.data });
+                    logger.warn('백엔드 게임 저장 실패', {
+                        error: gameApiResponse.errorMessage,
+                    });
                 }
-            } catch (err) {
-                logger.error('게임 주소 조회 실패', err);
+            } else {
+                // 이벤트 파싱 실패 시 gameByToken으로 조회
+                logger.warn('GameCreated 이벤트를 찾을 수 없음, gameByToken으로 조회');
+
+                try {
+                    const gameInfo = await factoryClient.read<readonly [Address, string, string]>({
+                        functionName: 'gameByToken',
+                        args: [actualTokenAddress],
+                    });
+
+                    const [retrievedGameAddress] = gameInfo.data;
+
+                    if (retrievedGameAddress && retrievedGameAddress !== '0x0000000000000000000000000000000000000000') {
+                        createdGameAddress = retrievedGameAddress;
+                        setGameAddress(retrievedGameAddress);
+                        logger.info('게임 주소 조회 완료', { gameAddress: retrievedGameAddress });
+                    } else {
+                        logger.warn('게임 주소가 0x0 - 게임 생성 실패 가능성', { data: gameInfo.data });
+                    }
+                } catch (err) {
+                    logger.error('게임 주소 조회 실패', err);
+                }
             }
 
             // ============================================
@@ -420,7 +472,53 @@ export function useCreateGame(): UseCreateGameReturn {
             logger.info('첫 댓글 트랜잭션 전송됨', { hash: commentResult.hash });
             setStatus('첫 댓글 확인 대기 중...');
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // 트랜잭션 확정 대기
+            const commentReceipt = await injectedApi.waitForTransaction(commentResult.hash);
+
+            logger.info('첫 댓글 트랜잭션 확정됨', {
+                hash: commentResult.hash,
+                blockNumber: commentReceipt.blockNumber,
+                logsCount: commentReceipt.logs.length,
+            });
+
+            // CommentAdded 이벤트 파싱
+            const commentEvent = parseCommentAddedEvent(commentReceipt.logs, createdGameAddress);
+
+            if (commentEvent) {
+                logger.info('CommentAdded 이벤트 파싱 완료', {
+                    commentor: commentEvent.commentor,
+                    newEndTime: commentEvent.newEndTime.toString(),
+                    prizePool: commentEvent.prizePool.toString(),
+                });
+
+                // 백엔드 API 호출 - 댓글 데이터 저장
+                const commentApiRequest: CreateCommentRequest = {
+                    txHash: commentResult.hash,
+                    gameAddress: createdGameAddress,
+                    commentor: commentEvent.commentor,
+                    message: commentEvent.message,
+                    newEndTime: commentEvent.newEndTime.toString(),
+                    prizePool: commentEvent.prizePool.toString(),
+                    timestamp: commentEvent.timestamp.toString(),
+                };
+
+                const commentApiResponse = await backendApi.saveComment(commentApiRequest);
+
+                if (commentApiResponse.success) {
+                    logger.info('백엔드에 첫 댓글 저장 완료', {
+                        commentId: commentApiResponse.data?.id,
+                    });
+                } else {
+                    logger.warn('백엔드 첫 댓글 저장 실패', {
+                        error: commentApiResponse.errorMessage,
+                    });
+                }
+            } else {
+                logger.warn('CommentAdded 이벤트를 찾을 수 없음', {
+                    hash: commentResult.hash,
+                });
+            }
+
             logger.info('첫 댓글 작성 완료');
 
             // ============================================
