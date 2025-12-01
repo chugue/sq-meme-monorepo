@@ -164,10 +164,12 @@ export function useTokenContract() {
         setError(null);
 
         try {
-            logger.info('토큰 주소로 게임 조회 시작', { tokenAddress });
+            // 현재는 MockToken 주소를 사용하여 조회
+            const queryTokenAddress = MOCK_ERC20_ADDRESS;
+            logger.info('토큰 주소로 게임 조회 시작', { tokenAddress, queryTokenAddress });
 
-            // 1. 백엔드 API에서 게임 조회
-            const game = await backgroundApi.getGameByToken(tokenAddress);
+            // 1. 백엔드 API에서 게임 조회 (MockToken 주소 사용)
+            const game = await backgroundApi.getGameByToken(queryTokenAddress);
 
             if (game) {
                 logger.info('백엔드에서 게임 정보 조회 성공', {
