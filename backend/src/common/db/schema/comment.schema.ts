@@ -1,4 +1,4 @@
-import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import {
     boolean,
     index,
@@ -9,6 +9,7 @@ import {
     varchar,
 } from 'drizzle-orm/pg-core';
 import { squidSchema } from './common';
+import { users } from './user.schema';
 
 export const comments = squidSchema.table(
     'comments',
@@ -45,6 +46,14 @@ export const comments = squidSchema.table(
         };
     },
 );
+
+// Relations: comments -> users (many-to-one via commentor/walletAddress)
+export const commentsRelations = relations(comments, ({ one }) => ({
+    user: one(users, {
+        fields: [comments.commentor],
+        references: [users.walletAddress],
+    }),
+}));
 
 export type Comment = InferSelectModel<typeof comments>;
 export type NewComment = InferInsertModel<typeof comments>;

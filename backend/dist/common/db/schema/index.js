@@ -18,4 +18,5 @@ __exportStar(require("./comment.schema"), exports);
 __exportStar(require("./comment-like.schema"), exports);
 __exportStar(require("./common"), exports);
 __exportStar(require("./game.schema"), exports);
+__exportStar(require("./user.schema"), exports);
 //# sourceMappingURL=index.js.map

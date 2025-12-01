@@ -1,8 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.comments = void 0;
+exports.commentsRelations = exports.comments = void 0;
+const drizzle_orm_1 = require("drizzle-orm");
 const pg_core_1 = require("drizzle-orm/pg-core");
 const common_1 = require("./common");
+const user_schema_1 = require("./user.schema");
 exports.comments = common_1.squidSchema.table('comments', {
     id: (0, pg_core_1.serial)('id').primaryKey(),
     txHash: (0, pg_core_1.varchar)('tx_hash', { length: 66 }).unique(),
@@ -20,4 +22,10 @@ exports.comments = common_1.squidSchema.table('comments', {
         lastCommentIdx: (0, pg_core_1.index)('last_comment_idx').on(table.gameAddress, table.isWinnerComment),
     };
 });
+exports.commentsRelations = (0, drizzle_orm_1.relations)(exports.comments, ({ one }) => ({
+    user: one(user_schema_1.users, {
+        fields: [exports.comments.commentor],
+        references: [user_schema_1.users.walletAddress],
+    }),
+}));
 //# sourceMappingURL=comment.schema.js.map
