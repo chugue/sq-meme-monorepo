@@ -10,10 +10,13 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Address } from 'viem';
+import { backendApi, type CreateCommentRequest } from '../lib/api/backendApi';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { erc20ABI } from '../lib/contract/abis/erc20';
 import { createContractClient } from '../lib/contract/contractClient';
+import { parseCommentAddedEvent } from '../lib/contract/eventParser';
 import { logger } from '../lib/injected/logger';
+import { injectedApi } from '../lib/injectedApi';
 
 export interface UseCommentContractReturn {
     // 댓글 작성
@@ -76,12 +79,13 @@ export function useCommentContract(
 
     /**
      * 댓글 작성 (컨트랙트 addComment 호출)
+     * - 트랜잭션 전송 → 확정 대기 → 이벤트 파싱 → 백엔드 API 호출
      * @param message 댓글 내용
      * @returns 트랜잭션 해시
      */
     const addComment = useCallback(
         async (message: string): Promise<string> => {
-            if (!contractClient) {
+            if (!contractClient || !gameAddress) {
                 throw new Error('게임 주소가 설정되지 않았습니다.');
             }
             if (!userAddress) {
@@ -101,6 +105,7 @@ export function useCommentContract(
                     messageLength: message.length,
                 });
 
+                // 1. 트랜잭션 전송
                 const result = await contractClient.write(
                     {
                         functionName: 'addComment',
@@ -112,6 +117,56 @@ export function useCommentContract(
                 logger.info('댓글 작성 트랜잭션 전송 완료', {
                     hash: result.hash,
                 });
+
+                // 2. 트랜잭션 확정 대기
+                const receipt = await injectedApi.waitForTransaction(result.hash);
+
+                logger.info('댓글 트랜잭션 확정됨', {
+                    hash: result.hash,
+                    blockNumber: receipt.blockNumber,
+                    logsCount: receipt.logs.length,
+                });
+
+                // 3. CommentAdded 이벤트 파싱
+                const eventData = parseCommentAddedEvent(receipt.logs, gameAddress);
+
+                if (!eventData) {
+                    logger.warn('CommentAdded 이벤트를 찾을 수 없음', {
+                        hash: result.hash,
+                    });
+                    // 이벤트가 없어도 트랜잭션은 성공했으므로 해시 반환
+                    return result.hash;
+                }
+
+                logger.info('CommentAdded 이벤트 파싱 완료', {
+                    commentor: eventData.commentor,
+                    newEndTime: eventData.newEndTime.toString(),
+                    prizePool: eventData.prizePool.toString(),
+                });
+
+                // 4. 백엔드 API 호출
+                const apiRequest: CreateCommentRequest = {
+                    txHash: result.hash,
+                    gameAddress: gameAddress,
+                    commentor: eventData.commentor,
+                    message: eventData.message,
+                    newEndTime: eventData.newEndTime.toString(),
+                    prizePool: eventData.prizePool.toString(),
+                    timestamp: eventData.timestamp.toString(),
+                };
+
+                const apiResponse = await backendApi.saveComment(apiRequest);
+
+                if (apiResponse.success) {
+                    logger.info('백엔드에 댓글 저장 완료', {
+                        commentId: apiResponse.data?.id,
+                    });
+                } else {
+                    // 백엔드 저장 실패해도 트랜잭션은 성공했으므로 경고만 출력
+                    logger.warn('백엔드 댓글 저장 실패', {
+                        error: apiResponse.errorMessage,
+                    });
+                }
 
                 return result.hash;
             } catch (err) {

@@ -543,6 +543,18 @@ export async function getBlockTimestamp(): Promise<bigint> {
 }
 
 /**
+ * 트랜잭션 로그 항목
+ */
+export interface TransactionLog {
+    address: string;
+    topics: string[];
+    data: string;
+    blockNumber: string;
+    transactionHash: string;
+    logIndex: string;
+}
+
+/**
  * 트랜잭션 영수증 조회
  */
 export interface TransactionReceipt {
@@ -551,6 +563,7 @@ export interface TransactionReceipt {
     blockHash: string;
     status: '0x1' | '0x0'; // 0x1 = success, 0x0 = failure
     gasUsed: string;
+    logs: TransactionLog[];
 }
 
 export async function getTransactionReceipt(txHash: string): Promise<TransactionReceipt | null> {
