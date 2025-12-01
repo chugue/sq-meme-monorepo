@@ -7,7 +7,8 @@ export declare class GameService implements OnModuleInit, OnModuleDestroy {
     private readonly ethereumProvider;
     private readonly gameRepository;
     private readonly logger;
-    private iface;
+    private gameCreatedIface;
+    private prizeClaimedIface;
     private isListening;
     constructor(configService: ConfigService, ethereumProvider: EthereumProvider, gameRepository: GameRepository);
     onModuleInit(): void;
@@ -15,4 +16,5 @@ export declare class GameService implements OnModuleInit, OnModuleDestroy {
     private startListening;
     private stopListening;
     private handleGameCreatedLog;
+    private handlePrizeClaimedLog;
 }

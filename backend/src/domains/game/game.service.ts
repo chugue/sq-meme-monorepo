@@ -12,10 +12,14 @@ import { GameRepository } from './game.repository';
 const GAME_CREATED_EVENT =
     'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, string tokenSymbol, string tokenName, address initiator, uint256 gameTime, uint256 endTime, uint256 cost, uint256 prizePool, address lastCommentor, bool isClaimed)';
 
+const PRIZE_CLAIMED_EVENT =
+    'event PrizeClaimed(address indexed winner, uint256 winnerShare, uint256 platformShare, uint256 timestamp)';
+
 @Injectable()
 export class GameService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(GameService.name);
-    private iface: ethers.Interface;
+    private gameCreatedIface: ethers.Interface;
+    private prizeClaimedIface: ethers.Interface;
     private isListening = false;
 
     constructor(
@@ -23,7 +27,8 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         private readonly ethereumProvider: EthereumProvider,
         private readonly gameRepository: GameRepository,
     ) {
-        this.iface = new ethers.Interface([GAME_CREATED_EVENT]);
+        this.gameCreatedIface = new ethers.Interface([GAME_CREATED_EVENT]);
+        this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
     }
 
     onModuleInit() {
@@ -47,7 +52,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         }
 
         const provider = this.ethereumProvider.getProvider();
-        const topic = this.iface.getEvent('GameCreated')?.topicHash;
+        const topic = this.gameCreatedIface.getEvent('GameCreated')?.topicHash;
 
         if (!topic) {
             this.logger.error('Failed to generate GameCreated event topic');
@@ -78,11 +83,27 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
             this.logger.log(`📨 Raw log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
             this.handleGameCreatedLog(log);
         });
-        this.isListening = true;
 
         this.logger.log(
             `✅ GameCreated event listener started (Factory: ${factoryAddress})`,
         );
+
+        // PrizeClaimed 이벤트 리스너 (모든 CommentGame 컨트랙트에서 발생)
+        const prizeClaimedTopic = this.prizeClaimedIface.getEvent('PrizeClaimed')?.topicHash;
+        if (prizeClaimedTopic) {
+            const prizeClaimedFilter = {
+                topics: [prizeClaimedTopic],
+            };
+
+            provider.on(prizeClaimedFilter, (log) => {
+                this.logger.log(`🏆 PrizeClaimed log received: ${JSON.stringify(log, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`);
+                this.handlePrizeClaimedLog(log);
+            });
+
+            this.logger.log(`✅ PrizeClaimed event listener started`);
+        }
+
+        this.isListening = true;
     }
 
     private stopListening() {
@@ -95,7 +116,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
 
     private async handleGameCreatedLog(log: ethers.Log) {
         try {
-            const decoded = this.iface.decodeEventLog(
+            const decoded = this.gameCreatedIface.decodeEventLog(
                 'GameCreated',
                 log.data,
                 log.topics,
@@ -113,6 +134,35 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
             }
         } catch (error) {
             this.logger.error(`Event processing failed: ${error.message}`);
+        }
+    }
+
+    /**
+     * PrizeClaimed 이벤트 처리
+     * - 게임 주소(log.address)로 DB 업데이트
+     * - isClaimed = true로 설정
+     */
+    private async handlePrizeClaimedLog(log: ethers.Log) {
+        try {
+            const decoded = this.prizeClaimedIface.decodeEventLog(
+                'PrizeClaimed',
+                log.data,
+                log.topics,
+            );
+
+            const rawEvent = decoded.toObject();
+            const gameAddress = log.address.toLowerCase();
+
+            this.logger.log(`🏆 PrizeClaimed 이벤트 수신: gameAddress=${gameAddress}, winner=${rawEvent.winner}`);
+
+            // DB 업데이트: isClaimed = true
+            await this.gameRepository.updateGameState(gameAddress, {
+                isClaimed: true,
+            });
+
+            this.logger.log(`✅ 게임 상금 수령 완료 처리: ${gameAddress}`);
+        } catch (error) {
+            this.logger.error(`PrizeClaimed event processing failed: ${error.message}`);
         }
     }
 }
