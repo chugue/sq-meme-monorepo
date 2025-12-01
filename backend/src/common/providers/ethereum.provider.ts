@@ -1,6 +1,6 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ethers, WebSocketProvider, Network } from 'ethers';
+import { ethers, JsonRpcProvider, Network } from 'ethers';
 
 // Insectarium Testnet 설정
 const INSECTARIUM_NETWORK = Network.from({
@@ -8,44 +8,43 @@ const INSECTARIUM_NETWORK = Network.from({
     name: 'insectarium',
 });
 
+const DEFAULT_RPC_URL = 'https://rpc.insectarium.memecore.net';
+
 @Injectable()
-export class EthereumProvider implements OnModuleDestroy {
+export class EthereumProvider {
     private readonly logger = new Logger(EthereumProvider.name);
-    private provider: WebSocketProvider;
+    private provider: JsonRpcProvider;
 
     constructor(private readonly configService: ConfigService) {
         this.connect();
     }
 
     private connect() {
-        const wsUrl =
-            this.configService.get<string>('ETHEREUM_WS_URL') ||
-            'wss://ws.insectarium.memecore.net';
+        const rpcUrl =
+            this.configService.get<string>('ETHEREUM_RPC_URL') ||
+            DEFAULT_RPC_URL;
 
-        this.logger.log(`🔌 Ethereum WebSocket 연결 중... (${wsUrl})`);
+        this.logger.log(`🔌 Ethereum HTTP RPC 연결 중... (${rpcUrl})`);
 
-        this.provider = new WebSocketProvider(wsUrl, INSECTARIUM_NETWORK);
-
-        // ethers v6에서는 provider 레벨에서 이벤트 처리
-        this.provider.on('error', (error: Error) => {
-            this.logger.error(`❌ Provider 에러: ${error.message}`);
+        this.provider = new JsonRpcProvider(rpcUrl, INSECTARIUM_NETWORK, {
+            staticNetwork: INSECTARIUM_NETWORK,
         });
 
-        this.logger.log('✅ WebSocket Provider 생성 완료!');
-    }
-
-    onModuleDestroy() {
-        this.logger.log('🛑 Ethereum Provider 종료 중...');
-        if (this.provider) {
-            this.provider.destroy();
-        }
+        this.logger.log('✅ JsonRpc Provider 생성 완료!');
     }
 
     /**
-     * @description WebSocketProvider 인스턴스 반환
+     * @description JsonRpcProvider 인스턴스 반환
      */
-    getProvider(): WebSocketProvider {
+    getProvider(): JsonRpcProvider {
         return this.provider;
+    }
+
+    /**
+     * @description 트랜잭션 영수증 조회
+     */
+    async getTransactionReceipt(txHash: string) {
+        return this.provider.getTransactionReceipt(txHash);
     }
 
     /**

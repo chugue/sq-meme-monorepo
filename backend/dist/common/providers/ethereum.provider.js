@@ -18,6 +18,7 @@ const INSECTARIUM_NETWORK = ethers_1.Network.from({
     chainId: 43522,
     name: 'insectarium',
 });
+const DEFAULT_RPC_URL = 'https://rpc.insectarium.memecore.net';
 let EthereumProvider = EthereumProvider_1 = class EthereumProvider {
     configService;
     logger = new common_1.Logger(EthereumProvider_1.name);
@@ -27,23 +28,19 @@ let EthereumProvider = EthereumProvider_1 = class EthereumProvider {
         this.connect();
     }
     connect() {
-        const wsUrl = this.configService.get('ETHEREUM_WS_URL') ||
-            'wss://ws.insectarium.memecore.net';
-        this.logger.log(`🔌 Ethereum WebSocket 연결 중... (${wsUrl})`);
-        this.provider = new ethers_1.WebSocketProvider(wsUrl, INSECTARIUM_NETWORK);
-        this.provider.on('error', (error) => {
-            this.logger.error(`❌ Provider 에러: ${error.message}`);
+        const rpcUrl = this.configService.get('ETHEREUM_RPC_URL') ||
+            DEFAULT_RPC_URL;
+        this.logger.log(`🔌 Ethereum HTTP RPC 연결 중... (${rpcUrl})`);
+        this.provider = new ethers_1.JsonRpcProvider(rpcUrl, INSECTARIUM_NETWORK, {
+            staticNetwork: INSECTARIUM_NETWORK,
         });
-        this.logger.log('✅ WebSocket Provider 생성 완료!');
-    }
-    onModuleDestroy() {
-        this.logger.log('🛑 Ethereum Provider 종료 중...');
-        if (this.provider) {
-            this.provider.destroy();
-        }
+        this.logger.log('✅ JsonRpc Provider 생성 완료!');
     }
     getProvider() {
         return this.provider;
+    }
+    async getTransactionReceipt(txHash) {
+        return this.provider.getTransactionReceipt(txHash);
     }
     getEventTopic(eventSignature) {
         return ethers_1.ethers.id(eventSignature);
