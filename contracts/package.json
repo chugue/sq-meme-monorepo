@@ -5,7 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
-    "compile": "npx hardhat compile"
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run scripts/deploy.ts --network insectarium",
+    "deploy:mock": "npx hardhat run scripts/deployMockERC20.ts --network insectarium",
+    "game:create": "npx hardhat run scripts/createGame.ts --network insectarium",
+    "game:simulate": "npx hardhat run scripts/simulate_flow.ts --network insectarium",
+    "token:transfer": "npx hardhat run scripts/transferMockToken.ts --network insectarium",
+    "token:balance": "npx hardhat run scripts/checkBalance.ts --network insectarium",
+    "comment:test": "npx hardhat run scripts/testComment.ts --network insectarium",
+    "tx:check": "npx hardhat run scripts/checkTx.ts --network insectarium"
   },
   "keywords": [],
   "author": "",
