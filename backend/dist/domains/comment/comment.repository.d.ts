@@ -17,6 +17,7 @@ export declare class CommentRepository {
     addComments(rawEvents: unknown[]): Promise<void>;
     findByGameAddress(gameAddress: string): Promise<{
         id: number;
+        txHash: string | null;
         gameAddress: string;
         commentor: string;
         message: string;
@@ -33,4 +34,10 @@ export declare class CommentRepository {
     getLikeCount(commentId: number): Promise<LikeCountResult | null>;
     hasUserLiked(commentId: number, userAddress: string): Promise<UserLikedResult>;
     getUserLikedMap(userAddress: string, commentIds: number[]): Promise<Map<number, boolean>>;
+    createFromFrontend(rawData: unknown): Promise<{
+        id: number;
+    } | null>;
+    findByTxHash(txHash: string): Promise<{
+        id: number;
+    } | null>;
 }

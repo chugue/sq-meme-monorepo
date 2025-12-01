@@ -172,4 +172,22 @@ export class CommentService implements OnModuleInit, OnModuleDestroy {
             return Result.fail('Failed to get like map');
         }
     }
+
+    /**
+     * @description 프론트엔드에서 전송한 댓글 데이터를 저장
+     */
+    async createComment(data: unknown): Promise<Result<{ id: number }>> {
+        try {
+            const result = await this.commentRepository.createFromFrontend(data);
+
+            if (!result) {
+                return Result.fail('댓글 저장에 실패했습니다.');
+            }
+
+            return Result.ok(result);
+        } catch (error) {
+            this.logger.error(`Create comment failed: ${error.message}`);
+            return Result.fail('댓글 저장에 실패했습니다.');
+        }
+    }
 }

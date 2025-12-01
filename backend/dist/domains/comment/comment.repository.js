@@ -184,6 +184,60 @@ let CommentRepository = CommentRepository_1 = class CommentRepository {
         }
         return result;
     }
+    async createFromFrontend(rawData) {
+        const result = comment_validator_1.CreateCommentDtoSchema.safeParse(rawData);
+        if (!result.success) {
+            this.logger.error(`Invalid comment data: ${result.error.message}`);
+            return null;
+        }
+        const dto = result.data;
+        const existing = await this.findByTxHash(dto.txHash);
+        if (existing) {
+            this.logger.warn(`중복 댓글 요청: txHash ${dto.txHash}`);
+            return existing;
+        }
+        try {
+            const comment = await this.db.transaction(async (tx) => {
+                const [inserted] = await tx
+                    .insert(schema.comments)
+                    .values({
+                    txHash: dto.txHash,
+                    gameAddress: dto.gameAddress,
+                    commentor: dto.commentor,
+                    message: dto.message,
+                    likeCount: 0,
+                    endTime: new Date(Number(dto.newEndTime) * 1000),
+                    currentPrizePool: dto.prizePool,
+                    isWinnerComment: false,
+                    createdAt: new Date(Number(dto.timestamp) * 1000),
+                })
+                    .returning({ id: schema.comments.id });
+                await tx
+                    .update(schema.games)
+                    .set({
+                    endTime: new Date(Number(dto.newEndTime) * 1000),
+                    prizePool: dto.prizePool,
+                    lastCommentor: dto.commentor,
+                })
+                    .where((0, drizzle_orm_1.eq)(schema.games.gameAddress, dto.gameAddress));
+                return inserted;
+            });
+            this.logger.log(`댓글 저장 완료: 게임 ${dto.gameAddress}`);
+            return { id: comment.id };
+        }
+        catch (error) {
+            this.logger.error(`댓글 저장 실패: ${error.message}`);
+            return null;
+        }
+    }
+    async findByTxHash(txHash) {
+        const [comment] = await this.db
+            .select({ id: schema.comments.id })
+            .from(schema.comments)
+            .where((0, drizzle_orm_1.eq)(schema.comments.txHash, txHash))
+            .limit(1);
+        return comment ?? null;
+    }
 };
 exports.CommentRepository = CommentRepository;
 exports.CommentRepository = CommentRepository = CommentRepository_1 = __decorate([

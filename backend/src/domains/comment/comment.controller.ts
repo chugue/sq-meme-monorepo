@@ -1,4 +1,13 @@
-import { Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    ParseIntPipe,
+    Post,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { WalletAddress } from 'src/common/decorators';
 import { CommentService } from './comment.service';
@@ -7,6 +16,15 @@ import { CommentService } from './comment.service';
 @Controller('/v1/comments')
 export class CommentController {
     constructor(private readonly commentService: CommentService) {}
+
+    /**
+     * 프론트엔드에서 트랜잭션 완료 후 댓글 데이터 저장
+     */
+    @Post()
+    @HttpCode(HttpStatus.CREATED)
+    async createComment(@Body() body: unknown) {
+        return this.commentService.createComment(body);
+    }
 
     @Get('game/:gameAddress')
     async getCommentsByGame(@Param('gameAddress') gameAddress: string) {

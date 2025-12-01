@@ -5,6 +5,7 @@ const pg_core_1 = require("drizzle-orm/pg-core");
 const common_1 = require("./common");
 exports.comments = common_1.squidSchema.table('comments', {
     id: (0, pg_core_1.serial)('id').primaryKey(),
+    txHash: (0, pg_core_1.varchar)('tx_hash', { length: 66 }).unique(),
     gameAddress: (0, pg_core_1.varchar)('game_address', { length: 42 }).notNull(),
     commentor: (0, pg_core_1.varchar)('commentor', { length: 42 }).notNull(),
     message: (0, pg_core_1.text)('message').notNull(),

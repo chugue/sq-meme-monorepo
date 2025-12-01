@@ -25,4 +25,7 @@ export declare class CommentService implements OnModuleInit, OnModuleDestroy {
     getLikeCount(commentId: number): Promise<Result<LikeCountResult>>;
     hasUserLiked(userAddress: string, commentId: number): Promise<Result<UserLikedResult>>;
     getUserLikedMap(userAddress: string, commentIds: number[]): Promise<Result<Map<number, boolean>>>;
+    createComment(data: unknown): Promise<Result<{
+        id: number;
+    }>>;
 }

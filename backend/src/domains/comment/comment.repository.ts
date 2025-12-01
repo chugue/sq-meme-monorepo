@@ -6,6 +6,7 @@ import * as schema from 'src/common/db/schema';
 import {
     CommentAddedEvent,
     CommentAddedEventSchema,
+    CreateCommentDtoSchema,
 } from 'src/common/validator/comment.validator';
 
 export type ToggleLikeResult = { liked: boolean; likeCount: number };
@@ -219,5 +220,77 @@ export class CommentRepository {
         }
 
         return result;
+    }
+
+    /**
+     * @description 프론트엔드에서 전송한 댓글 데이터를 검증하고 저장
+     * @returns 생성된 댓글 ID 또는 null (중복/실패 시)
+     */
+    async createFromFrontend(rawData: unknown): Promise<{ id: number } | null> {
+        const result = CreateCommentDtoSchema.safeParse(rawData);
+        if (!result.success) {
+            this.logger.error(`Invalid comment data: ${result.error.message}`);
+            return null;
+        }
+
+        const dto = result.data;
+
+        // 중복 체크 (txHash unique 제약조건으로도 방어됨)
+        const existing = await this.findByTxHash(dto.txHash);
+        if (existing) {
+            this.logger.warn(`중복 댓글 요청: txHash ${dto.txHash}`);
+            return existing;
+        }
+
+        try {
+            const comment = await this.db.transaction(async (tx) => {
+                // 1. 댓글 저장
+                const [inserted] = await tx
+                    .insert(schema.comments)
+                    .values({
+                        txHash: dto.txHash,
+                        gameAddress: dto.gameAddress,
+                        commentor: dto.commentor,
+                        message: dto.message,
+                        likeCount: 0,
+                        endTime: new Date(Number(dto.newEndTime) * 1000),
+                        currentPrizePool: dto.prizePool,
+                        isWinnerComment: false,
+                        createdAt: new Date(Number(dto.timestamp) * 1000),
+                    })
+                    .returning({ id: schema.comments.id });
+
+                // 2. 게임 상태 업데이트
+                await tx
+                    .update(schema.games)
+                    .set({
+                        endTime: new Date(Number(dto.newEndTime) * 1000),
+                        prizePool: dto.prizePool,
+                        lastCommentor: dto.commentor,
+                    })
+                    .where(eq(schema.games.gameAddress, dto.gameAddress));
+
+                return inserted;
+            });
+
+            this.logger.log(`댓글 저장 완료: 게임 ${dto.gameAddress}`);
+            return { id: comment.id };
+        } catch (error) {
+            this.logger.error(`댓글 저장 실패: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * @description txHash로 댓글 조회
+     */
+    async findByTxHash(txHash: string): Promise<{ id: number } | null> {
+        const [comment] = await this.db
+            .select({ id: schema.comments.id })
+            .from(schema.comments)
+            .where(eq(schema.comments.txHash, txHash))
+            .limit(1);
+
+        return comment ?? null;
     }
 }

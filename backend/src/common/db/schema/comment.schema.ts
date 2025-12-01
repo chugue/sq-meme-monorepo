@@ -15,6 +15,9 @@ export const comments = squidSchema.table(
     {
         id: serial('id').primaryKey(),
 
+        // 트랜잭션 해시 (중복 체크용)
+        txHash: varchar('tx_hash', { length: 66 }).unique(),
+
         // 어떤 게임의 댓글인지
         gameAddress: varchar('game_address', { length: 42 }).notNull(),
 

@@ -2,6 +2,9 @@ import { CommentService } from './comment.service';
 export declare class CommentController {
     private readonly commentService;
     constructor(commentService: CommentService);
+    createComment(body: unknown): Promise<import("../../common/types").Result<{
+        id: number;
+    }>>;
     getCommentsByGame(gameAddress: string): Promise<{
         success: false;
         errorMessage: string;

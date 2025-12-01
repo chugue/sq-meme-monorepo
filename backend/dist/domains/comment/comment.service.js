@@ -127,6 +127,19 @@ let CommentService = CommentService_1 = class CommentService {
             return types_1.Result.fail('Failed to get like map');
         }
     }
+    async createComment(data) {
+        try {
+            const result = await this.commentRepository.createFromFrontend(data);
+            if (!result) {
+                return types_1.Result.fail('댓글 저장에 실패했습니다.');
+            }
+            return types_1.Result.ok(result);
+        }
+        catch (error) {
+            this.logger.error(`Create comment failed: ${error.message}`);
+            return types_1.Result.fail('댓글 저장에 실패했습니다.');
+        }
+    }
 };
 exports.CommentService = CommentService;
 exports.CommentService = CommentService = CommentService_1 = __decorate([

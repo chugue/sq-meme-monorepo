@@ -22,6 +22,9 @@ let CommentController = class CommentController {
     constructor(commentService) {
         this.commentService = commentService;
     }
+    async createComment(body) {
+        return this.commentService.createComment(body);
+    }
     async getCommentsByGame(gameAddress) {
         return this.commentService.getCommentsByGame(gameAddress);
     }
@@ -36,6 +39,14 @@ let CommentController = class CommentController {
     }
 };
 exports.CommentController = CommentController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CommentController.prototype, "createComment", null);
 __decorate([
     (0, common_1.Get)('game/:gameAddress'),
     __param(0, (0, common_1.Param)('gameAddress')),
