@@ -17,7 +17,7 @@ import { GameSetupModal } from './GameSetupModal';
 import { TransactionSuccessModal } from './TransactionSuccessModal';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { injectedApi } from '../lib/injectedApi';
-import { backendApi } from '../lib/api/backendApi';
+import { backgroundApi } from '../lib/backgroundApi';
 import './CommentSection.css';
 
 interface NoGameSectionProps {
@@ -81,16 +81,15 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             // 트랜잭션 확정 대기
             await injectedApi.waitForTransaction(txHash);
 
-            // 트랜잭션 확정 후 백엔드에 txHash 등록
-            const apiResponse = await backendApi.registerClaimPrizeTx(
-                endedGameInfo.gameAddress,
-                txHash
-            );
-
-            if (apiResponse.success) {
+            // 트랜잭션 확정 후 백엔드에 txHash 등록 (Background Script를 통해 CORS 우회)
+            try {
+                await backgroundApi.registerClaimPrizeTx(
+                    endedGameInfo.gameAddress,
+                    txHash
+                );
                 console.log('백엔드에 claimPrize 등록 완료');
-            } else {
-                console.warn('백엔드 claimPrize 등록 실패', apiResponse.errorMessage);
+            } catch (apiError) {
+                console.warn('백엔드 claimPrize 등록 실패', apiError);
             }
 
             // 트랜잭션 확정 시 성공 모달 표시

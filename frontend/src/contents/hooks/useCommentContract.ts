@@ -10,7 +10,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Address } from 'viem';
-import { backendApi, type CreateCommentRequest } from '../lib/api/backendApi';
+import { backgroundApi, type CreateCommentRequest } from '../lib/backgroundApi';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { erc20ABI } from '../lib/contract/abis/erc20';
 import { createContractClient } from '../lib/contract/contractClient';
@@ -155,16 +155,15 @@ export function useCommentContract(
                     timestamp: eventData.timestamp.toString(),
                 };
 
-                const apiResponse = await backendApi.saveComment(apiRequest);
-
-                if (apiResponse.success) {
+                try {
+                    const savedComment = await backgroundApi.saveComment(apiRequest);
                     logger.info('백엔드에 댓글 저장 완료', {
-                        commentId: apiResponse.data?.id,
+                        commentId: savedComment?.id,
                     });
-                } else {
+                } catch (apiError) {
                     // 백엔드 저장 실패해도 트랜잭션은 성공했으므로 경고만 출력
                     logger.warn('백엔드 댓글 저장 실패', {
-                        error: apiResponse.errorMessage,
+                        error: apiError,
                     });
                 }
 

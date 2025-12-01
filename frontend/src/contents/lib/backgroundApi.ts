@@ -1,15 +1,45 @@
 import { browser } from 'wxt/browser';
+
+// 댓글 생성 요청 DTO
+export interface CreateCommentRequest {
+    txHash: string;
+    gameAddress: string;
+    commentor: string;
+    message: string;
+    newEndTime: string;
+    prizePool: string;
+    timestamp: string;
+}
+
+// 게임 생성 요청 DTO
+export interface CreateGameRequest {
+    txHash: string;
+    gameId: string;
+    gameAddr: string;
+    gameTokenAddr: string;
+    tokenSymbol: string;
+    tokenName: string;
+    initiator: string;
+    gameTime: string;
+    endTime: string;
+    cost: string;
+    prizePool: string;
+    lastCommentor: string;
+    isClaimed: boolean;
+}
+
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
     | { type: 'GET_COMMENTS'; gameAddress: string }
-    // NOTE: CREATE_COMMENT는 더 이상 사용하지 않음 - 프론트엔드에서 직접 스마트 컨트랙트 호출
-    // | { type: 'CREATE_COMMENT'; gameAddress: string; commentor: string; message: string; signature?: string }
     | { type: 'DELETE_COMMENT'; commentId: number }
     | { type: 'HEALTH_CHECK' }
     | { type: 'OPEN_SIDE_PANEL' }
     | { type: 'GET_STORAGE'; key: string; area?: 'session' | 'local' }
     | { type: 'SET_STORAGE'; key: string; value: any; area?: 'session' | 'local' }
-    | { type: 'GET_GAME_BY_TOKEN'; tokenAddress: string };
+    | { type: 'GET_GAME_BY_TOKEN'; tokenAddress: string }
+    | { type: 'SAVE_COMMENT'; data: CreateCommentRequest }
+    | { type: 'SAVE_GAME'; data: CreateGameRequest }
+    | { type: 'REGISTER_CLAIM_PRIZE'; gameAddress: string; txHash: string };
 
 export type BackgroundResponse<T = any> =
     | { success: true; data: T }
@@ -125,6 +155,31 @@ export const backgroundApi = {
         return sendToBackground<GameInfo | null>({
             type: 'GET_GAME_BY_TOKEN',
             tokenAddress,
+        });
+    },
+
+    // 댓글 데이터를 백엔드에 저장
+    saveComment: async (data: CreateCommentRequest) => {
+        return sendToBackground<{ id: number }>({
+            type: 'SAVE_COMMENT',
+            data,
+        });
+    },
+
+    // 게임 데이터를 백엔드에 저장
+    saveGame: async (data: CreateGameRequest) => {
+        return sendToBackground<{ gameAddress: string }>({
+            type: 'SAVE_GAME',
+            data,
+        });
+    },
+
+    // claimPrize txHash를 백엔드에 등록
+    registerClaimPrizeTx: async (gameAddress: string, txHash: string) => {
+        return sendToBackground<{ success: boolean }>({
+            type: 'REGISTER_CLAIM_PRIZE',
+            gameAddress,
+            txHash,
         });
     },
 };

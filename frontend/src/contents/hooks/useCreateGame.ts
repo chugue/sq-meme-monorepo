@@ -8,7 +8,7 @@
 
 import { useCallback, useState } from 'react';
 import type { Address } from 'viem';
-import { backendApi, type CreateCommentRequest, type CreateGameRequest } from '../lib/api/backendApi';
+import { backgroundApi, type CreateCommentRequest, type CreateGameRequest } from '../lib/backgroundApi';
 import { GAME_FACTORY_ADDRESS, gameFactoryABI } from '../lib/contract/abis/gameFactory';
 import { createContractClient } from '../lib/contract/contractClient';
 import { parseCommentAddedEvent, parseGameCreatedEvent } from '../lib/contract/eventParser';
@@ -371,15 +371,14 @@ export function useCreateGame(): UseCreateGameReturn {
                     isClaimed: gameCreatedEvent.isClaimed,
                 };
 
-                const gameApiResponse = await backendApi.saveGame(gameApiRequest);
-
-                if (gameApiResponse.success) {
+                try {
+                    const savedGame = await backgroundApi.saveGame(gameApiRequest);
                     logger.info('백엔드에 게임 저장 완료', {
-                        gameAddress: gameApiResponse.data?.gameAddress,
+                        gameAddress: savedGame?.gameAddress,
                     });
-                } else {
+                } catch (apiError) {
                     logger.warn('백엔드 게임 저장 실패', {
-                        error: gameApiResponse.errorMessage,
+                        error: apiError,
                     });
                 }
             } else {
@@ -502,15 +501,14 @@ export function useCreateGame(): UseCreateGameReturn {
                     timestamp: commentEvent.timestamp.toString(),
                 };
 
-                const commentApiResponse = await backendApi.saveComment(commentApiRequest);
-
-                if (commentApiResponse.success) {
+                try {
+                    const savedComment = await backgroundApi.saveComment(commentApiRequest);
                     logger.info('백엔드에 첫 댓글 저장 완료', {
-                        commentId: commentApiResponse.data?.id,
+                        commentId: savedComment?.id,
                     });
-                } else {
+                } catch (apiError) {
                     logger.warn('백엔드 첫 댓글 저장 실패', {
-                        error: commentApiResponse.errorMessage,
+                        error: apiError,
                     });
                 }
             } else {
