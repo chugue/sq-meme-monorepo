@@ -59,49 +59,6 @@ let GameRepository = GameRepository_1 = class GameRepository {
     constructor(db) {
         this.db = db;
     }
-    async createGames(rawEvents) {
-        if (rawEvents.length === 0)
-            return [];
-        const games = rawEvents
-            .map((event) => {
-            const result = game_validator_1.GameCreatedEventSchema.safeParse(event);
-            if (!result.success) {
-                this.logger.error(`❌ 검증 실패 - ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`);
-                this.logger.debug(`원본 데이터: ${JSON.stringify(event, (_, v) => typeof v === 'bigint' ? `BigInt(${v})` : v)}`);
-                return null;
-            }
-            const data = result.data;
-            return {
-                gameId: data.gameId,
-                gameAddress: data.gameAddr,
-                gameToken: data.gameTokenAddr,
-                tokenSymbol: data.tokenSymbol,
-                tokenName: data.tokenName,
-                initiator: data.initiator,
-                gameTime: data.gameTime,
-                endTime: data.endTime,
-                cost: data.cost,
-                prizePool: data.prizePool,
-                isClaimed: data.isClaimed,
-                lastCommentor: data.lastCommentor,
-            };
-        })
-            .filter((game) => game !== null);
-        if (games.length === 0)
-            return [];
-        try {
-            const savedGames = await this.db
-                .insert(schema.games)
-                .values(games)
-                .returning({ gameAddress: schema.games.gameAddress });
-            this.logger.log(`✅ ${savedGames.length}개 게임 저장 완료: ${savedGames.map((g) => g.gameAddress).join(', ')}`);
-            return savedGames;
-        }
-        catch (error) {
-            this.logger.error(`❌ 게임 저장 실패: ${error.message}`);
-            return [];
-        }
-    }
     async findByTokenAddress(tokenAddress) {
         try {
             const result = await this.db
@@ -127,6 +84,53 @@ let GameRepository = GameRepository_1 = class GameRepository {
             this.logger.error(`❌ 게임 업데이트 실패 ${gameAddress}: ${error.message}`);
             throw error;
         }
+    }
+    async createFromFrontend(rawData) {
+        const result = game_validator_1.CreateGameDtoSchema.safeParse(rawData);
+        if (!result.success) {
+            this.logger.error(`Invalid game data: ${result.error.message}`);
+            return null;
+        }
+        const dto = result.data;
+        const existing = await this.findByTxHash(dto.txHash);
+        if (existing) {
+            this.logger.warn(`중복 게임 생성 요청: txHash ${dto.txHash}`);
+            return existing;
+        }
+        try {
+            const [game] = await this.db
+                .insert(schema.games)
+                .values({
+                txHash: dto.txHash,
+                gameId: dto.gameId,
+                gameAddress: dto.gameAddr,
+                gameToken: dto.gameTokenAddr,
+                tokenSymbol: dto.tokenSymbol,
+                tokenName: dto.tokenName,
+                initiator: dto.initiator,
+                gameTime: dto.gameTime,
+                endTime: new Date(Number(dto.endTime) * 1000),
+                cost: dto.cost,
+                prizePool: dto.prizePool,
+                lastCommentor: dto.lastCommentor,
+                isClaimed: dto.isClaimed,
+            })
+                .returning({ gameAddress: schema.games.gameAddress });
+            this.logger.log(`✅ 게임 저장 완료: ${game.gameAddress}`);
+            return { gameAddress: game.gameAddress };
+        }
+        catch (error) {
+            this.logger.error(`❌ 게임 저장 실패: ${error.message}`);
+            return null;
+        }
+    }
+    async findByTxHash(txHash) {
+        const [game] = await this.db
+            .select({ gameAddress: schema.games.gameAddress })
+            .from(schema.games)
+            .where((0, drizzle_orm_1.eq)(schema.games.txHash, txHash))
+            .limit(1);
+        return game ?? null;
     }
 };
 exports.GameRepository = GameRepository;

@@ -59,56 +59,12 @@ let CommentRepository = CommentRepository_1 = class CommentRepository {
     constructor(db) {
         this.db = db;
     }
-    async addComments(rawEvents) {
-        if (rawEvents.length === 0)
-            return;
-        const comments = rawEvents
-            .map((event) => {
-            const result = comment_validator_1.CommentAddedEventSchema.safeParse(event);
-            if (!result.success) {
-                this.logger.error(`Invalid comment event: ${result.error}`);
-                return null;
-            }
-            return result.data;
-        })
-            .filter((c) => c !== null);
-        if (comments.length === 0)
-            return;
-        for (const comment of comments) {
-            try {
-                await this.db.transaction(async (tx) => {
-                    await tx.insert(schema.comments).values({
-                        gameAddress: comment.gameAddress,
-                        commentor: comment.commentor,
-                        message: comment.message,
-                        likeCount: 0,
-                        endTime: comment.newEndTime,
-                        currentPrizePool: comment.prizePool,
-                        isWinnerComment: false,
-                        createdAt: comment.timestamp,
-                    });
-                    await tx
-                        .update(schema.games)
-                        .set({
-                        endTime: comment.newEndTime,
-                        prizePool: comment.prizePool,
-                        lastCommentor: comment.commentor,
-                    })
-                        .where((0, drizzle_orm_1.eq)(schema.games.gameAddress, comment.gameAddress));
-                });
-                this.logger.log(`댓글 저장 완료: 게임 ${comment.gameAddress}`);
-            }
-            catch (error) {
-                this.logger.error(`댓글 저장 실패: ${error.message}`);
-            }
-        }
-    }
     async findByGameAddress(gameAddress) {
         return await this.db
             .select()
             .from(schema.comments)
             .where((0, drizzle_orm_1.eq)(schema.comments.gameAddress, gameAddress.toLowerCase()))
-            .orderBy(schema.comments.createdAt);
+            .orderBy((0, drizzle_orm_1.desc)(schema.comments.createdAt));
     }
     async findById(commentId) {
         const [comment] = await this.db

@@ -42,13 +42,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const schedule_1 = require("@nestjs/schedule");
 const path = __importStar(require("path"));
 const common_module_1 = require("./common/common.module");
 const db_module_1 = require("./common/db/db.module");
 const game_module_1 = require("./domains/game/game.module");
 const comment_module_1 = require("./domains/comment/comment.module");
-const transaction_module_1 = require("./domains/transaction/transaction.module");
 const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
@@ -56,7 +54,6 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            schedule_1.ScheduleModule.forRoot(),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 envFilePath: [
@@ -68,7 +65,6 @@ exports.AppModule = AppModule = __decorate([
             db_module_1.DbModule,
             game_module_1.GameModule,
             comment_module_1.CommentModule,
-            transaction_module_1.TransactionModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

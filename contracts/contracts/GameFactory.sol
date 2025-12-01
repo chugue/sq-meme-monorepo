@@ -53,15 +53,11 @@ contract GameFactory is Ownable {
             require(block.timestamp >= game.endTime(), "Active game already exists for this token");
         }
 
-        // 1. 생성자로부터 첫 참가비 수령
-        require(
-            IERC20(_gameToken).transferFrom(msg.sender, address(this), _cost),
-            "Initial cost transfer failed"
-        );
+        // 게임 생성은 무료 - 첫 댓글부터 토큰 필요
 
         gameIdCounter++;
 
-        // 2. 토큰 메타데이터 조회 (한 번만)
+        // 토큰 메타데이터 조회
         string memory _tokenSymbol = IERC20Metadata(_gameToken).symbol();
         string memory _tokenName = IERC20Metadata(_gameToken).name();
 
@@ -74,14 +70,8 @@ contract GameFactory is Ownable {
             tokenSymbol: _tokenSymbol
         });
 
-        // 3. 게임 생성 (초기 상금풀 = cost)
-        CommentGame newGame = new CommentGame(params, feeCollector, _cost);
-
-        // 4. 토큰을 새 게임 컨트랙트로 전송
-        require(
-            IERC20(_gameToken).transfer(address(newGame), _cost),
-            "Token transfer to game failed"
-        );
+        // 게임 생성 (초기 상금풀 = 0)
+        CommentGame newGame = new CommentGame(params, feeCollector, 0);
 
         deployedGames.push(address(newGame));
 

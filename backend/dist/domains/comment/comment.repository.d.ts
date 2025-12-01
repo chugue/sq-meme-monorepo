@@ -14,7 +14,6 @@ export declare class CommentRepository {
     private readonly db;
     private readonly logger;
     constructor(db: NodePgDatabase<typeof schema>);
-    addComments(rawEvents: unknown[]): Promise<void>;
     findByGameAddress(gameAddress: string): Promise<{
         id: number;
         txHash: string | null;

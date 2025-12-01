@@ -15,7 +15,7 @@ export interface CommentGame$Type {
   readonly deployedLinkReferences: {};
   readonly immutableReferences: {"1011":[{"length":32,"start":2570}],"1013":[{"length":32,"start":705}],"1015":[{"length":32,"start":1130},{"length":32,"start":1331},{"length":32,"start":1812},{"length":32,"start":2069},{"length":32,"start":2606}],"1017":[{"length":32,"start":639},{"length":32,"start":1970},{"length":32,"start":2131},{"length":32,"start":2377}],"1021":[{"length":32,"start":2327},{"length":32,"start":2534}],"1034":[{"length":32,"start":1190},{"length":32,"start":2642}]};
   readonly inputSourceName: "project/contracts/CommentGame.sol";
-  readonly buildInfoId: "solc-0_8_28-5e4a7532001ed00f5abe1798f9e76664bfcb8ab8";
+  readonly buildInfoId: "solc-0_8_28-03d1dabd161bbd1d13fbbff72ca790788dabd1e1";
 };
 
 import "hardhat/types/artifacts";

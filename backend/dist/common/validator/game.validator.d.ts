@@ -1,16 +1,17 @@
 import { z } from 'zod';
-export declare const GameCreatedEventSchema: z.ZodObject<{
-    gameId: z.ZodPipe<z.ZodBigInt, z.ZodTransform<string, bigint>>;
-    gameAddr: z.ZodString;
-    gameTokenAddr: z.ZodString;
+export declare const CreateGameDtoSchema: z.ZodObject<{
+    txHash: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+    gameId: z.ZodString;
+    gameAddr: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+    gameTokenAddr: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
     tokenSymbol: z.ZodString;
     tokenName: z.ZodString;
-    initiator: z.ZodString;
-    gameTime: z.ZodPipe<z.ZodBigInt, z.ZodTransform<string, bigint>>;
-    endTime: z.ZodPipe<z.ZodBigInt, z.ZodTransform<Date, bigint>>;
-    cost: z.ZodPipe<z.ZodBigInt, z.ZodTransform<string, bigint>>;
-    prizePool: z.ZodPipe<z.ZodBigInt, z.ZodTransform<string, bigint>>;
-    lastCommentor: z.ZodString;
+    initiator: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
+    gameTime: z.ZodString;
+    endTime: z.ZodString;
+    cost: z.ZodString;
+    prizePool: z.ZodString;
+    lastCommentor: z.ZodPipe<z.ZodString, z.ZodTransform<string, string>>;
     isClaimed: z.ZodBoolean;
 }, z.core.$strip>;
-export type GameCreatedEvent = z.infer<typeof GameCreatedEventSchema>;
+export type CreateGameDto = z.infer<typeof CreateGameDtoSchema>;

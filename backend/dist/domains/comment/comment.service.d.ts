@@ -1,19 +1,9 @@
-import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { EthereumProvider } from 'src/common/providers';
 import { Result } from 'src/common/types';
 import { CommentRepository, ToggleLikeResult, LikeCountResult, UserLikedResult } from './comment.repository';
-export declare class CommentService implements OnModuleInit, OnModuleDestroy {
-    private readonly ethereumProvider;
+export declare class CommentService {
     private readonly commentRepository;
     private readonly logger;
-    private iface;
-    private isListening;
-    constructor(ethereumProvider: EthereumProvider, commentRepository: CommentRepository);
-    onModuleInit(): void;
-    onModuleDestroy(): void;
-    private startListening;
-    private stopListening;
-    private handleCommentAddedLog;
+    constructor(commentRepository: CommentRepository);
     getCommentsByGame(gameAddress: string): Promise<{
         success: false;
         errorMessage: string;

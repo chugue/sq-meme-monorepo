@@ -12,59 +12,13 @@ var CommentService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommentService = void 0;
 const common_1 = require("@nestjs/common");
-const ethers_1 = require("ethers");
-const providers_1 = require("../../common/providers");
 const types_1 = require("../../common/types");
 const comment_repository_1 = require("./comment.repository");
-const COMMENT_ADDED_EVENT = 'event CommentAdded(address indexed commentor, string message, uint256 newEndTime, uint256 prizePool, uint256 timestamp)';
 let CommentService = CommentService_1 = class CommentService {
-    ethereumProvider;
     commentRepository;
     logger = new common_1.Logger(CommentService_1.name);
-    iface;
-    isListening = false;
-    constructor(ethereumProvider, commentRepository) {
-        this.ethereumProvider = ethereumProvider;
+    constructor(commentRepository) {
         this.commentRepository = commentRepository;
-        this.iface = new ethers_1.ethers.Interface([COMMENT_ADDED_EVENT]);
-    }
-    onModuleInit() {
-        this.startListening();
-    }
-    onModuleDestroy() {
-        this.stopListening();
-    }
-    startListening() {
-        const provider = this.ethereumProvider.getProvider();
-        const topic = this.iface.getEvent('CommentAdded')?.topicHash;
-        if (!topic) {
-            this.logger.error('Failed to generate CommentAdded event topic');
-            return;
-        }
-        const filter = { topics: [topic] };
-        provider.on(filter, (log) => this.handleCommentAddedLog(log));
-        this.isListening = true;
-        this.logger.log('CommentAdded event listener started (all contracts)');
-    }
-    stopListening() {
-        if (this.isListening) {
-            this.ethereumProvider.getProvider().removeAllListeners();
-            this.isListening = false;
-            this.logger.log('CommentAdded event listener stopped');
-        }
-    }
-    async handleCommentAddedLog(log) {
-        try {
-            const decoded = this.iface.decodeEventLog('CommentAdded', log.data, log.topics);
-            const rawEvent = {
-                ...decoded.toObject(),
-                gameAddress: log.address,
-            };
-            await this.commentRepository.addComments([rawEvent]);
-        }
-        catch (error) {
-            this.logger.error(`Event processing failed: ${error.message}`);
-        }
     }
     async getCommentsByGame(gameAddress) {
         try {
@@ -144,7 +98,6 @@ let CommentService = CommentService_1 = class CommentService {
 exports.CommentService = CommentService;
 exports.CommentService = CommentService = CommentService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [providers_1.EthereumProvider,
-        comment_repository_1.CommentRepository])
+    __metadata("design:paramtypes", [comment_repository_1.CommentRepository])
 ], CommentService);
 //# sourceMappingURL=comment.service.js.map

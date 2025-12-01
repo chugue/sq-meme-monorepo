@@ -84,7 +84,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             // 트랜잭션 확정 후 백엔드에 txHash 등록 (Background Script를 통해 CORS 우회)
             try {
                 await backgroundApi.registerClaimPrizeTx(
-                    endedGameInfo.gameAddress,
+                    endedGameInfo.gameAddress.toLowerCase(),
                     txHash
                 );
                 console.log('백엔드에 claimPrize 등록 완료');

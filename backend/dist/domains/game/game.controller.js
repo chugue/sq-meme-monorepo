@@ -16,10 +16,23 @@ exports.GameController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const game_repository_1 = require("./game.repository");
+const game_service_1 = require("./game.service");
 let GameController = class GameController {
     gameRepository;
-    constructor(gameRepository) {
+    gameService;
+    constructor(gameRepository, gameService) {
         this.gameRepository = gameRepository;
+        this.gameService = gameService;
+    }
+    async createGame(body) {
+        return this.gameService.createGame(body);
+    }
+    async registerClaimPrize(gameAddress, body) {
+        const success = await this.gameService.processPrizeClaimedTransaction(body.txHash, gameAddress);
+        return {
+            success,
+            message: success ? '상금 수령 처리 완료' : '상금 수령 처리 실패',
+        };
     }
     async getGameByToken(tokenAddress) {
         const game = await this.gameRepository.findByTokenAddress(tokenAddress);
@@ -30,6 +43,33 @@ let GameController = class GameController {
     }
 };
 exports.GameController = GameController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "createGame", null);
+__decorate([
+    (0, common_1.Post)(':gameAddress/claim'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'claimPrize 트랜잭션 등록' }),
+    (0, swagger_1.ApiParam)({
+        name: 'gameAddress',
+        description: '게임 컨트랙트 주소',
+        example: '0x1234567890123456789012345678901234567890',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: '상금 수령 처리 완료',
+    }),
+    __param(0, (0, common_1.Param)('gameAddress')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "registerClaimPrize", null);
 __decorate([
     (0, common_1.Get)('by-token/:tokenAddress'),
     (0, swagger_1.ApiOperation)({ summary: '토큰 주소로 게임 조회' }),
@@ -54,6 +94,7 @@ __decorate([
 exports.GameController = GameController = __decorate([
     (0, swagger_1.ApiTags)('Games'),
     (0, common_1.Controller)('/v1/games'),
-    __metadata("design:paramtypes", [game_repository_1.GameRepository])
+    __metadata("design:paramtypes", [game_repository_1.GameRepository,
+        game_service_1.GameService])
 ], GameController);
 //# sourceMappingURL=game.controller.js.map

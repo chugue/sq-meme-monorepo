@@ -4,11 +4,9 @@ export declare class GameRepository {
     private readonly db;
     private readonly logger;
     constructor(db: NodePgDatabase<typeof schema>);
-    createGames(rawEvents: unknown[]): Promise<{
-        gameAddress: string;
-    }[]>;
     findByTokenAddress(tokenAddress: string): Promise<{
         id: number;
+        txHash: string | null;
         gameId: string;
         gameAddress: string;
         gameToken: string;
@@ -30,4 +28,10 @@ export declare class GameRepository {
         lastCommentor?: string;
         isClaimed?: boolean;
     }): Promise<void>;
+    createFromFrontend(rawData: unknown): Promise<{
+        gameAddress: string;
+    } | null>;
+    findByTxHash(txHash: string): Promise<{
+        gameAddress: string;
+    } | null>;
 }

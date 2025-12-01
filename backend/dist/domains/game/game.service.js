@@ -14,6 +14,7 @@ exports.GameService = void 0;
 const common_1 = require("@nestjs/common");
 const ethers_1 = require("ethers");
 const providers_1 = require("../../common/providers");
+const types_1 = require("../../common/types");
 const game_repository_1 = require("./game.repository");
 const PRIZE_CLAIMED_EVENT = 'event PrizeClaimed(address indexed winner, uint256 winnerShare, uint256 platformShare, uint256 timestamp)';
 let GameService = GameService_1 = class GameService {
@@ -56,6 +57,19 @@ let GameService = GameService_1 = class GameService {
         catch (error) {
             this.logger.error(`PrizeClaimed 처리 실패: ${error.message}`, error.stack);
             return false;
+        }
+    }
+    async createGame(data) {
+        try {
+            const result = await this.gameRepository.createFromFrontend(data);
+            if (!result) {
+                return types_1.Result.fail('게임 저장에 실패했습니다.');
+            }
+            return types_1.Result.ok(result);
+        }
+        catch (error) {
+            this.logger.error(`Create game failed: ${error.message}`);
+            return types_1.Result.fail('게임 저장에 실패했습니다.');
         }
     }
 };

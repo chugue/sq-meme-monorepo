@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -26,7 +26,7 @@ export class CommentRepository {
             .select()
             .from(schema.comments)
             .where(eq(schema.comments.gameAddress, gameAddress.toLowerCase()))
-            .orderBy(schema.comments.createdAt);
+            .orderBy(desc(schema.comments.createdAt));
     }
 
     /**

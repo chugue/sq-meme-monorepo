@@ -20,6 +20,25 @@ export declare const games: import("drizzle-orm/pg-core").PgTableWithColumns<{
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        txHash: import("drizzle-orm/pg-core").PgColumn<{
+            name: "tx_hash";
+            tableName: "games";
+            dataType: "string";
+            columnType: "PgVarchar";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: 66;
+        }>;
         gameId: import("drizzle-orm/pg-core").PgColumn<{
             name: "game_id";
             tableName: "games";
