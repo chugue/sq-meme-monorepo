@@ -17,7 +17,7 @@ import { GameSetupModal } from './GameSetupModal';
 import { TransactionSuccessModal } from './TransactionSuccessModal';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { injectedApi } from '../lib/injectedApi';
-import { apiCall } from '../../background/api';
+import { backendApi } from '../lib/api/backendApi';
 import './CommentSection.css';
 
 interface NoGameSectionProps {
@@ -77,42 +77,36 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             });
 
             setClaimTxHash(txHash);
-            setIsClaiming(false);
 
-            // 백엔드에 txHash 등록 (백그라운드에서 처리)
-            apiCall('/transactions/register', {
-                method: 'POST',
-                body: JSON.stringify({
-                    txHash,
-                    gameAddress: endedGameInfo.gameAddress,
-                    eventType: 'PRIZE_CLAIMED',
-                }),
-            }).catch((err) => {
-                console.error('txHash 등록 실패 (무시됨)', err);
+            // 트랜잭션 확정 대기
+            await injectedApi.waitForTransaction(txHash);
+
+            // 트랜잭션 확정 후 백엔드에 txHash 등록
+            const apiResponse = await backendApi.registerClaimPrizeTx(
+                endedGameInfo.gameAddress,
+                txHash
+            );
+
+            if (apiResponse.success) {
+                console.log('백엔드에 claimPrize 등록 완료');
+            } else {
+                console.warn('백엔드 claimPrize 등록 실패', apiResponse.errorMessage);
+            }
+
+            // 트랜잭션 확정 시 성공 모달 표시
+            setSuccessTxHash(txHash);
+            setIsSuccessModalOpen(true);
+
+            // endedGameInfo 업데이트 (isClaimed = true)
+            setEndedGameInfo({
+                ...endedGameInfo,
+                isClaimed: true,
             });
-
-            // 백그라운드에서 트랜잭션 확정 대기
-            injectedApi.waitForTransaction(txHash)
-                .then(() => {
-                    // 트랜잭션 확정 시 성공 모달 표시
-                    setSuccessTxHash(txHash);
-                    setIsSuccessModalOpen(true);
-
-                    // endedGameInfo 업데이트 (isClaimed = true)
-                    setEndedGameInfo({
-                        ...endedGameInfo,
-                        isClaimed: true,
-                    });
-                })
-                .catch((err) => {
-                    const errorMessage = err instanceof Error ? err.message : '트랜잭션 확정 실패';
-                    setClaimError(errorMessage);
-                    console.error('트랜잭션 확정 실패', err);
-                });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Claim 실패';
             setClaimError(errorMessage);
             console.error('Claim 실패', err);
+        } finally {
             setIsClaiming(false);
         }
     };
