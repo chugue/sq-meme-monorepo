@@ -672,3 +672,144 @@
         transform: rotate(360deg);
     }
 }
+
+/* ============================
+   우승자 Claim 안내 스타일
+   ============================ */
+
+.squid-winner-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 16px;
+    background: linear-gradient(135deg, #1a3a1a 0%, #0f2a0f 100%);
+    border: 3px solid #4ade80;
+    box-shadow:
+        4px 4px 0px #0a0a15,
+        inset 2px 2px 0px rgba(74, 222, 128, 0.2),
+        0 0 20px rgba(74, 222, 128, 0.3);
+    animation: winnerGlow 2s ease-in-out infinite;
+}
+
+@keyframes winnerGlow {
+    0%, 100% {
+        box-shadow:
+            4px 4px 0px #0a0a15,
+            inset 2px 2px 0px rgba(74, 222, 128, 0.2),
+            0 0 20px rgba(74, 222, 128, 0.3);
+    }
+    50% {
+        box-shadow:
+            4px 4px 0px #0a0a15,
+            inset 2px 2px 0px rgba(74, 222, 128, 0.2),
+            0 0 40px rgba(74, 222, 128, 0.5),
+            0 0 60px rgba(255, 215, 0, 0.3);
+    }
+}
+
+.squid-winner-icon {
+    font-size: 32px;
+    animation: trophyBounce 1s ease-in-out infinite;
+}
+
+@keyframes trophyBounce {
+    0%, 100% {
+        transform: translateY(0) rotate(-5deg);
+    }
+    50% {
+        transform: translateY(-4px) rotate(5deg);
+    }
+}
+
+.squid-winner-text {
+    flex: 1;
+    text-align: left;
+}
+
+.squid-winner-text strong {
+    display: block;
+    font-size: 10px;
+    color: #4ade80;
+    text-shadow: 2px 2px 0px #0a0a15;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.squid-winner-text p {
+    font-size: 9px;
+    color: #86efac;
+    margin: 0 0 10px 0;
+    line-height: 1.6;
+}
+
+.squid-winner-prize {
+    font-size: 9px;
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+    border: 2px solid #ffd700;
+    padding: 8px 12px;
+    text-shadow: 1px 1px 0px #0a0a15;
+    margin-bottom: 12px;
+}
+
+.squid-claim-button {
+    background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+    color: #ffffff;
+    border: 3px solid #16a34a;
+    padding: 12px 24px;
+    font-size: 10px;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    cursor: pointer;
+    text-shadow: 2px 2px 0px #0a0a15;
+    box-shadow:
+        3px 3px 0px #0a0a15,
+        inset -2px -2px 0px rgba(0, 0, 0, 0.2),
+        inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+    transition: all 0.1s ease;
+    letter-spacing: 1px;
+    animation: claimPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes claimPulse {
+    0%, 100% {
+        box-shadow:
+            3px 3px 0px #0a0a15,
+            inset -2px -2px 0px rgba(0, 0, 0, 0.2),
+            inset 2px 2px 0px rgba(255, 255, 255, 0.2),
+            0 0 10px rgba(74, 222, 128, 0.3);
+    }
+    50% {
+        box-shadow:
+            3px 3px 0px #0a0a15,
+            inset -2px -2px 0px rgba(0, 0, 0, 0.2),
+            inset 2px 2px 0px rgba(255, 255, 255, 0.2),
+            0 0 25px rgba(74, 222, 128, 0.6),
+            0 0 40px rgba(255, 215, 0, 0.3);
+    }
+}
+
+.squid-claim-button:hover:not(:disabled) {
+    background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);
+    transform: translate(-2px, -2px);
+    box-shadow:
+        5px 5px 0px #0a0a15,
+        inset -2px -2px 0px rgba(0, 0, 0, 0.2),
+        inset 2px 2px 0px rgba(255, 255, 255, 0.2),
+        0 0 30px rgba(74, 222, 128, 0.6);
+}
+
+.squid-claim-button:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow:
+        1px 1px 0px #0a0a15,
+        inset 2px 2px 0px rgba(0, 0, 0, 0.3);
+}
+
+.squid-claim-button:disabled {
+    background: linear-gradient(180deg, #555 0%, #333 100%);
+    border-color: #444;
+    cursor: not-allowed;
+    animation: none;
+    opacity: 0.7;
+}

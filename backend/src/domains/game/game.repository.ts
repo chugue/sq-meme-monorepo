@@ -45,7 +45,7 @@ export class GameRepository {
                     endTime: data.endTime,
                     cost: data.cost,
                     prizePool: data.prizePool,
-                    isEnded: data.isEnded,
+                    isEnded: data.isClaimed,
                     lastCommentor: data.lastCommentor,
                 } as NewGame;
             })

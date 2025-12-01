@@ -12,7 +12,7 @@ export const GameCreatedEventSchema = z.object({
     cost: z.bigint().transform((v) => v.toString()),
     prizePool: z.bigint().transform((v) => v.toString()),
     lastCommentor: z.string().startsWith('0x'),
-    isEnded: z.boolean(),
+    isClaimed: z.boolean(),
 });
 
 // 타입 자동 추론

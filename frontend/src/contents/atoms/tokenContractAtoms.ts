@@ -5,6 +5,7 @@ export interface TokenContractInfo {
     contractAddress: string;
     username: string;
     userTag: string;
+    symbol: string | null;
     timestamp: number;
 }
 

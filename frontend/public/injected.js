@@ -19,6 +19,7 @@
         ACCOUNTS_CHANGED: 'ACCOUNTS_CHANGED',
         CHAIN_CHANGED: 'CHAIN_CHANGED',
         TOKEN_CONTRACT_CACHED: 'TOKEN_CONTRACT_CACHED',
+        SPA_NAVIGATION: 'SPA_NAVIGATION',
     };
 
     // 이미 주입되었는지 확인
@@ -83,12 +84,24 @@
                     const [, username, userTag] = profileMatch;
                     const cacheKey = `${username}#${userTag}`;
 
+                    // DOM에서 토큰 심볼 파싱 (.Profile_symbol__TEC9N 요소)
+                    let tokenSymbol = null;
+                    try {
+                        const symbolElement = document.querySelector('.Profile_symbol__TEC9N');
+                        if (symbolElement) {
+                            tokenSymbol = symbolElement.textContent?.trim() || null;
+                        }
+                    } catch (e) {
+                        // DOM 파싱 실패는 무시
+                    }
+
                     // 캐시에 저장
                     tokenContractCache.set(cacheKey, {
                         id,
                         contractAddress,
                         username,
                         userTag,
+                        symbol: tokenSymbol,
                         timestamp: Date.now()
                     });
 
@@ -102,6 +115,7 @@
                             contractAddress,
                             username,
                             userTag,
+                            symbol: tokenSymbol,
                             timestamp: Date.now()
                         };
                     } catch (e) {
@@ -113,6 +127,7 @@
                         userTag,
                         id,
                         contractAddress,
+                        symbol: tokenSymbol,
                         cacheKey
                     });
 
@@ -125,6 +140,7 @@
                                 contractAddress,
                                 username,
                                 userTag,
+                                symbol: tokenSymbol,
                                 timestamp: Date.now()
                             },
                         },
@@ -459,6 +475,74 @@
         },
         '*'
     );
+
+    /**
+     * SPA 네비게이션 감지
+     * history.pushState와 replaceState를 가로채서 Content Script에 알림
+     */
+    function setupSpaNavigationDetection() {
+        let lastUrl = window.location.href;
+
+        // URL 변경 알림 함수
+        const notifyUrlChange = (newUrl, type) => {
+            if (newUrl === lastUrl) {
+                return;
+            }
+
+            log.info(`🔄 SPA Navigation detected (${type})`, {
+                from: lastUrl,
+                to: newUrl
+            });
+
+            lastUrl = newUrl;
+
+            // Content Script에 URL 변경 알림
+            window.postMessage(
+                {
+                    source: MESSAGE_SOURCE.SPA_NAVIGATION,
+                    data: {
+                        url: newUrl,
+                        type: type,
+                        timestamp: Date.now()
+                    }
+                },
+                '*'
+            );
+        };
+
+        // history.pushState 가로채기
+        const originalPushState = history.pushState;
+        history.pushState = function(...args) {
+            const result = originalPushState.apply(this, args);
+            // pushState 후 약간의 딜레이를 주고 URL 확인
+            setTimeout(() => {
+                notifyUrlChange(window.location.href, 'pushState');
+            }, 0);
+            return result;
+        };
+
+        // history.replaceState 가로채기
+        const originalReplaceState = history.replaceState;
+        history.replaceState = function(...args) {
+            const result = originalReplaceState.apply(this, args);
+            setTimeout(() => {
+                notifyUrlChange(window.location.href, 'replaceState');
+            }, 0);
+            return result;
+        };
+
+        // popstate 이벤트 (브라우저 뒤로/앞으로 버튼)
+        window.addEventListener('popstate', () => {
+            setTimeout(() => {
+                notifyUrlChange(window.location.href, 'popstate');
+            }, 0);
+        });
+
+        log.info('✅ SPA navigation detection 설정 완료');
+    }
+
+    // SPA 네비게이션 감지 설정
+    setupSpaNavigationDetection();
 
     log.info('Injected script ready');
 })();

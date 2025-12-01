@@ -14,6 +14,6 @@ exports.GameCreatedEventSchema = zod_1.z.object({
     cost: zod_1.z.bigint().transform((v) => v.toString()),
     prizePool: zod_1.z.bigint().transform((v) => v.toString()),
     lastCommentor: zod_1.z.string().startsWith('0x'),
-    isEnded: zod_1.z.boolean(),
+    isClaimed: zod_1.z.boolean(),
 });
 //# sourceMappingURL=game.validator.js.map

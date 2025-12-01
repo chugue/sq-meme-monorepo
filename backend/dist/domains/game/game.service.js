@@ -16,7 +16,7 @@ const config_1 = require("@nestjs/config");
 const ethers_1 = require("ethers");
 const providers_1 = require("../../common/providers");
 const game_repository_1 = require("./game.repository");
-const GAME_CREATED_EVENT = 'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, string tokenSymbol, string tokenName, address initiator, uint256 gameTime, uint256 endTime, uint256 cost, uint256 prizePool, address lastCommentor, bool isEnded)';
+const GAME_CREATED_EVENT = 'event GameCreated(uint256 gameId, address indexed gameAddr, address indexed gameTokenAddr, string tokenSymbol, string tokenName, address initiator, uint256 gameTime, uint256 endTime, uint256 cost, uint256 prizePool, address lastCommentor, bool isClaimed)';
 let GameService = GameService_1 = class GameService {
     configService;
     ethereumProvider;

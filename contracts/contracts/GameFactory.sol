@@ -61,18 +61,23 @@ contract GameFactory is Ownable {
 
         gameIdCounter++;
 
+        // 2. 토큰 메타데이터 조회 (한 번만)
+        string memory _tokenSymbol = IERC20Metadata(_gameToken).symbol();
+        string memory _tokenName = IERC20Metadata(_gameToken).name();
+
         CommentGame.Params memory params = CommentGame.Params({
             id: gameIdCounter,
             initiator: msg.sender,
             gameToken: _gameToken,
             cost: _cost,
-            gameTime: _time
+            gameTime: _time,
+            tokenSymbol: _tokenSymbol
         });
 
-        // 2. 게임 생성 (초기 상금풀 = cost)
+        // 3. 게임 생성 (초기 상금풀 = cost)
         CommentGame newGame = new CommentGame(params, feeCollector, _cost);
 
-        // 3. 토큰을 새 게임 컨트랙트로 전송
+        // 4. 토큰을 새 게임 컨트랙트로 전송
         require(
             IERC20(_gameToken).transfer(address(newGame), _cost),
             "Token transfer to game failed"
@@ -80,19 +85,19 @@ contract GameFactory is Ownable {
 
         deployedGames.push(address(newGame));
 
-        // 4. 토큰 → 게임 정보 매핑 저장 (심볼, 이름 포함)
+        // 5. 토큰 → 게임 정보 매핑 저장
         gameByToken[_gameToken] = GameInfo({
             gameAddress: address(newGame),
-            tokenSymbol: IERC20Metadata(_gameToken).symbol(),
-            tokenName: IERC20Metadata(_gameToken).name()
+            tokenSymbol: _tokenSymbol,
+            tokenName: _tokenName
         });
 
         emit GameCreated(
             newGame.id(),
             address(newGame),
             newGame.gameToken(),
-            IERC20Metadata(_gameToken).symbol(),
-            IERC20Metadata(_gameToken).name(),
+            _tokenSymbol,
+            _tokenName,
             newGame.initiator(),
             newGame.gameTime(),
             newGame.endTime(),

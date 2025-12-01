@@ -11,6 +11,7 @@ contract CommentGame is ReentrancyGuard {
     address public immutable initiator;
     address public immutable gameToken;
     uint256 public immutable cost;
+    string public tokenSymbol;  
     uint256 public immutable gameTime;
     uint256 public endTime;
     address public lastCommentor;
@@ -26,6 +27,7 @@ contract CommentGame is ReentrancyGuard {
         address gameToken;
         uint256 cost;
         uint256 gameTime;
+        string tokenSymbol;
     }
 
     event CommentAdded(
@@ -42,6 +44,7 @@ contract CommentGame is ReentrancyGuard {
         gameToken = _params.gameToken;
         cost = _params.cost;
         gameTime = _params.gameTime;
+        tokenSymbol = _params.tokenSymbol;
         endTime = block.timestamp + _params.gameTime;
         lastCommentor = _params.initiator;
         feeCollector = _feeCollector;

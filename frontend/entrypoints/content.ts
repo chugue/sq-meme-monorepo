@@ -4,56 +4,73 @@ import mockUserData from '@/contents/utils/mock-user-data.json';
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+// 현재 URL 경로와 마운트된 UI 트래킹
+let currentPath = '';
+let mountedUi: { mount: () => void; remove: () => void } | null = null;
+let currentRoot: Root | null = null;
 
-// 타겟 요소 찾기 함수
+// 프로필 페이지 패턴 확인 함수
+function isProfilePage(url: string): boolean {
+    const profilePattern = /^https?:\/\/app\.memex\.xyz\/profile\/[^/]+\/[^/]+/;
+    return profilePattern.test(url);
+}
+
+// URL에서 토큰 주소 추출 (마지막 경로 부분)
+function extractTokenFromUrl(url: string): string | null {
+    const match = url.match(/\/profile\/[^/]+\/([^/?#]+)/);
+    return match ? match[1] : null;
+}
+
+// 타겟 요소 찾기 함수 - 오른쪽 사이드바 (RightPanel) 타겟
 function findTargetElement(): HTMLElement | null {
     let targetElement: HTMLElement | null = null;
 
-    // 방법 1: XPath 사용
-    try {
-        const xpath = '/html/body/div[1]/section[2]';
-        const result = document.evaluate(
-            xpath,
-            document,
-            null,
-            XPathResult.FIRST_ORDERED_NODE_TYPE,
-            null
-        );
-        targetElement = result.singleNodeValue as HTMLElement;
-    } catch (e) {
-        console.log('🦑 XPath 실패, 다른 방법 시도');
+    // 방법 1: RightPanel 클래스로 찾기 (가장 정확)
+    targetElement = document.querySelector('[class*="RightPanel_container"]') as HTMLElement;
+    if (targetElement) {
+        console.log('🦑 RightPanel_container 클래스로 타겟 요소 찾음');
+        return targetElement;
     }
 
-    // 방법 2: section 태그 찾기
-    if (!targetElement) {
-        const sections = document.querySelectorAll('section');
-        if (sections.length >= 2) {
-            targetElement = sections[1] as HTMLElement;
+    // 방법 2: layout_rightPanelContainer 내부 div 찾기
+    const rightPanelContainer = document.querySelector('[class*="layout_rightPanelContainer"]');
+    if (rightPanelContainer) {
+        targetElement = rightPanelContainer.querySelector('div') as HTMLElement;
+        if (targetElement) {
+            console.log('🦑 layout_rightPanelContainer > div로 타겟 요소 찾음');
+            return targetElement;
+        }
+        // div가 없으면 컨테이너 자체 사용
+        targetElement = rightPanelContainer as HTMLElement;
+        console.log('🦑 layout_rightPanelContainer로 타겟 요소 찾음');
+        return targetElement;
+    }
+
+    // 방법 3: Search 컴포넌트가 있는 section 찾기
+    const searchElement = document.querySelector('[class*="Search_"]');
+    if (searchElement) {
+        // Search의 부모 컨테이너 찾기
+        const parentContainer = searchElement.closest('[class*="RightPanel"]') ||
+                                searchElement.closest('[class*="rightPanel"]') ||
+                                searchElement.parentElement;
+        if (parentContainer) {
+            targetElement = parentContainer as HTMLElement;
+            console.log('🦑 Search 컴포넌트 부모로 타겟 요소 찾음');
+            return targetElement;
         }
     }
 
-    // 방법 3: body의 두 번째 div 찾기
-    if (!targetElement) {
-        const bodyChildren = Array.from(document.body.children);
-        if (bodyChildren.length > 0) {
-            const firstDiv = bodyChildren[0];
-            const sections = firstDiv.querySelectorAll('section');
-            if (sections.length >= 2) {
-                targetElement = sections[1] as HTMLElement;
-            }
-        }
+    // 방법 4: 폴백 - 세 번째 section (오른쪽 패널)
+    const sections = document.querySelectorAll('section');
+    if (sections.length >= 3) {
+        // layout_rightPanelContainer가 세 번째 section일 가능성
+        targetElement = sections[2].querySelector('div') as HTMLElement || sections[2] as HTMLElement;
+        console.log('🦑 세 번째 section으로 폴백');
+        return targetElement;
     }
 
-    // 방법 4: 모든 메인 콘텐츠 영역 찾기
-    if (!targetElement) {
-        targetElement =
-            (document.querySelector('main') as HTMLElement) ||
-            (document.querySelector('[role="main"]') as HTMLElement) ||
-            (document.querySelector('.main-content') as HTMLElement) ||
-            document.body;
-    }
-
-    return targetElement;
+    console.log('🦑 오른쪽 패널을 찾지 못함, body 사용');
+    return document.body;
 }
 
 // 타겟 요소 찾기 (리트라이 로직 포함)
@@ -176,10 +193,10 @@ async function injectScript(): Promise<void> {
 
 // @ts-ignore
 export default defineContentScript({
-    // app.memex.xyz 프로필 페이지에만 실행 (/profile/{username}/{usertag} 패턴)
+    // app.memex.xyz 프로필 페이지와 홈 페이지에서 실행
     matches: [
-        'https://app.memex.xyz/profile/*/*',
-        'http://app.memex.xyz/profile/*/*', // 개발 환경용
+        'https://app.memex.xyz/*',
+        'http://app.memex.xyz/*', // 개발 환경용
     ],
     // @ts-ignore
     async main(ctx) {
@@ -279,14 +296,12 @@ export default defineContentScript({
             }
         }, 5000);
 
-        // 타겟 요소 찾기 (리트라이 로직 포함) - SPA 로딩 대기 위해 충분한 시간 부여
-        const targetElement = await findTargetElementWithRetry(30, 1000, 30000);
+        // 타겟 요소 찾기 (리트라이 로직 포함) - 빠르게 찾고 없으면 body 사용
+        const targetElement = await findTargetElementWithRetry(10, 500, 5000);
 
-        // 타겟 요소에 스타일 적용
+        // 타겟 요소 로깅 (오른쪽 사이드바의 기존 스타일 유지)
         if (targetElement && targetElement !== document.body) {
-            targetElement.style.display = 'flex';
-            targetElement.style.flexDirection = 'column';
-            console.log('🦑 타겟 요소 스타일 적용 완료:', targetElement);
+            console.log('🦑 타겟 요소 (오른쪽 사이드바):', targetElement.className);
         }
 
         // createIntegratedUi를 사용하여 UI 생성
@@ -360,5 +375,123 @@ export default defineContentScript({
 
         // UI 마운트
         ui.mount();
+        mountedUi = ui;
+        currentPath = window.location.pathname;
+
+        // SPA 네비게이션 감지를 위한 URL 변경 리스너
+        const handleUrlChange = async () => {
+            const newPath = window.location.pathname;
+            const newToken = extractTokenFromUrl(window.location.href);
+            const oldToken = extractTokenFromUrl(currentPath);
+
+            console.log('🦑 URL 변경 감지:', {
+                oldPath: currentPath,
+                newPath,
+                oldToken,
+                newToken,
+                isProfilePage: isProfilePage(window.location.href)
+            });
+
+            // 같은 토큰의 프로필 페이지면 무시
+            if (newToken === oldToken) {
+                return;
+            }
+
+            currentPath = newPath;
+
+            // 프로필 페이지가 아니면 UI 제거
+            if (!isProfilePage(window.location.href)) {
+                console.log('🦑 프로필 페이지 아님, UI 유지하지 않음');
+                return;
+            }
+
+            // 다른 토큰의 프로필 페이지로 이동 시 UI 재마운트
+            console.log('🦑 새 프로필 페이지로 이동, UI 재마운트 시작');
+
+            // 기존 UI 제거
+            if (mountedUi) {
+                try {
+                    mountedUi.remove();
+                } catch (e) {
+                    console.log('🦑 기존 UI 제거 중 오류 (무시):', e);
+                }
+            }
+
+            // 기존 컨테이너 제거
+            const existingContainer = document.getElementById('squid-meme-comment-root');
+            if (existingContainer) {
+                existingContainer.remove();
+            }
+
+            // 약간의 딜레이 후 새 UI 마운트 (DOM이 업데이트될 시간)
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 새 타겟 요소 찾기
+            const newTargetElement = await findTargetElementWithRetry(10, 500, 5000);
+
+            if (newTargetElement && newTargetElement !== document.body) {
+                console.log('🦑 [SPA] 타겟 요소 (오른쪽 사이드바):', newTargetElement.className);
+            }
+
+            // 새 UI 생성 및 마운트
+            // @ts-ignore
+            const newUi = createIntegratedUi(ctx, {
+                position: 'inline',
+                anchor: newTargetElement || 'body',
+                // @ts-ignore
+                onMount: (container: HTMLElement) => {
+                    console.log('🦑 [SPA] UI 마운트 시작', {
+                        containerId: container.id,
+                        containerParent: container.parentElement?.tagName,
+                    });
+
+                    container.id = 'squid-meme-comment-root';
+                    container.style.marginTop = '20px';
+                    container.style.marginBottom = '20px';
+                    container.style.zIndex = '9999';
+                    container.style.position = 'relative';
+                    container.style.minHeight = '100px';
+                    container.style.width = '100%';
+                    container.setAttribute('data-squid-meme', 'true');
+
+                    try {
+                        const root: Root = createRoot(container);
+                        root.render(React.createElement(CommentApp));
+                        currentRoot = root;
+                        console.log('🦑 [SPA] React 컴포넌트 렌더링 완료');
+                        return root;
+                    } catch (error) {
+                        console.error('❌ [SPA] React 컴포넌트 렌더링 오류:', error);
+                        return null;
+                    }
+                },
+                // @ts-ignore
+                onRemove: (root) => {
+                    console.log('🦑 [SPA] UI 제거');
+                    if (root) {
+                        root.unmount();
+                    }
+                },
+            });
+
+            newUi.mount();
+            mountedUi = newUi;
+        };
+
+        // Injected Script로부터 SPA 네비게이션 메시지 수신
+        const spaNavigationListener = (event: MessageEvent) => {
+            if (event.data?.source === 'SPA_NAVIGATION') {
+                console.log('🦑 SPA_NAVIGATION 메시지 수신:', event.data);
+                handleUrlChange();
+            }
+        };
+
+        window.addEventListener('message', spaNavigationListener);
+
+        // 클린업 함수 등록
+        ctx.onInvalidated(() => {
+            window.removeEventListener('message', spaNavigationListener);
+            console.log('🦑 Content script 클린업 완료');
+        });
     },
 });

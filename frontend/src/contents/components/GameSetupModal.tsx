@@ -26,7 +26,7 @@ interface GameSetupModalProps {
 
 interface GameSettings {
     cost: string;      // 댓글 비용 (토큰 단위)
-    time: string;      // 타이머 (초)
+    time: string;      // 타이머 (분)
     firstComment: string; // 첫 댓글 내용
 }
 
@@ -44,7 +44,7 @@ export function GameSetupModal({
     const [step, setStep] = useState<SetupStep>('balance-check');
     const [settings, setSettings] = useState<GameSettings>({
         cost: '100',      // 기본값: 100 토큰
-        time: '3600',     // 기본값: 1시간 (3600초)
+        time: '60',       // 기본값: 1시간 (60분)
         firstComment: '',
     });
     const [tokenDecimals, setTokenDecimals] = useState<number>(18); // 토큰 decimals (기본값 18)
@@ -336,8 +336,8 @@ function SettingsStep({
             newErrors.cost = '댓글 비용은 0보다 커야 합니다';
         }
 
-        if (!settings.time || Number(settings.time) < 60) {
-            newErrors.time = '타이머는 최소 60초 이상이어야 합니다';
+        if (!settings.time || Number(settings.time) < 1) {
+            newErrors.time = '타이머는 최소 1분 이상이어야 합니다';
         }
 
         if (!settings.firstComment.trim()) {
@@ -391,16 +391,16 @@ function SettingsStep({
                         className={`squid-input ${errors.time ? 'error' : ''}`}
                         value={settings.time}
                         onChange={(e) => onChange({ ...settings, time: e.target.value })}
-                        placeholder="3600"
-                        min="60"
+                        placeholder="60"
+                        min="1"
                     />
-                    <span className="squid-input-suffix">초</span>
+                    <span className="squid-input-suffix">분</span>
                 </div>
                 <div className="squid-time-presets">
-                    <button type="button" onClick={() => onChange({ ...settings, time: '300' })}>5분</button>
-                    <button type="button" onClick={() => onChange({ ...settings, time: '1800' })}>30분</button>
-                    <button type="button" onClick={() => onChange({ ...settings, time: '3600' })}>1시간</button>
-                    <button type="button" onClick={() => onChange({ ...settings, time: '86400' })}>24시간</button>
+                    <button type="button" onClick={() => onChange({ ...settings, time: '5' })}>5분</button>
+                    <button type="button" onClick={() => onChange({ ...settings, time: '30' })}>30분</button>
+                    <button type="button" onClick={() => onChange({ ...settings, time: '60' })}>1시간</button>
+                    <button type="button" onClick={() => onChange({ ...settings, time: '1440' })}>1일</button>
                 </div>
                 {errors.time && <span className="squid-input-error">{errors.time}</span>}
             </div>
@@ -471,10 +471,11 @@ function ConfirmStep({
         const costInWei = BigInt(settings.cost) * (10n ** BigInt(decimals));
 
         // createGame이 반환하는 게임 주소를 직접 사용
+        // 분 단위 입력을 초 단위로 변환
         const createdGameAddress = await createGame({
             tokenAddress,
             cost: costInWei,
-            time: Number(settings.time),
+            time: Number(settings.time) * 60,
             firstComment: settings.firstComment,
         });
 
@@ -484,12 +485,11 @@ function ConfirmStep({
         }
     };
 
-    const formatTime = (seconds: string) => {
-        const s = Number(seconds);
-        if (s >= 86400) return `${Math.floor(s / 86400)}일`;
-        if (s >= 3600) return `${Math.floor(s / 3600)}시간`;
-        if (s >= 60) return `${Math.floor(s / 60)}분`;
-        return `${s}초`;
+    const formatTime = (minutes: string) => {
+        const m = Number(minutes);
+        if (m >= 1440) return `${Math.floor(m / 1440)}일`;
+        if (m >= 60) return `${Math.floor(m / 60)}시간`;
+        return `${m}분`;
     };
 
     // 트랜잭션 단계별 상태 메시지

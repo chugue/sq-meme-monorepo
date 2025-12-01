@@ -6,13 +6,17 @@
  * - CREATE GAME 클릭 시 GameSetupModal 오픈
  */
 
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { useState } from 'react';
 import type { Address } from 'viem';
 import { tokenContractAtom } from '../atoms/tokenContractAtoms';
+import { endedGameInfoAtom } from '../atoms/commentAtoms';
 import { useWallet } from '../hooks/useWallet';
 import { formatAddress } from '../utils/messageFormatter';
 import { GameSetupModal } from './GameSetupModal';
+import { TransactionSuccessModal } from './TransactionSuccessModal';
+import { commentGameABI } from '../lib/contract/abis/commentGame';
+import { injectedApi } from '../lib/injectedApi';
 import './CommentSection.css';
 
 interface NoGameSectionProps {
@@ -24,6 +28,8 @@ interface NoGameSectionProps {
  */
 export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     const tokenContract = useAtomValue(tokenContractAtom);
+    const endedGameInfo = useAtomValue(endedGameInfoAtom);
+    const setEndedGameInfo = useSetAtom(endedGameInfoAtom);
     const {
         isConnected,
         address,
@@ -34,6 +40,69 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Claim 관련 상태
+    const [isClaiming, setIsClaiming] = useState(false);
+    const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
+    const [claimError, setClaimError] = useState<string | null>(null);
+
+    // 트랜잭션 성공 모달 상태
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
+
+    // 현재 사용자가 우승자인지 확인 (대소문자 무시)
+    const isWinner = endedGameInfo &&
+        !endedGameInfo.isClaimed &&
+        address &&
+        endedGameInfo.lastCommentor.toLowerCase() === address.toLowerCase();
+
+    /**
+     * CLAIM PRIZE 버튼 클릭 핸들러
+     */
+    const handleClaimPrize = async () => {
+        if (!endedGameInfo || !address) return;
+
+        setIsClaiming(true);
+        setClaimError(null);
+        setClaimTxHash(null);
+
+        try {
+            // claimPrize 함수 호출
+            const txHash = await injectedApi.writeContract({
+                address: endedGameInfo.gameAddress as Address,
+                abi: commentGameABI,
+                functionName: 'claimPrize',
+                args: [],
+            });
+
+            setClaimTxHash(txHash);
+            setIsClaiming(false);
+
+            // 백그라운드에서 트랜잭션 확정 대기
+            injectedApi.waitForTransaction(txHash)
+                .then(() => {
+                    // 트랜잭션 확정 시 성공 모달 표시
+                    setSuccessTxHash(txHash);
+                    setIsSuccessModalOpen(true);
+
+                    // endedGameInfo 업데이트 (isClaimed = true)
+                    setEndedGameInfo({
+                        ...endedGameInfo,
+                        isClaimed: true,
+                    });
+                })
+                .catch((err) => {
+                    const errorMessage = err instanceof Error ? err.message : '트랜잭션 확정 실패';
+                    setClaimError(errorMessage);
+                    console.error('트랜잭션 확정 실패', err);
+                });
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Claim 실패';
+            setClaimError(errorMessage);
+            console.error('Claim 실패', err);
+            setIsClaiming(false);
+        }
+    };
 
     /**
      * CREATE GAME 버튼 클릭 핸들러
@@ -140,6 +209,40 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                     CREATE GAME
                 </button>
 
+                {/* 우승자 Claim 안내 */}
+                {isWinner && endedGameInfo && (
+                    <div className="squid-winner-notice">
+                        <div className="squid-winner-icon">🏆</div>
+                        <div className="squid-winner-text">
+                            <strong>Congratulations! You won the last game!</strong>
+                            <p>Claim your prize before starting a new game.</p>
+                            <div className="squid-winner-prize">
+                                Prize Pool: {(BigInt(endedGameInfo.prizePool) / BigInt(10 ** 18)).toString()} ${tokenContract?.symbol?.toUpperCase() || 'TOKENS'}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleClaimPrize}
+                                className="squid-claim-button"
+                                disabled={isClaiming}
+                            >
+                                {isClaiming ? 'CLAIMING...' : 'CLAIM PRIZE'}
+                            </button>
+                            {claimTxHash && (
+                                <div className="squid-tx-hash" style={{ marginTop: '8px' }}>
+                                    TX: <a href={`https://explorer.memecore.org/tx/${claimTxHash}`} target="_blank" rel="noopener noreferrer">
+                                        {claimTxHash.slice(0, 10)}...{claimTxHash.slice(-8)}
+                                    </a>
+                                </div>
+                            )}
+                            {claimError && (
+                                <div className="squid-tx-error" style={{ marginTop: '8px' }}>
+                                    {claimError}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* 에러 메시지 */}
                 {walletError && (
                     <div className="squid-tx-error" style={{ marginTop: '12px' }}>
@@ -153,7 +256,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 tokenAddress={tokenContract.contractAddress as Address}
-                tokenSymbol={tokenContract.username ? `$${tokenContract.username.toUpperCase()}` : 'TOKEN'}
+                tokenSymbol={tokenContract.symbol ? `$${tokenContract.symbol.toUpperCase()}` : 'TOKEN'}
                 onGameCreated={handleGameCreated}
                 onExistingGameFound={(gameAddress) => {
                     // 기존 게임 발견 시 모달 닫고 게임 UI로 전환
@@ -162,6 +265,17 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                     window.location.reload();
                 }}
             />
+
+            {/* 트랜잭션 성공 모달 */}
+            {successTxHash && (
+                <TransactionSuccessModal
+                    isOpen={isSuccessModalOpen}
+                    onClose={() => setIsSuccessModalOpen(false)}
+                    txHash={successTxHash}
+                    title="Prize Claimed!"
+                    description="Your prize has been successfully transferred to your wallet."
+                />
+            )}
         </div>
     );
 }

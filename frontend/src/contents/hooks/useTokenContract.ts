@@ -9,11 +9,13 @@
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import type { Address } from 'viem';
-import { currentChallengeIdAtom } from '../atoms/commentAtoms';
+import { currentChallengeIdAtom, isGameEndedAtom, endedGameInfoAtom, EndedGameInfo } from '../atoms/commentAtoms';
 import { tokenContractAtom, isTokenContractLoadingAtom, tokenContractErrorAtom, TokenContractInfo } from '../atoms/tokenContractAtoms';
 import { backgroundApi, GameInfo } from '../lib/backgroundApi';
 import { GAME_FACTORY_ADDRESS, gameFactoryABI } from '../lib/contract/abis/gameFactory';
+import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { createContractClient } from '../lib/contract/contractClient';
+import { injectedApi } from '../lib/injectedApi';
 import { logger } from '../lib/injected/logger';
 
 // 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
@@ -28,9 +30,83 @@ export function useTokenContract() {
     const [isLoading, setIsLoading] = useAtom(isTokenContractLoadingAtom);
     const [error, setError] = useAtom(tokenContractErrorAtom);
     const [, setGameAddress] = useAtom(currentChallengeIdAtom);
+    const [, setIsGameEnded] = useAtom(isGameEndedAtom);
+    const [, setEndedGameInfo] = useAtom(endedGameInfoAtom);
 
     // 중복 조회 방지
     const lastTokenAddressRef = useRef<string | null>(null);
+
+    /**
+     * 블록체인에서 게임 종료 여부 확인
+     * block.timestamp >= endTime 이면 종료
+     * 종료된 경우 lastCommentor, isClaimed, prizePool 추가 조회
+     */
+    const checkGameEnded = useCallback(async (gameAddress: string): Promise<boolean> => {
+        try {
+            logger.info('게임 종료 여부 확인 시작', { gameAddress });
+
+            // CommentGame 컨트랙트에서 endTime 조회
+            const gameClient = createContractClient({
+                address: gameAddress as Address,
+                abi: commentGameABI,
+            });
+
+            const endTimeResult = await gameClient.read<bigint>({
+                functionName: 'endTime',
+            });
+
+            const endTime = endTimeResult.data;
+
+            // 블록체인 타임스탬프 조회
+            const blockTimestamp = await injectedApi.getBlockTimestamp();
+
+            // 종료 여부 판단: blockTimestamp >= endTime
+            const isEnded = blockTimestamp >= endTime;
+
+            logger.info('게임 종료 여부 확인 완료', {
+                gameAddress,
+                endTime: endTime.toString(),
+                blockTimestamp: blockTimestamp.toString(),
+                isEnded,
+            });
+
+            // 게임이 종료된 경우 추가 정보 조회
+            if (isEnded) {
+                try {
+                    logger.info('종료된 게임 추가 정보 조회 시작', { gameAddress });
+
+                    // lastCommentor, isEnded (isClaimed 역할), prizePool 조회
+                    const [lastCommentorResult, isClaimedResult, prizePoolResult] = await Promise.all([
+                        gameClient.read<Address>({ functionName: 'lastCommentor' }),
+                        gameClient.read<boolean>({ functionName: 'isEnded' }), // 컨트랙트의 isEnded는 claim 완료 여부
+                        gameClient.read<bigint>({ functionName: 'prizePool' }),
+                    ]);
+
+                    const endedInfo: EndedGameInfo = {
+                        gameAddress,
+                        lastCommentor: lastCommentorResult.data,
+                        isClaimed: isClaimedResult.data,
+                        prizePool: prizePoolResult.data.toString(),
+                    };
+
+                    logger.info('종료된 게임 추가 정보 조회 완료', { ...endedInfo });
+                    setEndedGameInfo(endedInfo);
+                } catch (infoErr) {
+                    logger.error('종료된 게임 추가 정보 조회 실패', infoErr);
+                    // 추가 정보 조회 실패해도 종료 상태는 유지
+                }
+            } else {
+                // 게임이 진행 중이면 종료 정보 초기화
+                setEndedGameInfo(null);
+            }
+
+            return isEnded;
+        } catch (err) {
+            logger.error('게임 종료 여부 확인 실패', err);
+            // 에러 시 false 반환 (게임 진행 중으로 가정)
+            return false;
+        }
+    }, [setEndedGameInfo]);
 
     /**
      * 블록체인에서 직접 게임 정보 조회
@@ -99,6 +175,19 @@ export function useTokenContract() {
                     tokenSymbol: game.tokenSymbol,
                 });
 
+                // 블록체인에서 게임 종료 여부 확인
+                const isEnded = await checkGameEnded(game.gameAddress);
+                setIsGameEnded(isEnded);
+
+                if (isEnded) {
+                    logger.info('게임이 종료됨 (블록체인 타임스탬프 기준)', {
+                        gameAddress: game.gameAddress,
+                    });
+                    // 종료된 게임은 gameAddress를 null로 설정하여 CreateGame UI 표시
+                    setGameAddress(null);
+                    return null;
+                }
+
                 // 게임 주소를 currentChallengeIdAtom에 저장
                 setGameAddress(game.gameAddress);
 
@@ -110,9 +199,22 @@ export function useTokenContract() {
             const blockchainGameAddress = await fetchGameFromBlockchain();
 
             if (blockchainGameAddress) {
-                logger.info('블록체인에서 기존 게임 발견, 댓글 UI로 전환', {
+                logger.info('블록체인에서 기존 게임 발견', {
                     gameAddress: blockchainGameAddress,
                 });
+
+                // 블록체인에서 게임 종료 여부 확인
+                const isEnded = await checkGameEnded(blockchainGameAddress);
+                setIsGameEnded(isEnded);
+
+                if (isEnded) {
+                    logger.info('게임이 종료됨 (블록체인 타임스탬프 기준)', {
+                        gameAddress: blockchainGameAddress,
+                    });
+                    // 종료된 게임은 gameAddress를 null로 설정하여 CreateGame UI 표시
+                    setGameAddress(null);
+                    return null;
+                }
 
                 // 게임 주소를 설정하여 댓글 UI가 표시되도록 함
                 setGameAddress(blockchainGameAddress);
@@ -146,7 +248,7 @@ export function useTokenContract() {
         } finally {
             setIsLoading(false);
         }
-    }, [setIsLoading, setError, setGameAddress, fetchGameFromBlockchain]);
+    }, [setIsLoading, setError, setGameAddress, setIsGameEnded, fetchGameFromBlockchain, checkGameEnded]);
 
     /**
      * 토큰 컨트랙트 정보 저장 및 게임 조회

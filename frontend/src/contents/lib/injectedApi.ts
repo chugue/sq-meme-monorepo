@@ -506,6 +506,117 @@ export async function writeContract(params: WriteContractParams): Promise<string
 }
 
 /**
+ * 현재 블록 번호 조회
+ */
+export async function getBlockNumber(): Promise<bigint> {
+    const result = await sendEthereumRequest<string>('eth_blockNumber');
+    return BigInt(result);
+}
+
+/**
+ * 블록 정보 조회 (타임스탬프 포함)
+ * @param blockTag - 'latest' | 'pending' | 'earliest' | block number (hex)
+ * @returns 블록 정보 (timestamp는 bigint로 변환)
+ */
+export async function getBlock(blockTag: 'latest' | 'pending' | 'earliest' | string = 'latest'): Promise<{
+    timestamp: bigint;
+    number: bigint;
+}> {
+    const result = await sendEthereumRequest<{
+        timestamp: string;
+        number: string;
+    }>('eth_getBlockByNumber', [blockTag, false]);
+
+    return {
+        timestamp: BigInt(result.timestamp),
+        number: BigInt(result.number),
+    };
+}
+
+/**
+ * 현재 블록 타임스탬프 조회
+ * @returns 현재 블록의 타임스탬프 (초 단위)
+ */
+export async function getBlockTimestamp(): Promise<bigint> {
+    const block = await getBlock('latest');
+    return block.timestamp;
+}
+
+/**
+ * 트랜잭션 영수증 조회
+ */
+export interface TransactionReceipt {
+    transactionHash: string;
+    blockNumber: string;
+    blockHash: string;
+    status: '0x1' | '0x0'; // 0x1 = success, 0x0 = failure
+    gasUsed: string;
+}
+
+export async function getTransactionReceipt(txHash: string): Promise<TransactionReceipt | null> {
+    const result = await sendEthereumRequest<TransactionReceipt | null>('eth_getTransactionReceipt', [txHash]);
+    return result;
+}
+
+/**
+ * 트랜잭션 확정 대기
+ * @param txHash - 트랜잭션 해시
+ * @param options - 폴링 옵션
+ * @returns 트랜잭션 영수증 (성공 시) 또는 에러 throw
+ */
+export interface WaitForTransactionOptions {
+    pollingInterval?: number; // 폴링 간격 (ms), 기본 2000ms
+    timeout?: number; // 타임아웃 (ms), 기본 60000ms (1분)
+}
+
+export async function waitForTransaction(
+    txHash: string,
+    options: WaitForTransactionOptions = {}
+): Promise<TransactionReceipt> {
+    const { pollingInterval = 2000, timeout = 60000 } = options;
+    const startTime = Date.now();
+
+    logger.info('트랜잭션 확정 대기 시작', { txHash });
+
+    while (true) {
+        // 타임아웃 체크
+        if (Date.now() - startTime > timeout) {
+            throw new InjectedScriptErrorClass(
+                `Transaction confirmation timeout after ${timeout}ms`,
+                ERROR_CODES.TIMEOUT
+            );
+        }
+
+        try {
+            const receipt = await getTransactionReceipt(txHash);
+
+            if (receipt) {
+                // 트랜잭션이 확정됨
+                if (receipt.status === '0x1') {
+                    logger.info('트랜잭션 확정 성공', { txHash, blockNumber: receipt.blockNumber });
+                    return receipt;
+                } else {
+                    // 트랜잭션 실패
+                    throw new InjectedScriptErrorClass(
+                        'Transaction failed (reverted)',
+                        ERROR_CODES.UNKNOWN_ERROR
+                    );
+                }
+            }
+        } catch (error) {
+            // getTransactionReceipt 에러는 무시하고 재시도
+            if (error instanceof InjectedScriptErrorClass && error.code !== ERROR_CODES.TIMEOUT) {
+                throw error;
+            }
+            logger.debug('트랜잭션 영수증 조회 실패, 재시도', { txHash });
+        }
+
+        // 폴링 간격 대기
+        await new Promise((resolve) => setTimeout(resolve, pollingInterval));
+    }
+}
+
+/**
  * Injected API 객체
  */
 export const injectedApi = {
@@ -522,6 +633,11 @@ export const injectedApi = {
     getSessionStorage,
     readContract,
     writeContract,
+    getBlockNumber,
+    getBlock,
+    getBlockTimestamp,
+    getTransactionReceipt,
+    waitForTransaction,
 } as const;
 
 // 타입 export

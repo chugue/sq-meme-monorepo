@@ -60,7 +60,7 @@ export const gameFactoryABI = [
             { indexed: false, internalType: 'uint256', name: 'cost', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'prizePool', type: 'uint256' },
             { indexed: false, internalType: 'address', name: 'lastCommentor', type: 'address' },
-            { indexed: false, internalType: 'bool', name: 'isEnded', type: 'bool' },
+            { indexed: false, internalType: 'bool', name: 'isClaimed', type: 'bool' },
         ],
         name: 'GameCreated',
         type: 'event',
@@ -68,4 +68,4 @@ export const gameFactoryABI = [
 ] as const;
 
 // GameFactory 컨트랙트 주소 (환경변수 사용)
-export const GAME_FACTORY_ADDRESS = import.meta.env.VITE_GAME_FACTORY_ADDRESS || '0xe5115025d3e7f171372aade2214188b4ba5f6da9';
+export const GAME_FACTORY_ADDRESS = import.meta.env.VITE_GAME_FACTORY_ADDRESS || '0x57125b09d4feb4d0587534e35f0d05ca98267ec9';
