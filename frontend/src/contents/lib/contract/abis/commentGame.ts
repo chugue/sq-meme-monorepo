@@ -122,4 +122,16 @@ export const commentGameABI = [
         name: 'CommentAdded',
         type: 'event',
     },
+    // PrizeClaimed 이벤트
+    {
+        anonymous: false,
+        inputs: [
+            { indexed: true, internalType: 'address', name: 'winner', type: 'address' },
+            { indexed: false, internalType: 'uint256', name: 'winnerShare', type: 'uint256' },
+            { indexed: false, internalType: 'uint256', name: 'platformShare', type: 'uint256' },
+            { indexed: false, internalType: 'uint256', name: 'timestamp', type: 'uint256' },
+        ],
+        name: 'PrizeClaimed',
+        type: 'event',
+    },
 ] as const;

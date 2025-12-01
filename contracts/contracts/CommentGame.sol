@@ -11,7 +11,7 @@ contract CommentGame is ReentrancyGuard {
     address public immutable initiator;
     address public immutable gameToken;
     uint256 public immutable cost;
-    string public tokenSymbol;  
+    string public tokenSymbol;
     uint256 public immutable gameTime;
     uint256 public endTime;
     address public lastCommentor;
@@ -35,6 +35,13 @@ contract CommentGame is ReentrancyGuard {
         string message,
         uint256 newEndTime,
         uint256 prizePool,
+        uint256 timestamp
+    );
+
+    event PrizeClaimed(
+        address indexed winner,
+        uint256 winnerShare,
+        uint256 platformShare,
         uint256 timestamp
     );
 
@@ -107,5 +114,8 @@ contract CommentGame is ReentrancyGuard {
         if (winnerShare > 0) {
             IERC20(gameToken).transfer(msg.sender, winnerShare);
         }
+
+        // 7. 이벤트 발생
+        emit PrizeClaimed(msg.sender, winnerShare, platformShare, block.timestamp);
     }
 }
