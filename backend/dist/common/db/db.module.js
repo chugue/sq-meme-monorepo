@@ -57,10 +57,21 @@ exports.DbModule = DbModule = __decorate([
                 provide: exports.DrizzleAsyncProvider,
                 inject: [config_1.ConfigService],
                 useFactory: async (configService) => {
+                    const logger = new common_1.Logger('DbModule');
                     const connectionString = configService.get('DATABASE_URL');
+                    logger.log('🔌 PostgreSQL 데이터베이스 연결 중...');
                     const pool = new pg_1.Pool({
                         connectionString,
                     });
+                    try {
+                        const client = await pool.connect();
+                        client.release();
+                        logger.log('✅ PostgreSQL 데이터베이스 연결 성공!');
+                    }
+                    catch (error) {
+                        logger.error(`❌ PostgreSQL 데이터베이스 연결 실패: ${error.message}`);
+                        throw error;
+                    }
                     return (0, node_postgres_1.drizzle)(pool, { schema });
                 },
             },
