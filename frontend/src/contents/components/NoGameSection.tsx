@@ -17,6 +17,7 @@ import { GameSetupModal } from './GameSetupModal';
 import { TransactionSuccessModal } from './TransactionSuccessModal';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { injectedApi } from '../lib/injectedApi';
+import { apiCall } from '../../background/api';
 import './CommentSection.css';
 
 interface NoGameSectionProps {
@@ -77,6 +78,18 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
             setClaimTxHash(txHash);
             setIsClaiming(false);
+
+            // 백엔드에 txHash 등록 (백그라운드에서 처리)
+            apiCall('/transactions/register', {
+                method: 'POST',
+                body: JSON.stringify({
+                    txHash,
+                    gameAddress: endedGameInfo.gameAddress,
+                    eventType: 'PRIZE_CLAIMED',
+                }),
+            }).catch((err) => {
+                console.error('txHash 등록 실패 (무시됨)', err);
+            });
 
             // 백그라운드에서 트랜잭션 확정 대기
             injectedApi.waitForTransaction(txHash)
