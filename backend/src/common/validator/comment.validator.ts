@@ -16,21 +16,6 @@ const txHashSchema = z
 const numericStringSchema = z.string().regex(/^\d+$/, '숫자 문자열이어야 합니다');
 
 /**
- * 블록체인 이벤트 리스닝용 스키마 (BigInt 직접 수신)
- * @deprecated 프론트엔드에서 직접 전송하는 방식으로 전환 중
- */
-export const CommentAddedEventSchema = z.object({
-    gameAddress: z.string().startsWith('0x'),
-    commentor: z.string().startsWith('0x'),
-    message: z.string(),
-    newEndTime: z.bigint().transform((v) => new Date(Number(v) * 1000)),
-    prizePool: z.bigint().transform((v) => v.toString()),
-    timestamp: z.bigint().transform((v) => new Date(Number(v) * 1000)),
-});
-
-export type CommentAddedEvent = z.infer<typeof CommentAddedEventSchema>;
-
-/**
  * 프론트엔드 API 요청용 스키마 (문자열로 수신)
  * - JSON에서 BigInt를 직접 전송할 수 없으므로 문자열로 받음
  * - txHash로 중복 체크

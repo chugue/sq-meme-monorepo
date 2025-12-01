@@ -1,11 +1,4 @@
-import {
-    Injectable,
-    Logger,
-    OnModuleDestroy,
-    OnModuleInit,
-} from '@nestjs/common';
-import { ethers } from 'ethers';
-import { EthereumProvider } from 'src/common/providers';
+import { Injectable, Logger } from '@nestjs/common';
 import { Result } from 'src/common/types';
 import {
     CommentRepository,
@@ -14,72 +7,11 @@ import {
     UserLikedResult,
 } from './comment.repository';
 
-const COMMENT_ADDED_EVENT =
-    'event CommentAdded(address indexed commentor, string message, uint256 newEndTime, uint256 prizePool, uint256 timestamp)';
-
 @Injectable()
-export class CommentService implements OnModuleInit, OnModuleDestroy {
+export class CommentService {
     private readonly logger = new Logger(CommentService.name);
-    private iface: ethers.Interface;
-    private isListening = false;
 
-    constructor(
-        private readonly ethereumProvider: EthereumProvider,
-        private readonly commentRepository: CommentRepository,
-    ) {
-        this.iface = new ethers.Interface([COMMENT_ADDED_EVENT]);
-    }
-
-    onModuleInit() {
-        this.startListening();
-    }
-
-    onModuleDestroy() {
-        this.stopListening();
-    }
-
-    private startListening() {
-        const provider = this.ethereumProvider.getProvider();
-        const topic = this.iface.getEvent('CommentAdded')?.topicHash;
-
-        if (!topic) {
-            this.logger.error('Failed to generate CommentAdded event topic');
-            return;
-        }
-
-        const filter = { topics: [topic] };
-
-        provider.on(filter, (log) => this.handleCommentAddedLog(log));
-        this.isListening = true;
-
-        this.logger.log('CommentAdded event listener started (all contracts)');
-    }
-
-    private stopListening() {
-        if (this.isListening) {
-            this.ethereumProvider.getProvider().removeAllListeners();
-            this.isListening = false;
-            this.logger.log('CommentAdded event listener stopped');
-        }
-    }
-
-    private async handleCommentAddedLog(log: ethers.Log) {
-        try {
-            const decoded = this.iface.decodeEventLog(
-                'CommentAdded',
-                log.data,
-                log.topics,
-            );
-
-            const rawEvent = {
-                ...decoded.toObject(),
-                gameAddress: log.address,
-            };
-            await this.commentRepository.addComments([rawEvent]);
-        } catch (error) {
-            this.logger.error(`Event processing failed: ${error.message}`);
-        }
-    }
+    constructor(private readonly commentRepository: CommentRepository) {}
 
     /**
      * @description 게임 주소로 댓글 목록 조회
