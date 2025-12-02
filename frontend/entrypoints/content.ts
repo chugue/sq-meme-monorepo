@@ -603,6 +603,94 @@ export default defineContentScript({
                         return true;
                     }
 
+                    if (message.type === 'FETCH_MEMEX_PROFILE_INFO') {
+                        const { username, userTag } = message as any;
+                        console.log('🖼️ [Content] FETCH_MEMEX_PROFILE_INFO 요청 수신:', username, userTag);
+
+                        // 비동기 함수로 처리
+                        (async () => {
+                            try {
+                                let profileImageUrl: string | null = null;
+                                let tokenAddr: string | null = null;
+                                let tokenSymbol: string | null = null;
+                                let memexWalletAddress: string | null = null;
+
+                                // 현재 페이지가 해당 유저의 프로필 페이지인지 확인
+                                const currentUrl = window.location.href;
+                                const isTargetProfile = currentUrl.includes(`/profile/${username}/${userTag}`);
+
+                                // 방법 1: injectedApi를 통해 __next_f 데이터 가져오기
+                                // Content script는 isolated world에서 실행되므로 웹 페이지의 self.__next_f에 직접 접근할 수 없음
+                                // injected script는 웹 페이지 컨텍스트에서 실행되므로 self.__next_f에 접근 가능
+                                try {
+                                    console.log('🔍 [Content] injectedApi.getNextFData() 호출 시도...');
+                                    const { injectedApi } = await import('@/contents/lib/injectedApi');
+                                    const nextFData = await injectedApi.getNextFData();
+
+                                    if (nextFData) {
+                                        console.log('✅ [Content] injectedApi.getNextFData() 결과:', nextFData);
+                                        profileImageUrl = nextFData.profileImageUrl || profileImageUrl;
+                                        tokenAddr = nextFData.tokenAddr || tokenAddr;
+                                        tokenSymbol = nextFData.tokenSymbol || tokenSymbol;
+                                        memexWalletAddress = nextFData.memexWalletAddress || memexWalletAddress;
+                                    }
+                                } catch (nextFErr) {
+                                    console.warn('⚠️ [Content] injectedApi.getNextFData() 실패:', nextFErr);
+                                }
+
+                                // 방법 2: __NEXT_DATA__에서 프로필 정보 추출 (폴백)
+                                if (!tokenAddr || !tokenSymbol || !profileImageUrl) {
+                                    const nextDataScript = document.getElementById('__NEXT_DATA__');
+                                    if (nextDataScript) {
+                                        try {
+                                            const nextData = JSON.parse(nextDataScript.textContent || '');
+                                            console.log('🔍 [Content] __NEXT_DATA__ 파싱 성공');
+
+                                            const pageProps = nextData?.props?.pageProps;
+                                            if (pageProps) {
+                                                if (!profileImageUrl && pageProps.profileImageUrl) {
+                                                    profileImageUrl = pageProps.profileImageUrl;
+                                                }
+                                                if (!tokenAddr && (pageProps.tokenAddress || pageProps.token?.address)) {
+                                                    tokenAddr = pageProps.tokenAddress || pageProps.token?.address;
+                                                }
+                                                if (!tokenSymbol && (pageProps.tokenSymbol || pageProps.token?.symbol)) {
+                                                    tokenSymbol = pageProps.tokenSymbol || pageProps.token?.symbol;
+                                                }
+                                            }
+                                        } catch (e) {
+                                            console.log('🖼️ [Content] __NEXT_DATA__ 파싱 실패:', e);
+                                        }
+                                    }
+                                }
+
+                                // 방법 3: DOM에서 직접 프로필 이미지 추출 (백업)
+                                if (!profileImageUrl && isTargetProfile) {
+                                    const profileImg = document.querySelector('img[alt="Profile"]') as HTMLImageElement;
+                                    if (profileImg && profileImg.src) {
+                                        if (profileImg.src.includes('_next/image')) {
+                                            const urlParams = new URL(profileImg.src).searchParams;
+                                            const encodedUrl = urlParams.get('url');
+                                            if (encodedUrl) {
+                                                profileImageUrl = decodeURIComponent(encodedUrl);
+                                            }
+                                        } else {
+                                            profileImageUrl = profileImg.src;
+                                        }
+                                        console.log('✅ [Content] DOM에서 프로필 이미지 발견:', profileImageUrl);
+                                    }
+                                }
+
+                                console.log('🖼️ [Content] 최종 프로필 정보:', { profileImageUrl, tokenAddr, tokenSymbol, memexWalletAddress });
+                                sendResponse({ profileImageUrl, tokenAddr, tokenSymbol, memexWalletAddress });
+                            } catch (e) {
+                                console.error('❌ [Content] FETCH_MEMEX_PROFILE_INFO 오류:', e);
+                                sendResponse({ profileImageUrl: null, tokenAddr: null, tokenSymbol: null, memexWalletAddress: null });
+                            }
+                        })();
+                        return true;
+                    }
+
                     if (message.type === 'WALLET_DISCONNECT') {
                         console.log('🔐 [Content] WALLET_DISCONNECT 요청 수신');
 

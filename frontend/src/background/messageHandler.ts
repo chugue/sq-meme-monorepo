@@ -273,49 +273,39 @@ export function createMessageHandler() {
             break;
           }
 
-          case "FETCH_MEMEX_PROFILE_IMAGE": {
+          case "FETCH_MEMEX_PROFILE_INFO": {
+            // Content script로 전달하여 렌더링된 DOM에서 프로필 정보 추출
+            // (CDN 직접 접근은 Access Denied 발생)
             const { username, userTag } = message as { type: string; username: string; userTag: string };
-            console.log(`🖼️ FETCH_MEMEX_PROFILE_IMAGE 요청:`, username, userTag);
+            console.log(`🖼️ FETCH_MEMEX_PROFILE_INFO 요청 (content script 전달):`, username, userTag);
             try {
-              const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
-              const response = await fetch(profileUrl);
-              const html = await response.text();
+              const { browser } = await import("wxt/browser");
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
 
-              // HTML에서 프로필 이미지 URL 추출
-              // <img alt="Profile" ... srcset="...cdn.memex.xyz/memex/prod/v1/profileImage/...">
-              let profileImageUrl: string | null = null;
+              // MEMEX 페이지 탭 찾기
+              const memexTabs = await tabs.query({
+                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+              });
 
-              // srcset에서 원본 이미지 URL 추출
-              const imgMatch = html.match(/<img[^>]*alt="Profile"[^>]*srcset="([^"]+)"/);
-              if (imgMatch && imgMatch[1]) {
-                const srcset = imgMatch[1];
-                // URL 디코딩하여 원본 URL 추출
-                // 예: /_next/image?url=https%3A%2F%2Fcdn.memex.xyz%2F...
-                const urlMatch = srcset.match(/url=([^&]+)/);
-                if (urlMatch && urlMatch[1]) {
-                  profileImageUrl = decodeURIComponent(urlMatch[1]);
-                }
+              if (memexTabs.length === 0 || !memexTabs[0]?.id) {
+                console.log(`🖼️ MEMEX 탭 없음, 프로필 정보 가져오기 불가`);
+                result = { success: true, data: { profileImageUrl: null, tokenAddr: null, tokenSymbol: null } };
+                break;
               }
 
-              // srcset에서 못 찾으면 src 속성에서 시도
-              if (!profileImageUrl) {
-                const srcMatch = html.match(/<img[^>]*alt="Profile"[^>]*src="([^"]+)"/);
-                if (srcMatch && srcMatch[1]) {
-                  const src = srcMatch[1];
-                  const urlMatch = src.match(/url=([^&]+)/);
-                  if (urlMatch && urlMatch[1]) {
-                    profileImageUrl = decodeURIComponent(urlMatch[1]);
-                  }
-                }
-              }
+              // Content script로 메시지 전달
+              const response = await tabs.sendMessage(memexTabs[0].id, {
+                type: 'FETCH_MEMEX_PROFILE_INFO',
+                username,
+                userTag,
+              });
 
-              console.log(`🖼️ 추출된 프로필 이미지 URL:`, profileImageUrl);
-              result = { success: true, data: { profileImageUrl } };
+              result = { success: true, data: response };
             } catch (error: any) {
-              console.error("❌ FETCH_MEMEX_PROFILE_IMAGE 오류:", error);
+              console.error("❌ FETCH_MEMEX_PROFILE_INFO 오류:", error);
               result = {
-                success: false,
-                error: error instanceof Error ? error.message : "프로필 이미지 가져오기 실패",
+                success: true,
+                data: { profileImageUrl: null, tokenAddr: null, tokenSymbol: null },
               };
             }
             break;
@@ -323,7 +313,17 @@ export function createMessageHandler() {
 
           case "LOG_IN": {
             const { data } = message as { type: string; data: LogInRequest };
-            console.log(`🚀 LOG_IN 요청:`, data);
+            console.log(`🚀 LOG_IN 요청 DTO:`, {
+              username: data.username,
+              userTag: data.userTag,
+              walletAddress: data.walletAddress,
+              profileImageUrl: data.profileImageUrl,
+              memeXLink: data.memeXLink,
+              myTokenAddr: data.myTokenAddr,
+              myTokenSymbol: data.myTokenSymbol,
+              memexWalletAddress: data.memexWalletAddress,
+              isPolicyAgreed: data.isPolicyAgreed,
+            });
             try {
               const response = await apiCall<{ success: boolean }>("/v1/users/login", {
                 method: "POST",

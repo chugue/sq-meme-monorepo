@@ -366,6 +366,98 @@
             }
         }
 
+        // GET_NEXT_F_DATA 메서드 처리 (Next.js streaming data)
+        if (method === 'GET_NEXT_F_DATA') {
+            try {
+                log.info('🔍 GET_NEXT_F_DATA 요청 수신');
+
+                let profileImageUrl = null;
+                let tokenAddr = null;
+                let tokenSymbol = null;
+                let memexWalletAddress = null;
+
+                // self.__next_f 배열에서 데이터 추출
+                const nextFArray = self.__next_f || window.__next_f;
+
+                if (nextFArray && Array.isArray(nextFArray)) {
+                    log.info('✅ self.__next_f 배열 발견, 길이:', nextFArray.length);
+
+                    for (const item of nextFArray) {
+                        // __next_f 배열의 각 항목은 [id, content] 형태
+                        const content = Array.isArray(item) ? item[1] : (typeof item === 'string' ? item : '');
+                        if (typeof content !== 'string') continue;
+
+                        // tokenAddress가 포함된 항목 찾기
+                        if (content.includes('tokenAddress') || content.includes('profileImageUrl') || content.includes('walletAddress')) {
+                            // tokenAddress 추출 (0x로 시작하는 42자)
+                            if (!tokenAddr) {
+                                const tokenAddrMatch = content.match(/"tokenAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/);
+                                if (tokenAddrMatch) {
+                                    tokenAddr = tokenAddrMatch[1];
+                                    log.info('✅ tokenAddress 발견:', tokenAddr);
+                                }
+                            }
+
+                            // tokenSymbol 추출
+                            if (!tokenSymbol) {
+                                const tokenSymbolMatch = content.match(/"tokenSymbol"\s*:\s*"([^"]+)"/);
+                                if (tokenSymbolMatch) {
+                                    tokenSymbol = tokenSymbolMatch[1];
+                                    log.info('✅ tokenSymbol 발견:', tokenSymbol);
+                                }
+                            }
+
+                            // profileImageUrl 추출
+                            if (!profileImageUrl) {
+                                const profileImgMatch = content.match(/"profileImageUrl"\s*:\s*"([^"]+)"/);
+                                if (profileImgMatch) {
+                                    profileImageUrl = profileImgMatch[1];
+                                    log.info('✅ profileImageUrl 발견:', profileImageUrl);
+                                }
+                            }
+
+                            // walletAddress 추출 (MEMEX에 등록된 지갑 주소)
+                            if (!memexWalletAddress) {
+                                const walletMatch = content.match(/"walletAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/);
+                                if (walletMatch) {
+                                    memexWalletAddress = walletMatch[1];
+                                    log.info('✅ memexWalletAddress 발견:', memexWalletAddress);
+                                }
+                            }
+
+                            // 모든 정보를 찾았으면 루프 종료
+                            if (tokenAddr && tokenSymbol && profileImageUrl && memexWalletAddress) {
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    log.warn('⚠️ self.__next_f 배열을 찾을 수 없음');
+                }
+
+                log.info('🖼️ GET_NEXT_F_DATA 결과:', { profileImageUrl, tokenAddr, tokenSymbol, memexWalletAddress });
+
+                window.postMessage(
+                    {
+                        source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
+                        id: payload.id,
+                        result: { profileImageUrl, tokenAddr, tokenSymbol, memexWalletAddress },
+                    },
+                    '*'
+                );
+            } catch (error) {
+                log.error('GET_NEXT_F_DATA 실패', error);
+                window.postMessage(
+                    {
+                        source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
+                        id: payload.id,
+                        error: error?.message || 'Failed to get __next_f data',
+                    },
+                    '*'
+                );
+            }
+        }
+
     });
 
     /**

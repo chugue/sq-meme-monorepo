@@ -34,6 +34,11 @@ export interface LogInRequest {
     userTag: string;
     walletAddress: string;
     profileImageUrl: string;
+    memeXLink: string;
+    myTokenAddr: string | null;
+    myTokenSymbol: string | null;
+    memexWalletAddress: string | null;
+    isPolicyAgreed: boolean;
 }
 
 // Background Script와 통신하기 위한 메시지 타입
@@ -52,7 +57,7 @@ export type BackgroundMessage =
     | { type: 'WALLET_GET_ACCOUNT' }
     | { type: 'MEMEX_LOGIN'; triggerLogin?: boolean }
     | { type: 'NAVIGATE_TO_URL'; url: string }
-    | { type: 'FETCH_MEMEX_PROFILE_IMAGE'; username: string; userTag: string }
+    | { type: 'FETCH_MEMEX_PROFILE_INFO'; username: string; userTag: string }
     | { type: 'LOG_IN'; data: LogInRequest }
     | { type: 'LOGOUT' }
     | { type: 'WALLET_DISCONNECT' };
@@ -246,10 +251,15 @@ export const backgroundApi = {
         });
     },
 
-    // MEMEX 프로필 이미지 URL 가져오기
-    fetchMemexProfileImage: async (username: string, userTag: string) => {
-        return sendToBackground<{ profileImageUrl: string | null }>({
-            type: 'FETCH_MEMEX_PROFILE_IMAGE',
+    // MEMEX 프로필 정보 가져오기 (이미지, 토큰 주소, 토큰 심볼, MEMEX 지갑 주소)
+    fetchMemexProfileInfo: async (username: string, userTag: string) => {
+        return sendToBackground<{
+            profileImageUrl: string | null;
+            tokenAddr: string | null;
+            tokenSymbol: string | null;
+            memexWalletAddress: string | null;
+        }>({
+            type: 'FETCH_MEMEX_PROFILE_INFO',
             username,
             userTag,
         });

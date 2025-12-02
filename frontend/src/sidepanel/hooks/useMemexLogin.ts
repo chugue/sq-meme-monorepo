@@ -38,25 +38,43 @@ export function useMemexLogin(): UseMemexLoginReturn {
     const [walletAddress, setWalletAddress] = useAtom(walletAddressAtom);
     const [, setIsWalletConnected] = useAtom(isWalletConnectedAtom);
 
-    // 프로필 이미지 가져오기 및 LogIn 요청
+    // 프로필 정보 가져오기 및 LogIn 요청
     const fetchProfileAndLogIn = useCallback(async (uname: string, utag: string) => {
         try {
-            // 1. 프로필 이미지 URL 가져오기
-            console.log('🖼️ [useMemexLogin] 프로필 이미지 가져오기 시작:', uname, utag);
-            const imageResult = await backgroundApi.fetchMemexProfileImage(uname, utag);
-            const imageUrl = imageResult?.profileImageUrl || null;
-            setProfileImageUrl(imageUrl);
-            console.log('🖼️ [useMemexLogin] 프로필 이미지 URL:', imageUrl);
+            console.log('🖼️ [useMemexLogin] 프로필 정보 가져오기 시작:', uname, utag);
 
-            // 2. LogIn 요청 (백엔드에 사용자 등록)
-            if (walletAddress && imageUrl) {
+            // 1. 프로필 페이지로 이동 (DOM에서 정보를 가져오기 위해)
+            const memeXLink = `https://app.memex.xyz/profile/${uname}/${utag}`;
+            console.log('🖼️ [useMemexLogin] 프로필 페이지로 이동:', memeXLink);
+            await backgroundApi.navigateToUrl(memeXLink);
+
+            // 2. 페이지 로딩 대기 (DOM 렌더링 시간)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 3. 프로필 정보 가져오기 (이미지, 토큰 주소, 토큰 심볼, MEMEX 지갑 주소)
+            const profileInfo = await backgroundApi.fetchMemexProfileInfo(uname, utag);
+            const imageUrl = profileInfo?.profileImageUrl || null;
+            const tokenAddr = profileInfo?.tokenAddr || null;
+            const tokenSymbol = profileInfo?.tokenSymbol || null;
+            const memexWallet = profileInfo?.memexWalletAddress || null;
+
+            setProfileImageUrl(imageUrl);
+            console.log('🖼️ [useMemexLogin] 프로필 정보:', { imageUrl, tokenAddr, tokenSymbol, memexWallet });
+
+            // 4. LogIn 요청 (백엔드에 사용자 등록)
+            if (walletAddress) {
                 console.log('🚀 [useMemexLogin] LogIn 요청 시작');
                 try {
                     await backgroundApi.logIn({
                         username: uname,
                         userTag: utag,
                         walletAddress,
-                        profileImageUrl: imageUrl,
+                        profileImageUrl: imageUrl || '',
+                        memeXLink,
+                        myTokenAddr: tokenAddr,
+                        myTokenSymbol: tokenSymbol,
+                        memexWalletAddress: memexWallet,
+                        isPolicyAgreed: true, // Terms 동의 후 호출되므로 true
                     });
                     console.log('✅ [useMemexLogin] LogIn 요청 성공');
                 } catch (loginErr) {
@@ -65,7 +83,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 }
             }
         } catch (err) {
-            console.error('❌ [useMemexLogin] 프로필 이미지 가져오기 실패:', err);
+            console.error('❌ [useMemexLogin] 프로필 정보 가져오기 실패:', err);
         }
     }, [setProfileImageUrl, walletAddress]);
 
