@@ -25,6 +25,7 @@ export interface UseMemexLoginReturn {
     username: string | null;
     userTag: string | null;
     profileImageUrl: string | null;
+    tokenSymbol: string | null;
     checkLoginStatus: () => Promise<boolean>;
     logout: () => Promise<void>;
     setLoggedIn: (value: boolean) => void;
@@ -240,6 +241,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
         username,
         userTag,
         profileImageUrl,
+        tokenSymbol: myTokenSymbol,
         checkLoginStatus,
         logout,
         setLoggedIn: handleSetLoggedIn,

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 import "./Dashboard.css";
 import { useMemexLogin } from "./hooks/useMemexLogin";
@@ -31,15 +30,18 @@ interface DashboardProps {
   walletAddress?: string;
   onNavigateToProfile?: () => void;
   onNavigateToLeaderboard?: () => void;
+  onNavigateToMyGames?: () => void;
+  onNavigateToMyAssets?: () => void;
 }
 
 export function Dashboard({
   walletAddress,
   onNavigateToProfile,
   onNavigateToLeaderboard,
+  onNavigateToMyGames,
+  onNavigateToMyAssets,
 }: DashboardProps) {
   const { username, userTag, profileImageUrl, logout } = useMemexLogin();
-  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const handleProfileClick = async () => {
     if (onNavigateToProfile) {
@@ -54,10 +56,6 @@ export function Dashboard({
         console.error("프로필 이동 실패:", err);
       }
     }
-  };
-
-  const handleMenuClick = (section: string) => {
-    setActiveSection(activeSection === section ? null : section);
   };
 
   const shortenAddress = (address: string) => {
@@ -106,29 +104,13 @@ export function Dashboard({
       {/* Menu Sections */}
       <section className="menu-section">
         <button
-          className={`menu-item ${activeSection === "games" ? "active" : ""}`}
-          onClick={() => handleMenuClick("games")}
+          className="menu-item"
+          onClick={onNavigateToMyGames}
         >
           <span className="menu-icon">🎮</span>
           <span className="menu-text">내가 참여하고 있는 게임</span>
-          <span className="menu-arrow">
-            {activeSection === "games" ? "▼" : "▶"}
-          </span>
+          <span className="menu-arrow">▶</span>
         </button>
-        {activeSection === "games" && (
-          <div className="menu-content">
-            <div className="game-list">
-              <div className="game-item">
-                <span className="game-name">PEPE vs DOGE</span>
-                <span className="game-status active">진행중</span>
-              </div>
-              <div className="game-item">
-                <span className="game-name">SHIB Championship</span>
-                <span className="game-status">대기중</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         <button
           className="menu-item"
@@ -140,36 +122,13 @@ export function Dashboard({
         </button>
 
         <button
-          className={`menu-item ${activeSection === "assets" ? "active" : ""}`}
-          onClick={() => handleMenuClick("assets")}
+          className="menu-item"
+          onClick={onNavigateToMyAssets}
         >
           <span className="menu-icon">💰</span>
           <span className="menu-text">나의 보유 자산 확인</span>
-          <span className="menu-arrow">
-            {activeSection === "assets" ? "▼" : "▶"}
-          </span>
+          <span className="menu-arrow">▶</span>
         </button>
-        {activeSection === "assets" && (
-          <div className="menu-content">
-            <div className="assets-list">
-              <div className="asset-item">
-                <span className="asset-icon">🦑</span>
-                <span className="asset-name">SQUID</span>
-                <span className="asset-amount">1,000</span>
-              </div>
-              <div className="asset-item">
-                <span className="asset-icon">🐸</span>
-                <span className="asset-name">PEPE</span>
-                <span className="asset-amount">50,000</span>
-              </div>
-              <div className="asset-item">
-                <span className="asset-icon">🐕</span>
-                <span className="asset-name">DOGE</span>
-                <span className="asset-amount">25,000</span>
-              </div>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Wallet Address Footer */}
