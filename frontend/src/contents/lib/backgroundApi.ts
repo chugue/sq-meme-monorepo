@@ -23,6 +23,7 @@ export type BackgroundMessage =
   | { type: "OPEN_SIDE_PANEL" }
   | { type: "GET_STORAGE"; key: string; area?: "session" | "local" }
   | { type: "SET_STORAGE"; key: string; value: any; area?: "session" | "local" }
+  | { type: "REMOVE_STORAGE"; key: string; area?: "session" | "local" }
   | { type: "GET_GAME_BY_TOKEN"; tokenAddress: string }
   | { type: "SAVE_COMMENT"; data: CreateCommentRequest }
   | { type: "SAVE_GAME"; data: CreateGameRequest }
@@ -171,6 +172,18 @@ export const backgroundApi = {
       type: "SET_STORAGE",
       key,
       value,
+      area,
+    });
+  },
+
+  // Storage 삭제
+  removeStorage: async (
+    key: string,
+    area: "session" | "local" = "session"
+  ): Promise<void> => {
+    return sendToBackground<void>({
+      type: "REMOVE_STORAGE",
+      key,
       area,
     });
   },

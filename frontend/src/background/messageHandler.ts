@@ -146,6 +146,40 @@ export function createMessageHandler() {
             break;
           }
 
+          case "REMOVE_STORAGE": {
+            console.log("🗑️ REMOVE_STORAGE 요청:", message);
+            try {
+              const { browser } = await import("wxt/browser");
+              const storage =
+                browser?.storage || (globalThis as any).chrome?.storage;
+              const area = (message as any).area || "session";
+              const storageArea =
+                area === "local" ? storage.local : storage.session;
+
+              await new Promise<void>((resolve, reject) => {
+                storageArea.remove([(message as any).key], () => {
+                  const runtime =
+                    browser?.runtime || (globalThis as any).chrome?.runtime;
+                  if (runtime?.lastError) {
+                    reject(new Error(runtime.lastError.message));
+                    return;
+                  }
+                  resolve();
+                });
+              });
+
+              result = { success: true, data: undefined };
+            } catch (error: any) {
+              console.error("❌ Storage 삭제 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "Storage 삭제 실패",
+              };
+            }
+            break;
+          }
+
           case "GET_GAME_BY_TOKEN": {
             console.log("🎮 GET_GAME_BY_TOKEN 요청:", message.tokenAddress);
             try {
@@ -347,6 +381,25 @@ export function createMessageHandler() {
               });
               // Unwrap Result and return { user, isNew } as JoinResponse
               console.log(`✅ JOIN 응답:`, response);
+
+              // User 정보를 chrome.storage.session에 캐시 저장
+              if (response.data?.user) {
+                const { browser } = await import("wxt/browser");
+                const storage = browser?.storage || (globalThis as any).chrome?.storage;
+                await new Promise<void>((resolve, reject) => {
+                  storage.session.set({ squid_user: response.data.user }, () => {
+                    const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                    if (runtime?.lastError) {
+                      console.warn("⚠️ Squid User 캐시 저장 실패:", runtime.lastError);
+                      reject(new Error(runtime.lastError.message));
+                      return;
+                    }
+                    console.log("✅ Squid User 캐시 저장 완료:", response.data.user.id);
+                    resolve();
+                  });
+                });
+              }
+
               result = { success: true, data: { user: response.data?.user, isNew: response.data?.isNew } };
             } catch (error: any) {
               console.error("❌ JOIN 오류:", error);
@@ -364,9 +417,9 @@ export function createMessageHandler() {
               const { browser } = await import("wxt/browser");
               const storage = browser?.storage || (globalThis as any).chrome?.storage;
 
-              // session storage에서 gtm_user_identifier 삭제
+              // session storage에서 gtm_user_identifier, squid_user 삭제
               await new Promise<void>((resolve, reject) => {
-                storage.session.remove(["gtm_user_identifier"], () => {
+                storage.session.remove(["gtm_user_identifier", "squid_user"], () => {
                   const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
                   if (runtime?.lastError) {
                     reject(new Error(runtime.lastError.message));

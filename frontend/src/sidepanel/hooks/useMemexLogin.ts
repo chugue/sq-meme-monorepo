@@ -7,6 +7,10 @@
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import { backgroundApi } from '../../contents/lib/backgroundApi';
+import {
+    getUserInfoFromChromeStorage,
+    saveUserInfoToChromeStorage,
+} from '../../contents/lib/chromeStorage';
 
 // 모듈 레벨에서 중복 요청 방지 (Strict Mode에서도 유지됨)
 let joinRequestInProgress = false;
@@ -137,6 +141,25 @@ export function useMemexLogin(): UseMemexLoginReturn {
     // MEMEX 로그인 상태 확인 함수
     const checkLoginStatus = useCallback(async () => {
         try {
+            // 1. chrome.storage.session에서 캐시 먼저 확인
+            const cachedUserInfo = await getUserInfoFromChromeStorage();
+
+            if (cachedUserInfo) {
+                console.log('🔐 [useMemexLogin] 캐시된 사용자 정보 발견:', cachedUserInfo);
+
+                // 캐시된 기본 정보로 상태 업데이트
+                setMemexLoggedIn({
+                    isLoggedIn: true,
+                    username: cachedUserInfo.username,
+                    userTag: cachedUserInfo.user_tag,
+                });
+
+                // 프로필 정보 가져오기 (이미지, 토큰 등)
+                await fetchProfileInfo(cachedUserInfo.username, cachedUserInfo.user_tag);
+                return true;
+            }
+
+            // 2. 캐시 없으면 기존 로직 (backgroundApi.memexLogin)
             const result = await backgroundApi.memexLogin() as {
                 success: boolean;
                 isLoggedIn?: boolean;
@@ -151,6 +174,12 @@ export function useMemexLogin(): UseMemexLoginReturn {
                     isLoggedIn: true,
                     username: result.username,
                     userTag: result.userTag,
+                });
+
+                // 3. chrome.storage에 캐시 저장
+                await saveUserInfoToChromeStorage({
+                    username: result.username,
+                    user_tag: result.userTag,
                 });
 
                 // walletAddress가 없으면 프로필 정보만 가져오기 (Join 요청은 useEffect에서 자동으로)
@@ -177,7 +206,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
         try {
             console.log('🚪 [useMemexLogin] 로그아웃 시작');
 
-            // 1. Extension storage 초기화
+            // 1. Extension storage 초기화 (gtm_user_identifier 및 지갑 정보 삭제)
             await backgroundApi.logout();
 
             // 2. MetaMask 지갑 연결 해제
