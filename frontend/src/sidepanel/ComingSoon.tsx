@@ -6,19 +6,30 @@ import {
   AnimatedTitle,
   ConnectButton,
   NeonBar,
+  TermsModal,
 } from "./components";
 
 export function ComingSoon() {
   // 임시: 지갑 연결 상태 (나중에 실제 지갑 연결 로직으로 교체)
   const [isWalletConnected, setIsWalletConnected] = useState(true);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   const handleConnectWallet = () => {
     setIsWalletConnected(true);
   };
 
   const handleConnectMemex = () => {
+    setIsTermsModalOpen(true);
+  };
+
+  const handleCloseTermsModal = () => {
+    setIsTermsModalOpen(false);
+  };
+
+  const handleAgreeTerms = () => {
+    setIsTermsModalOpen(false);
     // TODO: MEMEX 연결 로직 구현
-    console.log("Connect MEMEX");
+    console.log("Terms agreed, connecting to MEMEX...");
   };
 
   return (
@@ -45,6 +56,11 @@ export function ComingSoon() {
         />
         <NeonBar />
       </div>
+      <TermsModal
+        isOpen={isTermsModalOpen}
+        onClose={handleCloseTermsModal}
+        onAgree={handleAgreeTerms}
+      />
     </div>
   );
 }
