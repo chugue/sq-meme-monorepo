@@ -9,6 +9,7 @@
 import { useAtom } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
 import type { Address } from "viem";
+import type { BlockchainGameInfo } from "../../types/request.types";
 import {
   currentChallengeIdAtom,
   EndedGameInfo,
@@ -116,23 +117,6 @@ export function useTokenContract() {
     },
     [setEndedGameInfo]
   );
-
-  // 블록체인 GameInfo 타입 (V2 컨트랙트 반환값)
-  type BlockchainGameInfo = {
-    id: bigint;
-    initiator: Address;
-    gameToken: Address;
-    cost: bigint;
-    gameTime: bigint;
-    tokenSymbol: string;
-    endTime: bigint;
-    lastCommentor: Address;
-    prizePool: bigint;
-    isClaimed: boolean;
-    isEnded: boolean;
-    totalFunding: bigint;
-    funderCount: bigint;
-  };
 
   /**
    * 블록체인에서 직접 게임 정보 조회 (V2: 전체 GameInfo 반환)
@@ -276,27 +260,13 @@ export function useTokenContract() {
             return null;
           }
 
-          // 게임이 진행 중이면 백엔드에 등록 (V2 ABI 전체 필드)
+          // 게임이 진행 중이면 백엔드에 등록
           try {
             logger.info("백엔드에 게임 등록 시도", { gameId });
-            await backgroundApi.registerGame({
-              gameId,
-              initiator: blockchainGame.initiator,
-              gameToken: blockchainGame.gameToken,
-              cost: blockchainGame.cost.toString(),
-              gameTime: blockchainGame.gameTime.toString(),
-              tokenSymbol: blockchainGame.tokenSymbol,
-              endTime: blockchainGame.endTime.toString(),
-              lastCommentor: blockchainGame.lastCommentor,
-              prizePool: blockchainGame.prizePool.toString(),
-              isClaimed: blockchainGame.isClaimed,
-              isEnded: blockchainGame.isEnded,
-              totalFunding: blockchainGame.totalFunding.toString(),
-              funderCount: blockchainGame.funderCount.toString(),
-            });
+            await backgroundApi.registerGame(blockchainGame);
             logger.info("백엔드에 게임 등록 완료", { gameId });
           } catch (registerErr) {
-            logger.warn("백엔드 게임 등록 실패 (계속 진행)", registerErr);
+            logger.error("백엔드 게임 등록 실패 (계속 진행)", registerErr);
           }
 
           // 게임 ID를 설정하여 댓글 UI가 표시되도록 함
@@ -323,6 +293,7 @@ export function useTokenContract() {
       setError,
       setGameAddress,
       setIsGameEnded,
+      setEndedGameInfo,
       fetchGameFromBlockchain,
       checkGameEnded,
     ]

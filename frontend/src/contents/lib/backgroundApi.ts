@@ -1,9 +1,9 @@
 import { browser } from "wxt/browser";
 import type {
+  BlockchainGameInfo,
   CreateCommentRequest,
   CreateGameRequest,
   JoinRequest,
-  RegisterGameRequest,
 } from "../../types/request.types";
 import type { JoinResponse } from "../../types/response.types";
 
@@ -37,7 +37,7 @@ export type BackgroundMessage =
   | { type: "JOIN"; data: JoinRequest }
   | { type: "LOGOUT" }
   | { type: "WALLET_DISCONNECT" }
-  | { type: "REGISTER_GAME"; data: RegisterGameRequest };
+  | { type: "REGISTER_GAME"; data: BlockchainGameInfo };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -290,7 +290,7 @@ export const backgroundApi = {
   },
 
   // 블록체인에서 조회한 게임 등록 (txHash 없이)
-  registerGame: async (data: RegisterGameRequest) => {
+  registerGame: async (data: BlockchainGameInfo) => {
     return sendToBackground<{ gameId: string }>({
       type: "REGISTER_GAME",
       data,

@@ -2,7 +2,7 @@ import {
   BackgroundMessage,
   BackgroundResponse,
 } from "../contents/lib/backgroundApi";
-import type { JoinRequest, RegisterGameRequest } from "../types/request.types";
+import type { BlockchainGameInfo, JoinRequest } from "../types/request.types";
 import { apiCall } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -250,15 +250,32 @@ export function createMessageHandler() {
           }
 
           case "REGISTER_GAME": {
-            const { data } = message as { type: string; data: RegisterGameRequest };
-            console.log("🎮 REGISTER_GAME 요청 (블록체인 조회 게임 등록):", data.gameId);
+            const { data } = message as { type: string; data: BlockchainGameInfo };
+            const gameId = data.id.toString();
+            console.log("🎮 REGISTER_GAME 요청 (블록체인 조회 게임 등록):", gameId);
             try {
+              // BlockchainGameInfo (bigint) → 백엔드 API 형식 (string) 매핑
+              const payload = {
+                gameId,
+                initiator: data.initiator,
+                gameToken: data.gameToken,
+                cost: data.cost.toString(),
+                gameTime: data.gameTime.toString(),
+                tokenSymbol: data.tokenSymbol,
+                endTime: data.endTime.toString(),
+                lastCommentor: data.lastCommentor,
+                prizePool: data.prizePool.toString(),
+                isClaimed: data.isClaimed,
+                isEnded: data.isEnded,
+                totalFunding: data.totalFunding.toString(),
+                funderCount: data.funderCount.toString(),
+              };
               const response = await apiCall<{
                 success: boolean;
                 data: { gameId: string };
               }>("/v1/games/register", {
                 method: "POST",
-                body: JSON.stringify(data),
+                body: JSON.stringify(payload),
               });
               result = { success: true, data: response.data };
             } catch (error: any) {
