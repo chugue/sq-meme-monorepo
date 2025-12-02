@@ -12,6 +12,7 @@ import { formatUnits, type Address } from 'viem';
 import { useReadContract } from 'wagmi';
 import { useComments } from '../hooks/useComments';
 import { useWallet } from '../hooks/useWallet';
+import { Comment } from '../types/comment';
 import { erc20ABI } from '../lib/contract/abis/erc20';
 import { logger } from '../lib/injected/logger';
 import { ERROR_CODES, injectedApi } from '../lib/injectedApi';
@@ -285,7 +286,7 @@ function CommentList({
     comments,
     isLoading,
 }: {
-    comments: Array<{ id: string; content: string; player_address: string; created_at: string }>;
+    comments: Comment[];
     isLoading: boolean;
 }) {
     if (isLoading) {
@@ -300,13 +301,13 @@ function CommentList({
         <>
             {comments.map((comment) => (
                 <div key={comment.id} className="squid-comment-item">
-                    <div className="squid-comment-content">{comment.content}</div>
+                    <div className="squid-comment-content">{comment.message}</div>
                     <div className="squid-comment-meta">
                         <span className="squid-comment-address">
-                            {formatAddress(comment.player_address)}
+                            {formatAddress(comment.commentor)}
                         </span>
                         <span className="squid-comment-date">
-                            {formatRelativeTime(comment.created_at)}
+                            {formatRelativeTime(comment.createdAt)}
                         </span>
                     </div>
                 </div>

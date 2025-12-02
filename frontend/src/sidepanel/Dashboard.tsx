@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { backgroundApi } from "../contents/lib/backgroundApi";
 import "./Dashboard.css";
 import { useMemexLogin } from "./hooks/useMemexLogin";
-import { backgroundApi } from "../contents/lib/backgroundApi";
 
 // Mock data
 const mockUserData = {
@@ -10,9 +10,21 @@ const mockUserData = {
 };
 
 const mockCharacters = [
-  { id: 1, name: "Squid #1", image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid1" },
-  { id: 2, name: "Squid #2", image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid2" },
-  { id: 3, name: "Squid #3", image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid3" },
+  {
+    id: 1,
+    name: "Squid #1",
+    image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid1",
+  },
+  {
+    id: 2,
+    name: "Squid #2",
+    image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid2",
+  },
+  {
+    id: 3,
+    name: "Squid #3",
+    image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid3",
+  },
 ];
 
 interface DashboardProps {
@@ -20,7 +32,10 @@ interface DashboardProps {
   onNavigateToProfile?: () => void;
 }
 
-export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps) {
+export function Dashboard({
+  walletAddress,
+  onNavigateToProfile,
+}: DashboardProps) {
   const { username, userTag, profileImageUrl, logout } = useMemexLogin();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -30,7 +45,9 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
     } else if (username && userTag) {
       // MEMEX 프로필 페이지로 이동 (backgroundApi를 통해 탭 URL 변경)
       try {
-        await backgroundApi.navigateToUrl(`https://app.memex.xyz/profile/${username}/${userTag}`);
+        await backgroundApi.navigateToUrl(
+          `https://app.memex.xyz/profile/${username}/${userTag}`
+        );
       } catch (err) {
         console.error("프로필 이동 실패:", err);
       }
@@ -51,7 +68,7 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
       <header className="dashboard-header">
         <button className="profile-link-btn" onClick={handleProfileClick}>
           <span className="link-icon">🔗</span>
-          <span>내 MemeX 프로필로 이동하기</span>
+          <span>MemeX Page</span>
         </button>
         <div className="user-info">
           <span className="user-name">{username || "User"}</span>
@@ -88,7 +105,9 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
         >
           <span className="menu-icon">🎮</span>
           <span className="menu-text">내가 참여하고 있는 게임</span>
-          <span className="menu-arrow">{activeSection === "games" ? "▼" : "▶"}</span>
+          <span className="menu-arrow">
+            {activeSection === "games" ? "▼" : "▶"}
+          </span>
         </button>
         {activeSection === "games" && (
           <div className="menu-content">
@@ -106,12 +125,16 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
         )}
 
         <button
-          className={`menu-item ${activeSection === "leaderboard" ? "active" : ""}`}
+          className={`menu-item ${
+            activeSection === "leaderboard" ? "active" : ""
+          }`}
           onClick={() => handleMenuClick("leaderboard")}
         >
           <span className="menu-icon">🏆</span>
           <span className="menu-text">리더 보드</span>
-          <span className="menu-arrow">{activeSection === "leaderboard" ? "▼" : "▶"}</span>
+          <span className="menu-arrow">
+            {activeSection === "leaderboard" ? "▼" : "▶"}
+          </span>
         </button>
         {activeSection === "leaderboard" && (
           <div className="menu-content">
@@ -141,7 +164,9 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
         >
           <span className="menu-icon">💰</span>
           <span className="menu-text">나의 보유 자산 확인</span>
-          <span className="menu-arrow">{activeSection === "assets" ? "▼" : "▶"}</span>
+          <span className="menu-arrow">
+            {activeSection === "assets" ? "▼" : "▶"}
+          </span>
         </button>
         {activeSection === "assets" && (
           <div className="menu-content">

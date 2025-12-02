@@ -1,8 +1,8 @@
 import {
   BackgroundMessage,
   BackgroundResponse,
-  JoinRequest,
 } from "../contents/lib/backgroundApi";
+import type { JoinRequest } from "../types/request.types";
 import { apiCall } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -29,22 +29,22 @@ export function createMessageHandler() {
             break;
           }
 
-          // NOTE: CREATE_COMMENT는 더 이상 사용하지 않음 - 프론트엔드에서 직접 스마트 컨트랙트 호출
-          // case 'CREATE_COMMENT': {
-          //     console.log('📝 CREATE_COMMENT 요청:', message);
-          //     const response = await apiCall<{ comment: any }>('/api/comments', {
-          //         method: 'POST',
-          //         body: JSON.stringify({
-          //             challenge_id: message.challengeId,
-          //             player_address: message.playerAddress,
-          //             content: message.content,
-          //             signature: (message as any).signature,
-          //             message: (message as any).message,
-          //         }),
-          //     });
-          //     result = { success: true, data: response.comment };
-          //     break;
-          // }
+          //NOTE: CREATE_COMMENT는 더 이상 사용하지 않음 - 프론트엔드에서 직접 스마트 컨트랙트 호출
+          case 'CREATE_COMMENT': {
+              console.log('📝 CREATE_COMMENT 요청:', message);
+              const response = await apiCall<{ comment: any }>('/api/comments', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                      challenge_id: message.challengeId,
+                      player_address: message.playerAddress,
+                      content: message.content,
+                      signature: (message as any).signature,
+                      message: (message as any).message,
+                  }),
+              });
+              result = { success: true, data: response.comment };
+              break;
+          }
 
           case "HEALTH_CHECK": {
             console.log("💓 HEALTH_CHECK 요청");
@@ -313,17 +313,7 @@ export function createMessageHandler() {
 
           case "JOIN": {
             const { data } = message as { type: string; data: JoinRequest };
-            console.log(`🚀 JOIN 요청 DTO:`, {
-              username: data.username,
-              userTag: data.userTag,
-              walletAddress: data.walletAddress,
-              profileImageUrl: data.profileImageUrl,
-              memeXLink: data.memeXLink,
-              myTokenAddr: data.myTokenAddr,
-              myTokenSymbol: data.myTokenSymbol,
-              memexWalletAddress: data.memexWalletAddress,
-              isPolicyAgreed: data.isPolicyAgreed,
-            });
+            console.log(`🚀 JOIN 요청 DTO:`, { username: data.username });
             try {
               const response = await apiCall<{ success: boolean }>("/v1/users/join", {
                 method: "POST",

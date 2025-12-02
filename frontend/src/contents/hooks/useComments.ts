@@ -25,31 +25,29 @@ export function useComments() {
         retry: 1,
     });
 
-    // NOTE: 댓글 작성은 더 이상 백엔드 API를 통해 하지 않음 - useCommentContract 훅을 통해 직접 컨트랙트 호출
-    // const createCommentMutation = useMutation({
-    //     mutationFn: async (input: {
-    //         player_address: string;
-    //         content: string;
-    //         signature?: string;
-    //         message?: string;
-    //     }) => {
-    //         try {
-    //             return await backgroundApi.createComment({
-    //                 challenge_id: challengeId,
-    //                 player_address: input.player_address,
-    //                 content: input.content,
-    //                 signature: input.signature,
-    //                 message: input.message,
-    //             }) as Comment;
-    //         } catch (error) {
-    //             console.error('댓글 작성 실패:', error);
-    //             throw error;
-    //         }
-    //     },
-    //     onSuccess: () => {
-    //         queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
-    //     },
-    // });
+    // 댓글 작성
+    const createCommentMutation = useMutation({
+        mutationFn: async (input: {
+            player_address: string;
+            content: string;
+            signature?: string;
+            message?: string;
+        }) => {
+            try {
+                return (await backgroundApi.createComment({
+                    challengeId: challengeId || '',
+                    playerAddress: input.player_address,
+                    content: input.content,
+                })) as Comment;
+            } catch (error) {
+                console.error('댓글 작성 실패:', error);
+                throw error;
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
+        },
+    });
 
     // 댓글 삭제 (백엔드 스키마에서 id는 serial = number)
     const deleteCommentMutation = useMutation({
@@ -70,10 +68,8 @@ export function useComments() {
         comments,
         isLoading,
         refetch,
-        // NOTE: createComment는 더 이상 사용하지 않음 - useCommentContract 훅 사용
-        // createComment: createCommentMutation.mutateAsync,
+        createComment: createCommentMutation.mutateAsync,
         deleteComment: deleteCommentMutation.mutateAsync,
-        // NOTE: isSubmitting은 useCommentContract 훅에서 제공
-        // isSubmitting: createCommentMutation.isPending,
+        isSubmitting: createCommentMutation.isPending,
     };
 }
