@@ -1,11 +1,11 @@
-import { useTokenContract } from "../../hooks/useTokenContract";
-import { useUserInfo } from "../../hooks/useUserInfo";
-import { CommentSection } from "./CommentSection";
+import { useTokenContract } from "../hooks/useTokenContract";
+import { useUserInfo } from "../hooks/useUserInfo";
+import { CommentSection } from "./sub-components/CommentSection";
 
 /**
  * 프로필 페이지용 게임 컴포넌트
  */
-export function ProfileGameContent() {
+export function ProfilePage() {
   // 사용자 정보 로드 (전역 상태로 저장)
   useUserInfo();
 

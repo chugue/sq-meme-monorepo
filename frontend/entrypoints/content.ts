@@ -1,5 +1,5 @@
 import CommentApp from '@/contents/components/CommentApp';
-import '@/contents/components/CommentSection.css';
+import '@/contents/components/sub-components/CommentSection.css';
 import mockUserData from '@/contents/utils/mock-user-data.json';
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';

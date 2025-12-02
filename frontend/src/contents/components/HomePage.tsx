@@ -1,7 +1,7 @@
 /**
  * 홈페이지 안내 컴포넌트
  */
-export function HomeGuide() {
+export function HomePage() {
   return (
     <div
       className="comment-section"

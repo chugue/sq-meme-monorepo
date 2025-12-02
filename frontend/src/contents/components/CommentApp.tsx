@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { WagmiProvider } from "wagmi";
 import { SquidMemeJotaiProvider } from "../atoms/JotaiProvider";
 import { isHomePage, isProfilePage } from "../utils/page-check.helpers";
-import { ErrorBoundary } from "./ErrorBoundary";
-import { HomeGuide } from "./sub-components/HomeGuide";
-import { ProfileGameContent } from "./sub-components/ProfileGameContent";
+import { HomePage } from "./HomePage";
+import { ProfilePage } from "./ProfilePage";
+import { ErrorBoundary } from "./sub-components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,12 +44,12 @@ function CommentAppInner() {
 
   // 홈 페이지면 안내 화면 표시
   if (isHome) {
-    return <HomeGuide />;
+    return <HomePage />;
   }
 
   // 프로필 페이지면 게임 컨텐츠 표시
   if (isProfile) {
-    return <ProfileGameContent />;
+    return <ProfilePage />;
   }
 
   // 그 외 페이지는 아무것도 표시하지 않음
