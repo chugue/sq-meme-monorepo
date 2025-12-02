@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Result } from 'src/common/types';
 import { UsersRepository } from './users.repository';
-import { User } from 'src/common/db/schema/user.schema';
+import { User, CheckInRecord } from 'src/common/db/schema/user.schema';
 import { JoinDto } from './dto/join.dto';
 
 @Injectable()
@@ -11,27 +11,81 @@ export class UsersService {
     constructor(private readonly usersRepository: UsersRepository) {}
 
     /**
-     * @description 로그인 (사용자 생성 또는 기존 사용자 반환)
+     * @description 회원가입 (없으면 생성, 있으면 체크인 업데이트 후 반환)
      */
-    async join(dto: JoinDto): Promise<Result<{ user: User }>> {
+    async join(dto: JoinDto): Promise<Result<{ user: User; isNew: boolean }>> {
         try {
-            const user = await this.usersRepository.upsert({
-                walletAddress: dto.walletAddress,
-                userName: dto.userName,
-                userTag: dto.userTag,
-                profileImage: dto.profileImage,
-                memexLink: dto.memexLink,
-                memexWalletAddress: dto.memexWalletAddress,
-                myTokenAddr: dto.myTokenAddr,
-                myTokenSymbol: dto.myTokenSymbol,
-            });
+            // 신규 사용자는 repository에서 초기 체크인 포함해서 생성
+            const { user, isNew } = await this.usersRepository.findOrCreate(
+                dto,
+                this.getTodayDateString(),
+            );
 
-            this.logger.log(`User logged in: ${dto.walletAddress}`);
-            return Result.ok({ user });
+            if (isNew) {
+                this.logger.log(`User created: ${dto.walletAddress}`);
+                return Result.ok({ user, isNew });
+            }
+
+            // 기존 사용자 - 체크인 업데이트
+            const updatedUser = await this.updateCheckIn(user);
+            this.logger.log(`User found: ${dto.walletAddress}`);
+            return Result.ok({ user: updatedUser, isNew });
         } catch (error) {
-            this.logger.error(`Login failed: ${error.message}`);
-            return Result.fail('로그인에 실패했습니다.');
+            this.logger.error(`Join failed: ${error.message}`);
+            return Result.fail('회원가입에 실패했습니다.');
         }
+    }
+
+    /**
+     * @description 체크인 기록 업데이트
+     */
+    private async updateCheckIn(user: User): Promise<User> {
+        const today = this.getTodayDateString();
+        const yesterday = this.getYesterdayDateString();
+        const history: CheckInRecord[] = user.checkInHistory ?? [];
+
+        const lastCheckIn = history[history.length - 1];
+
+        // 오늘 이미 체크인 했으면 그대로 반환
+        if (lastCheckIn?.day === today) {
+            return user;
+        }
+
+        let newStreak: number;
+        if (lastCheckIn?.day === yesterday) {
+            // 어제 체크인 했으면 연속 +1
+            newStreak = lastCheckIn.currentStreak + 1;
+        } else {
+            // 연속이 끊겼으면 1부터 시작
+            newStreak = 1;
+        }
+
+        const newHistory: CheckInRecord[] = [
+            ...history,
+            { day: today, currentStreak: newStreak },
+        ];
+
+        const updated = await this.usersRepository.update(user.walletAddress, {
+            checkInHistory: newHistory,
+        });
+
+        return updated!;
+    }
+
+    /**
+     * @description 오늘 날짜 문자열 (YYYY-MM-DD)
+     */
+    private getTodayDateString(): string {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    /**
+     * @description 어제 날짜 문자열 (YYYY-MM-DD)
+     */
+    private getYesterdayDateString(): string {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().split('T')[0];
     }
 
     /**
