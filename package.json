@@ -4,6 +4,8 @@
   "scripts": {
     "test:backend": "cd backend && npm test",
     "test:backend:e2e": "cd backend && npm run test:e2e",
-    "test:contracts": "cd contracts && npm test"
+    "test:contracts": "cd contracts && npm test",
+    "test:contracts:v2": "cd contracts && npm run test:v2",
+    "test:contracts:original": "cd contracts && npm run test:original"
   }
 }

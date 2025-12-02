@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
+    "test:v2": "npx hardhat test test/CommentGameV2.test.ts",
+    "test:v2:edge": "npx hardhat test test/CommentGameV2.edge.test.ts",
+    "test:original": "npx hardhat test test/CommentGame.test.ts",
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run scripts/deploy.ts --network insectarium",
     "deploy:mock": "npx hardhat run scripts/deployMockERC20.ts --network insectarium",
