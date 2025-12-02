@@ -1,6 +1,7 @@
 import {
   BackgroundMessage,
   BackgroundResponse,
+  LogInRequest,
 } from "../contents/lib/backgroundApi";
 import { apiCall } from "./api";
 import { openSidePanel } from "./sidepanel";
@@ -272,9 +273,120 @@ export function createMessageHandler() {
             break;
           }
 
+          case "FETCH_MEMEX_PROFILE_IMAGE": {
+            const { username, userTag } = message as { type: string; username: string; userTag: string };
+            console.log(`🖼️ FETCH_MEMEX_PROFILE_IMAGE 요청:`, username, userTag);
+            try {
+              const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
+              const response = await fetch(profileUrl);
+              const html = await response.text();
+
+              // HTML에서 프로필 이미지 URL 추출
+              // <img alt="Profile" ... srcset="...cdn.memex.xyz/memex/prod/v1/profileImage/...">
+              let profileImageUrl: string | null = null;
+
+              // srcset에서 원본 이미지 URL 추출
+              const imgMatch = html.match(/<img[^>]*alt="Profile"[^>]*srcset="([^"]+)"/);
+              if (imgMatch && imgMatch[1]) {
+                const srcset = imgMatch[1];
+                // URL 디코딩하여 원본 URL 추출
+                // 예: /_next/image?url=https%3A%2F%2Fcdn.memex.xyz%2F...
+                const urlMatch = srcset.match(/url=([^&]+)/);
+                if (urlMatch && urlMatch[1]) {
+                  profileImageUrl = decodeURIComponent(urlMatch[1]);
+                }
+              }
+
+              // srcset에서 못 찾으면 src 속성에서 시도
+              if (!profileImageUrl) {
+                const srcMatch = html.match(/<img[^>]*alt="Profile"[^>]*src="([^"]+)"/);
+                if (srcMatch && srcMatch[1]) {
+                  const src = srcMatch[1];
+                  const urlMatch = src.match(/url=([^&]+)/);
+                  if (urlMatch && urlMatch[1]) {
+                    profileImageUrl = decodeURIComponent(urlMatch[1]);
+                  }
+                }
+              }
+
+              console.log(`🖼️ 추출된 프로필 이미지 URL:`, profileImageUrl);
+              result = { success: true, data: { profileImageUrl } };
+            } catch (error: any) {
+              console.error("❌ FETCH_MEMEX_PROFILE_IMAGE 오류:", error);
+              result = {
+                success: false,
+                error: error instanceof Error ? error.message : "프로필 이미지 가져오기 실패",
+              };
+            }
+            break;
+          }
+
+          case "LOG_IN": {
+            const { data } = message as { type: string; data: LogInRequest };
+            console.log(`🚀 LOG_IN 요청:`, data);
+            try {
+              const response = await apiCall<{ success: boolean }>("/v1/users/login", {
+                method: "POST",
+                body: JSON.stringify(data),
+              });
+              result = { success: true, data: response };
+            } catch (error: any) {
+              console.error("❌ LOG_IN 오류:", error);
+              // 백엔드 미구현 상태에서는 에러가 발생할 수 있으므로 로그만 남김
+              result = {
+                success: false,
+                error: error instanceof Error ? error.message : "LogIn 요청 실패",
+              };
+            }
+            break;
+          }
+
+          case "LOGOUT": {
+            console.log(`🚪 LOGOUT 요청`);
+            try {
+              const { browser } = await import("wxt/browser");
+              const storage = browser?.storage || (globalThis as any).chrome?.storage;
+
+              // session storage에서 gtm_user_identifier 삭제
+              await new Promise<void>((resolve, reject) => {
+                storage.session.remove(["gtm_user_identifier"], () => {
+                  const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                  if (runtime?.lastError) {
+                    reject(new Error(runtime.lastError.message));
+                    return;
+                  }
+                  resolve();
+                });
+              });
+
+              // local storage에서 지갑 관련 데이터 삭제
+              await new Promise<void>((resolve, reject) => {
+                storage.local.remove(["walletAddress", "isWalletConnected"], () => {
+                  const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                  if (runtime?.lastError) {
+                    reject(new Error(runtime.lastError.message));
+                    return;
+                  }
+                  resolve();
+                });
+              });
+
+              console.log(`✅ LOGOUT 완료: gtm_user_identifier 및 지갑 정보 삭제`);
+              result = { success: true, data: { success: true } };
+            } catch (error: any) {
+              console.error("❌ LOGOUT 오류:", error);
+              result = {
+                success: false,
+                error: error instanceof Error ? error.message : "로그아웃 실패",
+              };
+            }
+            break;
+          }
+
           case "MEMEX_LOGIN":
           case "WALLET_CONNECT":
-          case "WALLET_GET_ACCOUNT": {
+          case "WALLET_GET_ACCOUNT":
+          case "WALLET_DISCONNECT": {
             console.log(`🔐 ${message.type} 요청`);
             try {
               const { browser } = await import("wxt/browser");

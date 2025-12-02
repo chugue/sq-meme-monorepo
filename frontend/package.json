@@ -22,6 +22,7 @@
         "@wagmi/connectors": "^6.2.0",
         "@wagmi/core": "^2.22.1",
         "buffer": "^6.0.3",
+        "framer-motion": "^12.23.25",
         "jotai": "^2.15.1",
         "metamask-extension-provider": "^5.0.0",
         "react": "^19.1.1",

@@ -543,6 +543,23 @@ export async function getBlockTimestamp(): Promise<bigint> {
 }
 
 /**
+ * MetaMask 지갑 연결 해제 (권한 해제)
+ * wallet_revokePermissions를 호출하여 모든 권한을 해제합니다.
+ */
+export async function revokePermissions(): Promise<void> {
+    try {
+        await sendEthereumRequest<null>('wallet_revokePermissions', [
+            { eth_accounts: {} }
+        ]);
+        logger.info('지갑 권한 해제 성공');
+    } catch (error) {
+        // 일부 지갑은 이 메서드를 지원하지 않을 수 있음
+        logger.warn('지갑 권한 해제 실패 (미지원 가능)', { error: String(error) });
+        throw error;
+    }
+}
+
+/**
  * 트랜잭션 로그 항목
  */
 export interface TransactionLog {
@@ -651,6 +668,7 @@ export const injectedApi = {
     getBlockTimestamp,
     getTransactionReceipt,
     waitForTransaction,
+    revokePermissions,
 } as const;
 
 // 타입 export

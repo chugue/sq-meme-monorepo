@@ -28,6 +28,14 @@ export interface CreateGameRequest {
     isClaimed: boolean;
 }
 
+// LogIn 요청 DTO
+export interface LogInRequest {
+    username: string;
+    userTag: string;
+    walletAddress: string;
+    profileImageUrl: string;
+}
+
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
     | { type: 'GET_COMMENTS'; gameAddress: string }
@@ -43,7 +51,11 @@ export type BackgroundMessage =
     | { type: 'WALLET_CONNECT' }
     | { type: 'WALLET_GET_ACCOUNT' }
     | { type: 'MEMEX_LOGIN' }
-    | { type: 'NAVIGATE_TO_URL'; url: string };
+    | { type: 'NAVIGATE_TO_URL'; url: string }
+    | { type: 'FETCH_MEMEX_PROFILE_IMAGE'; username: string; userTag: string }
+    | { type: 'LOG_IN'; data: LogInRequest }
+    | { type: 'LOGOUT' }
+    | { type: 'WALLET_DISCONNECT' };
 
 export type BackgroundResponse<T = any> =
     | { success: true; data: T }
@@ -230,6 +242,37 @@ export const backgroundApi = {
         return sendToBackground<{ success: boolean }>({
             type: 'NAVIGATE_TO_URL',
             url,
+        });
+    },
+
+    // MEMEX 프로필 이미지 URL 가져오기
+    fetchMemexProfileImage: async (username: string, userTag: string) => {
+        return sendToBackground<{ profileImageUrl: string | null }>({
+            type: 'FETCH_MEMEX_PROFILE_IMAGE',
+            username,
+            userTag,
+        });
+    },
+
+    // LogIn 요청 (백엔드에 사용자 등록)
+    logIn: async (data: LogInRequest) => {
+        return sendToBackground<{ success: boolean }>({
+            type: 'LOG_IN',
+            data,
+        });
+    },
+
+    // 로그아웃 (gtm_user_identifier 및 지갑 연결 상태 초기화)
+    logout: async () => {
+        return sendToBackground<{ success: boolean }>({
+            type: 'LOGOUT',
+        });
+    },
+
+    // 지갑 연결 해제 (MetaMask disconnect)
+    walletDisconnect: async () => {
+        return sendToBackground<{ success: boolean }>({
+            type: 'WALLET_DISCONNECT',
         });
     },
 };

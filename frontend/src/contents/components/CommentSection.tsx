@@ -1,516 +1,444 @@
 /**
  * 댓글 섹션 컴포넌트
- *
- * - 컨트랙트 직접 호출로 댓글 작성
- * - cost 입력 UI 추가
- * - 백엔드 API로 댓글 조회
+ * 
+ * 시니어급 기준으로 개선:
+ * - 관심사 분리
+ * - 에러 처리 개선
+ * - 재사용 가능한 로직 추출
  */
 
-import { useAtomValue } from "jotai";
-import { useCallback, useEffect, useState } from "react";
-import type { Address } from "viem";
-import { currentChallengeIdAtom, isGameEndedAtom } from "../atoms/commentAtoms";
-import { tokenContractAtom } from "../atoms/tokenContractAtoms";
-import { useCommentContract } from "../hooks/useCommentContract";
-import { useComments } from "../hooks/useComments";
-import { useWallet } from "../hooks/useWallet";
-import { logger } from "../lib/injected/logger";
-import { ERROR_CODES } from "../lib/injectedApi";
-import { formatAddress, formatRelativeTime } from "../utils/messageFormatter";
-import "./CommentSection.css";
-import { NoGameSection } from "./NoGameSection";
+import { useCallback, useEffect, useState } from 'react';
+import { formatUnits, type Address } from 'viem';
+import { useReadContract } from 'wagmi';
+import { useComments } from '../hooks/useComments';
+import { useWallet } from '../hooks/useWallet';
+import { erc20ABI } from '../lib/contract/abis/erc20';
+import { logger } from '../lib/injected/logger';
+import { ERROR_CODES, injectedApi } from '../lib/injectedApi';
+import { createCommentSignatureMessage, formatAddress, formatRelativeTime } from '../utils/messageFormatter';
+import './CommentSection.css';
 
 /**
  * 지갑 연결 UI 컴포넌트
  */
 function WalletConnectionUI({
-  isConnected,
-  address,
-  isLoading,
-  error,
-  onConnect,
-  onDisconnect,
+    isConnected,
+    address,
+    isLoading,
+    error,
+    onConnect,
+    onDisconnect,
 }: {
-  isConnected: boolean;
-  address: string | null;
-  isLoading: boolean;
-  error: string | null;
-  onConnect: () => Promise<void>;
-  onDisconnect: () => void;
+    isConnected: boolean;
+    address: string | null;
+    isLoading: boolean;
+    error: string | null;
+    onConnect: () => Promise<void>;
+    onDisconnect: () => void;
 }) {
-  if (isLoading) {
-    return <div className="squid-wallet-notice">CONNECTING WALLET...</div>;
-  }
+    if (isLoading) {
+        return <div className="squid-wallet-notice">CONNECTING WALLET...</div>;
+    }
 
-  if (!isConnected) {
+    if (!isConnected) {
+        return (
+            <div className="squid-wallet-buttons">
+                <button
+                    type="button"
+                    onClick={onConnect}
+                    className="squid-wallet-button"
+                    disabled={isLoading}
+                >
+                    🔗 CONNECT WALLET
+                </button>
+                {error && (
+                    <div className="squid-tx-error" style={{ marginTop: '8px' }}>
+                        {error}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
-      <div className="squid-wallet-buttons">
-        <button
-          type="button"
-          onClick={onConnect}
-          className="squid-wallet-button"
-          disabled={isLoading}
-        >
-          CONNECT WALLET
-        </button>
-        {error && (
-          <div className="squid-tx-error" style={{ marginTop: "8px" }}>
-            {error}
-          </div>
-        )}
-      </div>
+        <div className="squid-wallet-connected">
+            <div className="squid-wallet-notice">
+                ✅ CONNECTED: {formatAddress(address || '')}
+            </div>
+            <button
+                type="button"
+                onClick={onDisconnect}
+                className="squid-wallet-button"
+                style={{ fontSize: '8px', padding: '4px 8px' }}
+            >
+                DISCONNECT
+            </button>
+        </div>
     );
-  }
-
-  return (
-    <div className="squid-wallet-connected">
-      <div className="squid-wallet-notice">
-        CONNECTED: {formatAddress(address || "")}
-      </div>
-      <button
-        type="button"
-        onClick={onDisconnect}
-        className="squid-wallet-button"
-        style={{ fontSize: "8px", padding: "4px 8px" }}
-      >
-        DISCONNECT
-      </button>
-    </div>
-  );
 }
 
 /**
- * 토큰 잔액 표시 컴포넌트
+ * 토큰 잔액 조회 컴포넌트
  */
-function TokenBalanceDisplay({
-  balance,
-  isConnected,
-  tokenSymbol,
-}: {
-  balance: string | null;
-  isConnected: boolean;
-  tokenSymbol?: string | null;
-}) {
-  if (!isConnected || balance === null) return null;
+function TokenBalanceChecker() {
+    const [inputAddress, setInputAddress] = useState<string>('');
+    const [queryAddress, setQueryAddress] = useState<Address | null>(null);
+    const [decimals, setDecimals] = useState<number>(18);
 
-  return (
-    <div
-      style={{
-        padding: "8px 12px",
-        backgroundColor: "#1a2a3a",
-        borderRadius: "4px",
-        marginBottom: "8px",
-        fontSize: "12px",
-        color: "#4a9eff",
-      }}
-    >
-      보유량: {balance}{" "}
-      {tokenSymbol ? `$${tokenSymbol.toUpperCase()}` : "TOKEN"}
-    </div>
-  );
+    const contractAddress = '0x0000000000000000000000000000000000000000';
+    const hasContractAddress = Boolean(contractAddress);
+    const hasQueryAddress = Boolean(queryAddress);
+
+    // decimals 조회 (컨트랙트 주소만 있으면 조회 가능)
+    const { data: decimalsData } = useReadContract({
+        address: contractAddress,
+        abi: erc20ABI,
+        functionName: 'decimals',
+        query: {
+            enabled: hasContractAddress,
+        },
+    });
+
+    // balanceOf 조회 (컨트랙트 주소와 조회할 주소가 모두 있어야 함)
+    // args가 없으면 쿼리를 비활성화하여 에러 방지
+    const balanceQueryEnabled = hasContractAddress && hasQueryAddress && queryAddress !== null;
+
+    const {
+        data: balanceData,
+        isLoading: isBalanceLoading,
+        error: balanceError,
+        refetch: refetchBalance,
+    } = useReadContract({
+        address: contractAddress,
+        abi: erc20ABI,
+        functionName: 'balanceOf',
+        ...(queryAddress && { args: [queryAddress] }),
+        query: {
+            enabled: balanceQueryEnabled,
+        },
+    });
+
+    // decimals 업데이트
+    useEffect(() => {
+        if (decimalsData !== undefined && typeof decimalsData === 'number') {
+            setDecimals(decimalsData);
+        }
+    }, [decimalsData]);
+
+    const handleCheckBalance = useCallback(() => {
+        if (!inputAddress.trim()) {
+            alert('주소를 입력해주세요.');
+            return;
+        }
+
+        // 주소 형식 검증
+        if (!/^0x[a-fA-F0-9]{40}$/.test(inputAddress.trim())) {
+            alert('올바른 이더리움 주소 형식이 아닙니다.');
+            return;
+        }
+
+        setQueryAddress(inputAddress.trim() as Address);
+    }, [inputAddress]);
+
+    const handleUseContractAddress = useCallback(() => {
+
+    }, []);
+
+    const balance = balanceData && typeof balanceData === 'bigint'
+        ? formatUnits(balanceData, decimals)
+        : null;
+
+    return (
+        <div className="squid-token-balance-checker" style={{ marginTop: '12px', padding: '12px', border: '1px solid #333', borderRadius: '4px' }}>
+            <div style={{ fontSize: '10px', marginBottom: '8px', fontWeight: 'bold' }}>
+                💰 TOKEN BALANCE CHECKER
+            </div>
+
+            {/* {tokenContract ? (
+                <div style={{ fontSize: '9px', marginBottom: '8px', color: '#888' }}>
+                    Contract: {formatAddress(tokenContract.contractAddress)}
+                </div>
+            ) : (
+                <div style={{ fontSize: '9px', marginBottom: '8px', color: '#ff6b6b' }}>
+                    ⚠️ 토큰 컨트랙트 주소를 찾을 수 없습니다
+                </div>
+            )} */}
+
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                <input
+                    type="text"
+                    value={inputAddress}
+                    onChange={(e) => setInputAddress(e.target.value)}
+                    placeholder="0x..."
+                    style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        fontSize: '10px',
+                        backgroundColor: '#1a1a1a',
+                        border: '1px solid #333',
+                        borderRadius: '2px',
+                        color: '#fff',
+                    }}
+                    onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                            handleCheckBalance();
+                        }
+                    }}
+                />
+                {/* <button
+                    type="button"
+                    onClick={handleCheckBalance}
+                    disabled={!tokenContract || isBalanceLoading}
+                    className="squid-wallet-button"
+                    style={{ fontSize: '10px', padding: '6px 12px' }}
+                >
+                    {isBalanceLoading ? '⏳' : '조회'}
+                </button> */}
+            </div>
+
+            {/* {tokenContract && (
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                    <button
+                        type="button"
+                        onClick={handleUseContractAddress}
+                        className="squid-wallet-button"
+                        style={{ fontSize: '9px', padding: '4px 8px', flex: 1 }}
+                    >
+                        컨트랙트 주소 사용
+                    </button>
+                </div>
+            )} */}
+
+            {balanceError && (
+                <div className="squid-tx-error" style={{ marginTop: '8px', fontSize: '9px' }}>
+                    {balanceError.message || '잔액 조회 실패'}
+                </div>
+            )}
+
+            {balance !== null && !isBalanceLoading && (
+                <div style={{ marginTop: '8px', fontSize: '11px', color: '#4ade80', fontWeight: 'bold' }}>
+                    ✅ Balance: {parseFloat(balance).toLocaleString()} tokens
+                </div>
+            )}
+
+            {queryAddress && (
+                <div style={{ marginTop: '4px', fontSize: '9px', color: '#888' }}>
+                    Address: {formatAddress(queryAddress)}
+                </div>
+            )}
+        </div>
+    );
 }
 
 /**
  * 댓글 폼 컴포넌트
  */
 function CommentForm({
-  value,
-  onChange,
-  cost,
-  tokenBalance,
-  onSubmit,
-  onApprove,
-  isSubmitting,
-  isApproving,
-  isConnected,
-  hasAllowance,
-  disabled,
-  tokenSymbol,
+    value,
+    onChange,
+    onSubmit,
+    isSubmitting,
+    isSigning,
+    isConnected,
+    disabled,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  cost: string | null;
-  tokenBalance: string | null;
-  onSubmit: () => Promise<void>;
-  onApprove: () => Promise<void>;
-  isSubmitting: boolean;
-  isApproving: boolean;
-  isConnected: boolean;
-  hasAllowance: boolean | null;
-  disabled?: boolean;
-  tokenSymbol?: string | null;
+    value: string;
+    onChange: (value: string) => void;
+    onSubmit: () => Promise<void>;
+    isSubmitting: boolean;
+    isSigning: boolean;
+    isConnected: boolean;
+    disabled?: boolean;
 }) {
-  const getSubmitButtonText = () => {
-    if (!isConnected) return "CONNECT WALLET FIRST";
-    if (isSubmitting) return "SUBMITTING...";
-    const symbol = tokenSymbol ? tokenSymbol.toUpperCase() : "TOKEN";
-    if (cost) return `SUBMIT (${cost} ${symbol})`;
-    return "SUBMIT";
-  };
+    const getButtonText = () => {
+        if (!isConnected) return 'CONNECT WALLET FIRST';
+        if (isSigning) return '✍️ SIGNING...';
+        if (isSubmitting) return 'SUBMITTING...';
+        return 'SUBMIT';
+    };
 
-  const needsApproval = isConnected && hasAllowance === false;
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-      className="squid-comment-form"
-    >
-      {/* 토큰 잔액 표시 */}
-      <TokenBalanceDisplay
-        balance={tokenBalance}
-        isConnected={isConnected}
-        tokenSymbol={tokenSymbol}
-      />
-
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="TYPE YOUR COMMENT..."
-        className="squid-comment-input"
-        rows={3}
-        disabled={disabled || isSubmitting || isApproving}
-      />
-      {cost && (
-        <div style={{ fontSize: "11px", color: "#888", marginTop: "4px" }}>
-          1회 비용: {cost} {tokenSymbol ? tokenSymbol.toUpperCase() : "TOKEN"}
-        </div>
-      )}
-
-      {/* Approve 버튼 (allowance 부족 시) */}
-      {needsApproval && (
-        <button
-          type="button"
-          onClick={onApprove}
-          className="squid-comment-submit"
-          disabled={isApproving || disabled}
-          style={{ marginTop: "8px", backgroundColor: "#f0ad4e" }}
-        >
-          {isApproving ? "APPROVING..." : "APPROVE TOKEN"}
-        </button>
-      )}
-
-      {/* Submit 버튼 */}
-      <button
-        type="submit"
-        className="squid-comment-submit"
-        disabled={
-          !value.trim() ||
-          isSubmitting ||
-          !isConnected ||
-          needsApproval ||
-          disabled
-        }
-        style={{ marginTop: "8px" }}
-      >
-        {getSubmitButtonText()}
-      </button>
-    </form>
-  );
+    return (
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="squid-comment-form">
+            <textarea
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="TYPE YOUR COMMENT..."
+                className="squid-comment-input"
+                rows={3}
+                disabled={disabled || isSubmitting || isSigning}
+            />
+            <button
+                type="submit"
+                className="squid-comment-submit"
+                disabled={!value.trim() || isSubmitting || isSigning || !isConnected || disabled}
+            >
+                {getButtonText()}
+            </button>
+        </form>
+    );
 }
 
 /**
  * 댓글 목록 컴포넌트
  */
 function CommentList({
-  comments,
-  isLoading,
+    comments,
+    isLoading,
 }: {
-  comments: Array<{
-    id: number;
-    commentor: string;
-    message: string;
-    createdAt: string;
-  }>;
-  isLoading: boolean;
+    comments: Array<{ id: string; content: string; player_address: string; created_at: string }>;
+    isLoading: boolean;
 }) {
-  if (isLoading) {
-    return <div className="squid-comment-loading">LOADING...</div>;
-  }
+    if (isLoading) {
+        return <div className="squid-comment-loading">LOADING...</div>;
+    }
 
-  if (comments.length === 0) {
+    if (comments.length === 0) {
+        return <div className="squid-comment-empty">NO COMMENTS YET. BE THE FIRST!</div>;
+    }
+
     return (
-      <div className="squid-comment-empty">NO COMMENTS YET. BE THE FIRST!</div>
+        <>
+            {comments.map((comment) => (
+                <div key={comment.id} className="squid-comment-item">
+                    <div className="squid-comment-content">{comment.content}</div>
+                    <div className="squid-comment-meta">
+                        <span className="squid-comment-address">
+                            {formatAddress(comment.player_address)}
+                        </span>
+                        <span className="squid-comment-date">
+                            {formatRelativeTime(comment.created_at)}
+                        </span>
+                    </div>
+                </div>
+            ))}
+        </>
     );
-  }
-
-  return (
-    <>
-      {comments.map((comment) => (
-        <div key={comment.id} className="squid-comment-item">
-          <div className="squid-comment-content">{comment.message}</div>
-          <div className="squid-comment-meta">
-            <span className="squid-comment-address">
-              {formatAddress(comment.commentor)}
-            </span>
-            <span className="squid-comment-date">
-              {formatRelativeTime(comment.createdAt)}
-            </span>
-          </div>
-        </div>
-      ))}
-    </>
-  );
 }
+
 
 /**
  * 댓글 섹션 메인 컴포넌트
  */
 export function CommentSection() {
-  logger.debug("CommentSection 렌더링", {
-    timestamp: new Date().toISOString(),
-    location: window.location.href,
-  });
+    logger.debug('CommentSection 렌더링', {
+        timestamp: new Date().toISOString(),
+        location: window.location.href,
+    });
 
-  // gameAddress = currentChallengeId (null이면 게임 없음)
-  const gameAddress = useAtomValue(currentChallengeIdAtom);
-  // 게임 종료 여부 (blockTimestamp >= endTime 기준)
-  const isGameEnded = useAtomValue(isGameEndedAtom);
-  // 토큰 정보
-  const tokenContract = useAtomValue(tokenContractAtom);
+    const { comments, isLoading, createComment, isSubmitting } = useComments();
+    const {
+        isConnected,
+        address,
+        connect,
+        disconnect,
+        ensureNetwork,
+        isLoading: walletLoading,
+        error: walletError,
+    } = useWallet();
+    const [newComment, setNewComment] = useState('');
+    const [isSigning, setIsSigning] = useState(false);
 
-  // 모든 훅을 조건문 전에 호출 (React hooks 규칙 준수)
-  const { comments, isLoading, refetch } = useComments();
-  const {
-    isConnected,
-    address,
-    connect,
-    disconnect,
-    ensureNetwork,
-    isLoading: walletLoading,
-    error: walletError,
-  } = useWallet();
+    /**
+     * 댓글 제출 핸들러
+     */
+    const handleSubmit = useCallback(async () => {
+        if (!newComment.trim()) {
+            return;
+        }
 
-  // 컨트랙트 훅 (단일 인스턴스로 통합)
-  const {
-    addComment,
-    getGameInfo,
-    checkAllowance,
-    getTokenBalance,
-    approveToken,
-    isSubmitting,
-    isApproving,
-  } = useCommentContract(
-    gameAddress as Address | null,
-    address as Address | null
-  );
+        // 지갑 연결 확인
+        if (!isConnected || !address) {
+            try {
+                await connect();
+            } catch (error) {
+                logger.error('지갑 연결 실패', error);
+                // 에러는 useWallet에서 이미 처리됨
+            }
+            return;
+        }
 
-  const [newComment, setNewComment] = useState("");
-  const [gameCost, setGameCost] = useState<string | null>(null);
-  const [gameCostRaw, setGameCostRaw] = useState<bigint | null>(null);
-  const [hasAllowance, setHasAllowance] = useState<boolean | null>(null);
-  const [tokenBalance, setTokenBalance] = useState<string | null>(null);
-
-  // 게임이 없거나 종료된 경우 NoGameSection 표시
-  if (!gameAddress || isGameEnded) {
-    return <NoGameSection />;
-  }
-
-  // 컴포넌트 마운트 시 cost 조회
-  useEffect(() => {
-    const fetchGameCost = async () => {
-      if (gameAddress) {
         try {
-          const info = await getGameInfo();
-          // raw cost 저장
-          setGameCostRaw(info.cost);
-          // cost를 토큰 단위로 변환 (18 decimals 가정)
-          const costInTokens = Number(info.cost) / 1e18;
-          setGameCost(costInTokens.toString());
+            setIsSigning(true);
+
+            // 네트워크 확인 및 전환 (필요시)
+            await ensureNetwork();
+
+            // 서명할 메시지 생성
+            const messageToSign = createCommentSignatureMessage(newComment.trim(), address);
+
+            // MetaMask에서 서명 요청
+            const signature = await injectedApi.signMessage({
+                message: messageToSign,
+                address,
+            });
+
+            logger.info('서명 완료', { signature: signature.slice(0, 20) + '...' });
+
+            // 서명과 함께 댓글 작성
+            await createComment({
+                player_address: address,
+                content: newComment.trim(),
+                signature,
+                message: messageToSign,
+            });
+
+            setNewComment('');
         } catch (error) {
-          logger.error("게임 정보 조회 실패", error);
+            logger.error('댓글 작성 오류', error);
+
+            // 사용자 거부 에러는 조용히 처리
+            if (error && typeof error === 'object' && 'code' in error) {
+                if (error.code === ERROR_CODES.USER_REJECTED) {
+                    // 사용자가 서명을 거부한 경우 - 조용히 처리
+                    return;
+                }
+                if (error.code === ERROR_CODES.PROVIDER_NOT_AVAILABLE) {
+                    // 네트워크 전환 실패
+                    alert('네트워크 전환이 필요합니다. MetaMask에서 MemeCore 네트워크로 전환해주세요.');
+                    return;
+                }
+            }
+
+            // 다른 에러는 사용자에게 알림
+            const errorMessage =
+                error instanceof Error ? error.message : '알 수 없는 오류';
+            alert(`댓글 작성에 실패했습니다: ${errorMessage}`);
+        } finally {
+            setIsSigning(false);
         }
-      }
-    };
-    fetchGameCost();
-  }, [gameAddress, getGameInfo]);
+    }, [newComment, isConnected, address, connect, createComment]);
 
-  // allowance 확인
-  useEffect(() => {
-    const checkTokenAllowance = async () => {
-      if (gameAddress && address && gameCostRaw !== null) {
-        try {
-          const allowance = await checkAllowance();
-          setHasAllowance(allowance >= gameCostRaw);
-        } catch {
-          // getGameInfo가 먼저 호출되어야 함
-          logger.debug("Allowance 조회 대기 중");
-          setHasAllowance(null);
-        }
-      }
-    };
-    checkTokenAllowance();
-  }, [gameAddress, address, gameCostRaw, checkAllowance]);
+    return (
+        <div className="squid-comment-section" data-testid="squid-comment-section">
+            <div className="squid-comment-header">
+                <h3 className="squid-comment-title">💬 COMMENTS</h3>
+                <span className="squid-comment-count">{comments.length}</span>
+            </div>
 
-  // 토큰 잔액 조회
-  useEffect(() => {
-    const fetchTokenBalance = async () => {
-      if (gameAddress && address) {
-        try {
-          const balance = await getTokenBalance();
-          // 18 decimals 가정
-          const balanceInTokens = Number(balance) / 1e18;
-          setTokenBalance(balanceInTokens.toFixed(2));
-        } catch {
-          logger.debug("토큰 잔액 조회 대기 중");
-          setTokenBalance(null);
-        }
-      }
-    };
-    fetchTokenBalance();
-  }, [gameAddress, address, getTokenBalance]);
+            <div className="squid-wallet-actions">
+                <WalletConnectionUI
+                    isConnected={isConnected}
+                    address={address}
+                    isLoading={walletLoading}
+                    error={walletError}
+                    onConnect={connect}
+                    onDisconnect={disconnect}
+                />
+                <TokenBalanceChecker />
+            </div>
 
-  /**
-   * 토큰 approve 핸들러
-   */
-  const handleApprove = useCallback(async () => {
-    if (!isConnected || !address) {
-      try {
-        await connect();
-      } catch (error) {
-        logger.error("지갑 연결 실패", error);
-      }
-      return;
-    }
+            <CommentForm
+                value={newComment}
+                onChange={setNewComment}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                isSigning={isSigning}
+                isConnected={isConnected}
+            />
 
-    try {
-      await ensureNetwork();
-      logger.info("토큰 approve 시작");
-
-      const txHash = await approveToken();
-      logger.info("토큰 approve 완료", { txHash });
-
-      // approve 성공 후 allowance 다시 확인
-      setHasAllowance(true);
-      alert(`토큰 승인이 완료되었습니다!\n이제 댓글을 작성할 수 있습니다.`);
-    } catch (error) {
-      logger.error("토큰 approve 실패", error);
-
-      if (error && typeof error === "object" && "code" in error) {
-        if ((error as { code: string }).code === ERROR_CODES.USER_REJECTED) {
-          return;
-        }
-      }
-
-      const errorMessage =
-        error instanceof Error ? error.message : "알 수 없는 오류";
-      alert(`토큰 승인에 실패했습니다: ${errorMessage}`);
-    }
-  }, [isConnected, address, connect, ensureNetwork, approveToken]);
-
-  /**
-   * 댓글 제출 핸들러 (컨트랙트 호출)
-   */
-  const handleSubmit = useCallback(async () => {
-    if (!newComment.trim()) {
-      return;
-    }
-
-    // 지갑 연결 확인
-    if (!isConnected || !address) {
-      try {
-        await connect();
-      } catch (error) {
-        logger.error("지갑 연결 실패", error);
-      }
-      return;
-    }
-
-    try {
-      // 네트워크 확인 및 전환 (필요시)
-      await ensureNetwork();
-
-      logger.info("댓글 작성 시작 (컨트랙트 호출)", {
-        gameAddress,
-        message: newComment.trim(),
-      });
-
-      // 컨트랙트 addComment 호출
-      const txHash = await addComment(newComment.trim());
-
-      logger.info("댓글 작성 트랜잭션 전송됨", { txHash });
-
-      // 성공 시 입력 초기화
-      setNewComment("");
-
-      // 잠시 후 댓글 목록 새로고침 (이벤트 리스너가 DB에 저장할 시간)
-      setTimeout(() => {
-        refetch();
-      }, 3000);
-
-      alert(`댓글이 등록되었습니다!\n트랜잭션: ${txHash.slice(0, 10)}...`);
-    } catch (error) {
-      logger.error("댓글 작성 오류", error);
-
-      // 사용자 거부 에러는 조용히 처리
-      if (error && typeof error === "object" && "code" in error) {
-        if ((error as { code: string }).code === ERROR_CODES.USER_REJECTED) {
-          return;
-        }
-        if (
-          (error as { code: string }).code ===
-          ERROR_CODES.PROVIDER_NOT_AVAILABLE
-        ) {
-          alert(
-            "네트워크 전환이 필요합니다. MetaMask에서 MemeCore 네트워크로 전환해주세요."
-          );
-          return;
-        }
-      }
-
-      // 다른 에러는 사용자에게 알림
-      const errorMessage =
-        error instanceof Error ? error.message : "알 수 없는 오류";
-      alert(`댓글 작성에 실패했습니다: ${errorMessage}`);
-    }
-  }, [
-    newComment,
-    isConnected,
-    address,
-    connect,
-    ensureNetwork,
-    gameAddress,
-    addComment,
-    refetch,
-  ]);
-
-  return (
-    <div className="squid-comment-section" data-testid="squid-comment-section">
-      <div className="squid-comment-header">
-        <h3 className="squid-comment-title">COMMENTS</h3>
-        <span className="squid-comment-count">{comments.length}</span>
-      </div>
-
-      <div className="squid-wallet-actions">
-        <WalletConnectionUI
-          isConnected={isConnected}
-          address={address}
-          isLoading={walletLoading}
-          error={walletError}
-          onConnect={connect}
-          onDisconnect={disconnect}
-        />
-      </div>
-
-      <CommentForm
-        value={newComment}
-        onChange={setNewComment}
-        cost={gameCost}
-        tokenBalance={tokenBalance}
-        onSubmit={handleSubmit}
-        onApprove={handleApprove}
-        isSubmitting={isSubmitting}
-        isApproving={isApproving}
-        isConnected={isConnected}
-        hasAllowance={hasAllowance}
-        tokenSymbol={tokenContract?.symbol}
-      />
-
-      <div className="squid-comments-list">
-        <CommentList comments={comments} isLoading={isLoading} />
-      </div>
-    </div>
-  );
+            <div className="squid-comments-list">
+                <CommentList comments={comments} isLoading={isLoading} />
+            </div>
+        </div>
+    );
 }

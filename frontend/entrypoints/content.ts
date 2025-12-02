@@ -596,6 +596,38 @@ export default defineContentScript({
                         return true;
                     }
 
+                    if (message.type === 'WALLET_DISCONNECT') {
+                        console.log('🔐 [Content] WALLET_DISCONNECT 요청 수신');
+
+                        // 1. localStorage에서 appkit 관련 데이터 삭제
+                        try {
+                            window.localStorage.removeItem('@appkit/connection_status');
+                            window.localStorage.removeItem('@appkit/identity_cache');
+                            window.localStorage.removeItem('@appkit/connected_connector');
+                            window.localStorage.removeItem('@appkit/active_caip_network_id');
+                            console.log('✅ [Content] localStorage appkit 데이터 삭제 완료');
+                        } catch (e) {
+                            console.error('❌ [Content] localStorage 삭제 오류:', e);
+                        }
+
+                        // 2. MetaMask wallet_revokePermissions 호출
+                        import('@/contents/lib/injectedApi').then(async ({ injectedApi }) => {
+                            try {
+                                await injectedApi.revokePermissions();
+                                console.log('✅ [Content] MetaMask 권한 해제 완료');
+                                sendResponse({ success: true });
+                            } catch (error: any) {
+                                console.warn('⚠️ [Content] MetaMask 권한 해제 실패 (무시):', error.message);
+                                // 권한 해제 실패해도 localStorage는 삭제되었으므로 성공으로 처리
+                                sendResponse({ success: true });
+                            }
+                        }).catch((error) => {
+                            console.error('❌ [Content] injectedApi import 실패:', error);
+                            sendResponse({ success: true }); // localStorage는 삭제되었으므로 성공
+                        });
+                        return true; // 비동기 응답
+                    }
+
                     return false;
                 }
             );

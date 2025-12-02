@@ -21,7 +21,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps) {
-  const { username, userTag } = useMemexLogin();
+  const { username, userTag, profileImageUrl, logout } = useMemexLogin();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const handleProfileClick = async () => {
@@ -56,7 +56,7 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
         <div className="user-info">
           <span className="user-name">{username || "User"}</span>
           <img
-            src={mockUserData.profileImage}
+            src={profileImageUrl || mockUserData.profileImage}
             alt="Profile"
             className="profile-image"
           />
@@ -172,6 +172,9 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
         <span className="wallet-address">
           {shortenAddress(walletAddress || mockUserData.walletAddress)}
         </span>
+        <button className="logout-btn" onClick={logout}>
+          Logout
+        </button>
       </footer>
     </div>
   );

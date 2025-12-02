@@ -43,3 +43,8 @@ export const memexUsernameAtom = atom<string | null>(null);
  * MEMEX 사용자 태그 Atom
  */
 export const memexUserTagAtom = atom<string | null>(null);
+
+/**
+ * MEMEX 프로필 이미지 URL Atom
+ */
+export const memexProfileImageAtom = atom<string | null>(null);

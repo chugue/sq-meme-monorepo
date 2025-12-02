@@ -37,21 +37,21 @@ async function main() {
 
   console.log("Deploying contracts with the account:", account.address);
 
-  // Get GameFactory artifact
-  const artifact = await hre.artifacts.readArtifact("GameFactory");
+  // Get CommentGameV2 artifact
+  const artifact = await hre.artifacts.readArtifact("CommentGameV2");
 
-  // Deploy GameFactory
+  // Deploy CommentGameV2 with feeCollector set to deployer address
   const hash = await walletClient.deployContract({
     abi: artifact.abi,
     bytecode: artifact.bytecode as `0x${string}`,
-    args: [account.address],
+    args: [account.address], // feeCollector address
     gas: 5000000n,
   });
 
   console.log("Transaction hash:", hash);
 
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  console.log("GameFactory deployed to:", receipt.contractAddress);
+  console.log("CommentGameV2 deployed to:", receipt.contractAddress);
 }
 
 main().catch((error) => {
