@@ -7,15 +7,15 @@
  * 흐름: sidepanel -> background -> content script -> injected script -> MetaMask
  */
 
-import { useAtom } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect } from 'react';
 import { backgroundApi } from '../../contents/lib/backgroundApi';
 import {
-    isWalletConnectedAtom,
-    isWalletLoadingAtom,
-    walletAddressAtom,
-    walletErrorAtom,
-} from '../atoms/walletAtoms';
+    sessionAtom,
+    setErrorAtom,
+    setLoadingAtom,
+    setWalletConnectedAtom,
+} from '../atoms/sessionAtoms';
 
 export interface SidepanelWalletState {
     isConnected: boolean;
@@ -31,30 +31,30 @@ export interface UseSidepanelWalletReturn extends SidepanelWalletState {
 }
 
 export function useSidepanelWallet(): UseSidepanelWalletReturn {
-    const [isConnected, setIsConnected] = useAtom(isWalletConnectedAtom);
-    const [address, setAddress] = useAtom(walletAddressAtom);
-    const [isLoading, setIsLoading] = useAtom(isWalletLoadingAtom);
-    const [error, setError] = useAtom(walletErrorAtom);
+    const session = useAtomValue(sessionAtom);
+    const setWalletConnected = useSetAtom(setWalletConnectedAtom);
+    const setLoading = useSetAtom(setLoadingAtom);
+    const setError = useSetAtom(setErrorAtom);
+
+    const { isWalletConnected: isConnected, walletAddress: address, isLoading, error } = session;
 
     // 지갑 상태 확인 함수
     const checkAccount = useCallback(async () => {
         try {
             const result = await backgroundApi.walletGetAccount();
             console.log('🔐 [SidePanel] checkAccount 결과:', result);
-            setIsConnected(result.isConnected);
-            setAddress(result.address);
-            setIsLoading(false);
+            setWalletConnected({ isConnected: result.isConnected, address: result.address });
+            setLoading(false);
             setError(null);
             return result.isConnected;
         } catch (err) {
             console.error('Failed to get wallet account:', err);
-            setIsConnected(false);
-            setAddress(null);
-            setIsLoading(false);
+            setWalletConnected({ isConnected: false, address: null });
+            setLoading(false);
             setError(null); // 초기 로드 에러는 표시하지 않음
             return false;
         }
-    }, [setIsConnected, setAddress, setIsLoading, setError]);
+    }, [setWalletConnected, setLoading, setError]);
 
     // 초기 상태 확인
     useEffect(() => {
@@ -63,7 +63,7 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
 
     const handleConnect = useCallback(async () => {
         console.log('🔐 [SidePanel] handleConnect 시작');
-        setIsLoading(true);
+        setLoading(true);
         setError(null);
 
         try {
@@ -71,24 +71,22 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
             const result = await backgroundApi.walletConnect();
             console.log('🔐 [SidePanel] walletConnect 결과:', result);
 
-            setIsConnected(true);
-            setAddress(result.address);
-            setIsLoading(false);
+            setWalletConnected({ isConnected: true, address: result.address });
+            setLoading(false);
             setError(null);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet';
             console.error('❌ [SidePanel] Wallet connection error:', err);
-            setIsLoading(false);
+            setLoading(false);
             setError(errorMessage);
         }
-    }, [setIsConnected, setAddress, setIsLoading, setError]);
+    }, [setWalletConnected, setLoading, setError]);
 
     const handleDisconnect = useCallback(() => {
-        setIsConnected(false);
-        setAddress(null);
-        setIsLoading(false);
+        setWalletConnected({ isConnected: false, address: null });
+        setLoading(false);
         setError(null);
-    }, [setIsConnected, setAddress, setIsLoading, setError]);
+    }, [setWalletConnected, setLoading, setError]);
 
     return {
         isConnected,

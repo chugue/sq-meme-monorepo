@@ -1,7 +1,7 @@
 import { useAtomValue } from "jotai";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { isMemexLoggingInAtom } from "../atoms/walletAtoms";
+import { isLoggingInAtom } from "../atoms/sessionAtoms";
 
 interface ConnectButtonProps {
   isWalletConnected: boolean;
@@ -14,7 +14,7 @@ export function ConnectButton({
   onConnectWallet,
   onConnectMemex,
 }: ConnectButtonProps) {
-  const isLoggingIn = useAtomValue(isMemexLoggingInAtom);
+  const isLoggingIn = useAtomValue(isLoggingInAtom);
   const [showBounce, setShowBounce] = useState(false);
   const [prevConnected, setPrevConnected] = useState(isWalletConnected);
 

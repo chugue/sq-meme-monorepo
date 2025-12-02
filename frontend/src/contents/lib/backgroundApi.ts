@@ -4,6 +4,10 @@ import type {
   CreateGameRequest,
   JoinRequest,
 } from "../../types/request.types";
+import type { JoinResponse } from "../../types/response.types";
+
+// Re-export types for convenience
+export type { CreateCommentRequest, CreateGameRequest, JoinRequest, JoinResponse };
 
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
@@ -250,7 +254,7 @@ export const backgroundApi = {
 
   // Join 요청 (백엔드에 사용자 등록)
   join: async (data: JoinRequest) => {
-    return sendToBackground<{ success: boolean }>({
+    return sendToBackground<JoinResponse>({
       type: "JOIN",
       data,
     });
