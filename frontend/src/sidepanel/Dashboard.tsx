@@ -70,7 +70,11 @@ export function Dashboard({
           <span className="link-icon">🔗</span>
           <span>MemeX Profile</span>
         </button>
-        <div className="user-info">
+        <div
+          className="user-info"
+          onClick={onNavigateToProfile}
+          style={{ cursor: "pointer" }}
+        >
           <span className="user-name">{username || "User"}</span>
           <img
             src={profileImageUrl || mockUserData.profileImage}

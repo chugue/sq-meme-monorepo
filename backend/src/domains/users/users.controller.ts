@@ -22,7 +22,6 @@ export class UsersController {
     @Post('join')
     @HttpCode(HttpStatus.OK)
     async join(@Body() body: JoinDto) {
-        console.log('🔍 JoinDto received:', JSON.stringify(body, null, 2));
         return this.usersService.join(body);
     }
 

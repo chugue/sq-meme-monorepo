@@ -1,13 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import { ComingSoon } from './ComingSoon';
 import { Dashboard } from './Dashboard';
+import { ProfilePage } from './ProfilePage';
 import { useSidepanelWallet } from './hooks/useSidepanelWallet';
 import { useMemexLogin } from './hooks/useMemexLogin';
+
+type Page = 'dashboard' | 'profile';
 
 export function SidePanelApp() {
     const { isConnected, address, isLoading } = useSidepanelWallet();
     const { isLoggedIn: isMemexLoggedIn, setLoggedIn: setMemexLoggedIn } = useMemexLogin();
+    const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드로 전환
     useEffect(() => {
@@ -30,9 +34,22 @@ export function SidePanelApp() {
         );
     }
 
-    // 지갑 연결 + MEMEX 로그인 완료 시 대시보드
+    // 지갑 연결 + MEMEX 로그인 완료 시 대시보드 또는 프로필
     if (isConnected && isMemexLoggedIn) {
-        return <Dashboard walletAddress={address || undefined} />;
+        if (currentPage === 'profile') {
+            return (
+                <ProfilePage
+                    walletAddress={address || undefined}
+                    onBack={() => setCurrentPage('dashboard')}
+                />
+            );
+        }
+        return (
+            <Dashboard
+                walletAddress={address || undefined}
+                onNavigateToProfile={() => setCurrentPage('profile')}
+            />
+        );
     }
 
     return (
