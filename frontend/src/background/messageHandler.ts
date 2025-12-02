@@ -453,10 +453,14 @@ export function createMessageHandler() {
                 break;
               }
 
-              // Content script로 메시지 전달
-              const response = await tabs.sendMessage(targetTab.id, {
+              // Content script로 메시지 전달 (MEMEX_LOGIN의 경우 triggerLogin 포함)
+              const messageToSend: { type: string; triggerLogin?: boolean } = {
                 type: message.type,
-              });
+              };
+              if (message.type === 'MEMEX_LOGIN') {
+                messageToSend.triggerLogin = (message as any).triggerLogin ?? false;
+              }
+              const response = await tabs.sendMessage(targetTab.id, messageToSend);
 
               result = { success: true, data: response };
             } catch (error: any) {

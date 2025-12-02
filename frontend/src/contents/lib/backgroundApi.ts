@@ -50,7 +50,7 @@ export type BackgroundMessage =
     | { type: 'REGISTER_CLAIM_PRIZE'; gameAddress: string; txHash: string }
     | { type: 'WALLET_CONNECT' }
     | { type: 'WALLET_GET_ACCOUNT' }
-    | { type: 'MEMEX_LOGIN' }
+    | { type: 'MEMEX_LOGIN'; triggerLogin?: boolean }
     | { type: 'NAVIGATE_TO_URL'; url: string }
     | { type: 'FETCH_MEMEX_PROFILE_IMAGE'; username: string; userTag: string }
     | { type: 'LOG_IN'; data: LogInRequest }
@@ -230,10 +230,11 @@ export const backgroundApi = {
         });
     },
 
-    // MEMEX Google 로그인 트리거
-    memexLogin: async () => {
+    // MEMEX 로그인 상태 확인 (triggerLogin: true면 Google 버튼 클릭도 수행)
+    memexLogin: async (triggerLogin: boolean = false) => {
         return sendToBackground<{ success: boolean }>({
             type: 'MEMEX_LOGIN',
+            triggerLogin,
         });
     },
 

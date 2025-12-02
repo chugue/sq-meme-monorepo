@@ -42,8 +42,8 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
     try {
       console.log("🔐 Terms agreed, triggering MEMEX login...");
 
-      // 첫 번째 호출: 로그인 상태 확인 또는 Google 버튼 클릭
-      const result = await backgroundApi.memexLogin() as {
+      // 첫 번째 호출: 로그인 상태 확인 또는 Google 버튼 클릭 (triggerLogin: true)
+      const result = await backgroundApi.memexLogin(true) as {
         success: boolean;
         isLoggedIn?: boolean;
         loginStarted?: boolean;

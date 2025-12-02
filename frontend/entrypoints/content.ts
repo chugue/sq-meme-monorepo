@@ -561,7 +561,8 @@ export default defineContentScript({
                     }
 
                     if (message.type === 'MEMEX_LOGIN') {
-                        console.log('🔐 [Content] MEMEX_LOGIN 요청 수신');
+                        const triggerLogin = (message as any).triggerLogin ?? false;
+                        console.log('🔐 [Content] MEMEX_LOGIN 요청 수신, triggerLogin:', triggerLogin);
 
                         // sessionStorage의 gtm_user_identifier 확인
                         try {
@@ -583,14 +584,20 @@ export default defineContentScript({
                             console.error('❌ [Content] gtm_user_identifier 파싱 오류:', e);
                         }
 
-                        // 로그인 안됨 - Google 버튼 클릭 후 즉시 응답 (폴링은 sidepanel에서)
-                        const googleButton = document.querySelector('button.page_googleButton__XByPk') as HTMLButtonElement;
-                        if (googleButton) {
-                            console.log('✅ [Content] Google 로그인 버튼 발견, 클릭');
-                            googleButton.click();
-                            sendResponse({ success: true, isLoggedIn: false, loginStarted: true });
+                        // 로그인 안됨 - triggerLogin이 true일 때만 Google 버튼 클릭
+                        if (triggerLogin) {
+                            const googleButton = document.querySelector('button.page_googleButton__XByPk') as HTMLButtonElement;
+                            if (googleButton) {
+                                console.log('✅ [Content] Google 로그인 버튼 발견, 클릭');
+                                googleButton.click();
+                                sendResponse({ success: true, isLoggedIn: false, loginStarted: true });
+                            } else {
+                                console.log('🔐 [Content] Google 버튼 없음');
+                                sendResponse({ success: true, isLoggedIn: false, loginStarted: false });
+                            }
                         } else {
-                            console.log('🔐 [Content] Google 버튼 없음, 로그인 상태만 반환');
+                            // triggerLogin이 false면 상태만 반환
+                            console.log('🔐 [Content] 로그인 상태 확인만 (triggerLogin=false)');
                             sendResponse({ success: true, isLoggedIn: false, loginStarted: false });
                         }
                         return true;
