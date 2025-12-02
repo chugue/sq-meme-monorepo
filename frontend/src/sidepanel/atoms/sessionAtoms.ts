@@ -20,6 +20,11 @@ export interface SessionState {
   memexUserTag: string | null;
   memexProfileImage: string | null;
 
+  // MEMEX 프로필 정보 (토큰 관련)
+  memexWalletAddress: string | null;
+  myTokenAddr: string | null;
+  myTokenSymbol: string | null;
+
   // 로딩 상태
   isLoading: boolean;
   isLoggingIn: boolean;
@@ -42,6 +47,9 @@ const initialSessionState: SessionState = {
   memexUsername: null,
   memexUserTag: null,
   memexProfileImage: null,
+  memexWalletAddress: null,
+  myTokenAddr: null,
+  myTokenSymbol: null,
   isLoading: true,
   isLoggingIn: false,
   error: null,
@@ -123,6 +131,30 @@ export const setMemexLoggedInAtom = atom(
   }
 );
 
+// MEMEX 프로필 정보 업데이트 (토큰 관련)
+export const setMemexProfileInfoAtom = atom(
+  null,
+  (
+    get,
+    set,
+    payload: {
+      profileImage?: string | null;
+      memexWalletAddress?: string | null;
+      myTokenAddr?: string | null;
+      myTokenSymbol?: string | null;
+    }
+  ) => {
+    const current = get(sessionAtom);
+    set(sessionAtom, {
+      ...current,
+      memexProfileImage: payload.profileImage ?? current.memexProfileImage,
+      memexWalletAddress: payload.memexWalletAddress ?? current.memexWalletAddress,
+      myTokenAddr: payload.myTokenAddr ?? current.myTokenAddr,
+      myTokenSymbol: payload.myTokenSymbol ?? current.myTokenSymbol,
+    });
+  }
+);
+
 // User 정보 업데이트 (Join 응답에서)
 export const setUserAtom = atom(null, (get, set, user: User | null) => {
   const current = get(sessionAtom);
@@ -154,5 +186,8 @@ export const setErrorAtom = atom(null, (get, set, error: string | null) => {
 
 // 전체 세션 초기화 (로그아웃)
 export const resetSessionAtom = atom(null, (_get, set) => {
-  set(sessionAtom, initialSessionState);
+  set(sessionAtom, {
+    ...initialSessionState,
+    isLoading: false, // 로그아웃 후에는 로딩 상태 false
+  });
 });

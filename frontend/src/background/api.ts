@@ -12,7 +12,7 @@ export async function apiCall<T>(
     };
 
     try {
-        console.log('🌐 API 호출:', url);
+        console.log('🌐 API 호출:', url, 'body:', options.body);
         const response = await fetch(url, {
             ...options,
             headers: {

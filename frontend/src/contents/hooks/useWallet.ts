@@ -1,6 +1,6 @@
 /**
  * 지갑 연결 및 상태 관리 훅
- * 
+ *
  * 시니어급 기준으로 개선:
  * - 상태 관리 개선
  * - 에러 처리 강화
@@ -34,6 +34,10 @@ export interface UseWalletReturn extends WalletState {
     ensureNetwork: () => Promise<void>;
 }
 
+// 모듈 레벨 초기화 플래그 (여러 컴포넌트에서 중복 초기화 방지)
+let isGlobalInitialized = false;
+let globalInitPromise: Promise<{ accounts: string[]; chainId: string } | null> | null = null;
+
 /**
  * 지갑 연결 및 상태 관리 훅
  */
@@ -42,12 +46,11 @@ export function useWallet(): UseWalletReturn {
         isConnected: false,
         address: null,
         chainId: null,
-        isLoading: true,
+        isLoading: !isGlobalInitialized, // 이미 초기화됐으면 로딩 false
         error: null,
         errorCode: null,
     });
 
-    const isInitializedRef = useRef(false);
     const abortControllerRef = useRef<AbortController | null>(null);
 
     /**
@@ -74,39 +77,71 @@ export function useWallet(): UseWalletReturn {
     );
 
     /**
-     * 지갑 상태 초기화
+     * 지갑 상태 초기화 (모듈 레벨에서 중복 방지)
      */
     const initializeWallet = useCallback(async () => {
-        if (isInitializedRef.current) {
+        // 이미 초기화 중이면 기존 Promise 재사용
+        if (globalInitPromise) {
+            try {
+                const result = await globalInitPromise;
+                if (result) {
+                    updateState({
+                        isConnected: result.accounts.length > 0,
+                        address: result.accounts[0] || null,
+                        chainId: result.chainId || null,
+                        isLoading: false,
+                        error: null,
+                        errorCode: null,
+                    });
+                }
+            } catch {
+                // 에러는 첫 번째 호출에서 처리됨
+            }
             return;
         }
 
-        try {
-            updateState({ isLoading: true, error: null, errorCode: null });
+        // 이미 초기화됐으면 스킵
+        if (isGlobalInitialized) {
+            return;
+        }
 
-            // Injected script 준비 대기
-            const isReady = await waitForInjectedScript(3000);
-            if (!isReady) {
-                setError(new Error('Injected script가 준비되지 않았습니다'), ERROR_CODES.SCRIPT_NOT_READY);
-                return;
+        // 초기화 Promise 생성 및 저장
+        globalInitPromise = (async () => {
+            try {
+                updateState({ isLoading: true, error: null, errorCode: null });
+
+                // Injected script 준비 대기
+                const isReady = await waitForInjectedScript(3000);
+                if (!isReady) {
+                    throw new Error('Injected script가 준비되지 않았습니다');
+                }
+
+                // 현재 연결 상태 확인
+                const [accounts, chainId] = await Promise.all([
+                    injectedApi.getAccounts(),
+                    injectedApi.getChainId(),
+                ]);
+
+                isGlobalInitialized = true;
+                return { accounts, chainId };
+            } catch (error) {
+                globalInitPromise = null; // 실패 시 재시도 가능하도록
+                throw error;
             }
+        })();
 
-            // 현재 연결 상태 확인
-            const [accounts, chainId] = await Promise.all([
-                injectedApi.getAccounts(),
-                injectedApi.getChainId(),
-            ]);
-
-            updateState({
-                isConnected: accounts.length > 0,
-                address: accounts[0] || null,
-                chainId: chainId || null,
-                isLoading: false,
-                error: null,
-                errorCode: null,
-            });
-
-            isInitializedRef.current = true;
+        try {
+            const result = await globalInitPromise;
+            if (result) {
+                updateState({
+                    isConnected: result.accounts.length > 0,
+                    address: result.accounts[0] || null,
+                    chainId: result.chainId || null,
+                    isLoading: false,
+                    error: null,
+                    errorCode: null,
+                });
+            }
         } catch (error) {
             setError(error, error instanceof Error && 'code' in error ? String(error.code) : ERROR_CODES.UNKNOWN_ERROR);
         }

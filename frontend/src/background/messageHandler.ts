@@ -313,16 +313,43 @@ export function createMessageHandler() {
 
           case "JOIN": {
             const { data } = message as { type: string; data: JoinRequest };
-            console.log(`🚀 JOIN 요청 DTO:`, { username: data.username });
+            console.log(`🚀 JOIN 요청 DTO:`, { username: data.username, walletAddress: data.walletAddress });
+
+            // 필수 필드 검증 (walletAddress는 백엔드에서 필수)
+            if (!data) {
+              console.error("❌ JOIN 오류: walletAddress가 없습니다");
+              result = {
+                success: false,
+                error: "walletAddress is required",
+              };
+              break;
+            }
+
             try {
-              const response = await apiCall<{ success: boolean }>("/v1/users/join", {
+              // 프론트엔드 필드명을 백엔드 JoinDto 필드명으로 매핑
+              const joinPayload = {
+                walletAddress: data.walletAddress,
+                userName: data.username,
+                userTag: data.userTag,
+                profileImage: data.profileImageUrl,
+                memexLink: data.memeXLink,
+                memexWalletAddress: data.memexWalletAddress,
+                myTokenAddr: data.myTokenAddr,
+                myTokenSymbol: data.myTokenSymbol,
+              };
+              const bodyString = JSON.stringify(joinPayload);
+              console.log(`🚀 JOIN 요청 Payload:`, joinPayload);
+              console.log(`🚀 JOIN 요청 Body String:`, bodyString);
+              // Backend returns Result<{ user, isNew }> = { success: true, data: { user, isNew } }
+              const response = await apiCall<{ success: boolean; data: { user: any; isNew: boolean } }>("/v1/users/join", {
                 method: "POST",
-                body: JSON.stringify(data),
+                body: bodyString,
               });
-              result = { success: true, data: response };
+              // Unwrap Result and return { user, isNew } as JoinResponse
+              console.log(`✅ JOIN 응답:`, response);
+              result = { success: true, data: { user: response.data?.user, isNew: response.data?.isNew } };
             } catch (error: any) {
               console.error("❌ JOIN 오류:", error);
-              // 백엔드 미구현 상태에서는 에러가 발생할 수 있으므로 로그만 남김
               result = {
                 success: false,
                 error: error instanceof Error ? error.message : "Join 요청 실패",

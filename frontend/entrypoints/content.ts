@@ -616,8 +616,48 @@ export default defineContentScript({
                                 let memexWalletAddress: string | null = null;
 
                                 // 현재 페이지가 해당 유저의 프로필 페이지인지 확인
+                                const expectedPath = `/profile/${username}/${userTag}`;
                                 const currentUrl = window.location.href;
-                                const isTargetProfile = currentUrl.includes(`/profile/${username}/${userTag}`);
+                                const isTargetProfile = currentUrl.includes(expectedPath);
+
+                                // 올바른 프로필 페이지가 아니면 대기 (최대 5초)
+                                if (!isTargetProfile) {
+                                    console.log('🖼️ [Content] 올바른 프로필 페이지 대기 중...', { expectedPath, currentUrl });
+
+                                    const waitForCorrectUrl = (): Promise<boolean> => {
+                                        return new Promise((resolve) => {
+                                            const maxWait = 5000;
+                                            const checkInterval = 200;
+                                            let elapsed = 0;
+
+                                            const check = () => {
+                                                if (window.location.href.includes(expectedPath)) {
+                                                    console.log('✅ [Content] 올바른 프로필 페이지 도달:', window.location.href);
+                                                    resolve(true);
+                                                    return;
+                                                }
+                                                elapsed += checkInterval;
+                                                if (elapsed >= maxWait) {
+                                                    console.warn('⚠️ [Content] 프로필 페이지 대기 타임아웃');
+                                                    resolve(false);
+                                                    return;
+                                                }
+                                                setTimeout(check, checkInterval);
+                                            };
+                                            check();
+                                        });
+                                    };
+
+                                    const urlMatched = await waitForCorrectUrl();
+                                    if (!urlMatched) {
+                                        console.warn('⚠️ [Content] 프로필 페이지가 올바르지 않음, 빈 데이터 반환');
+                                        sendResponse({ profileImageUrl: null, tokenAddr: null, tokenSymbol: null, memexWalletAddress: null });
+                                        return;
+                                    }
+
+                                    // URL 일치 후 DOM 렌더링 대기
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                }
 
                                 // 방법 1: injectedApi를 통해 __next_f 데이터 가져오기
                                 // Content script는 isolated world에서 실행되므로 웹 페이지의 self.__next_f에 직접 접근할 수 없음

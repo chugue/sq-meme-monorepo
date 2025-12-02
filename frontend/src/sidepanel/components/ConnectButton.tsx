@@ -1,5 +1,5 @@
-import { useAtomValue } from "jotai";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { isLoggingInAtom } from "../atoms/sessionAtoms";
 
@@ -90,7 +90,7 @@ export function ConnectButton({
               }
               transition={{ duration: 0.6, repeat: showBounce ? 2 : 0 }}
             >
-              CONNECT MEMEX
+              MEMEX LOGIN
             </motion.span>
             <span className="btn-glow"></span>
           </motion.button>

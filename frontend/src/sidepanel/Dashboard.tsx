@@ -68,7 +68,7 @@ export function Dashboard({
       <header className="dashboard-header">
         <button className="profile-link-btn" onClick={handleProfileClick}>
           <span className="link-icon">🔗</span>
-          <span>MemeX Page</span>
+          <span>MemeX Profile</span>
         </button>
         <div className="user-info">
           <span className="user-name">{username || "User"}</span>

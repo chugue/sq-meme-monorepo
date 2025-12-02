@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { WalletAddress } from 'src/common/decorators';
-import { UsersService } from './users.service';
 import { JoinDto } from './dto/join.dto';
+import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @Controller('/v1/users')
@@ -22,6 +22,8 @@ export class UsersController {
     @Post('join')
     @HttpCode(HttpStatus.OK)
     async join(@Body() body: JoinDto) {
+        console.log('🔍 JoinDto received:', JSON.stringify(body, null, 2));
+        console.log('🔍 walletAddress:', body.walletAddress);
         return this.usersService.join(body);
     }
 

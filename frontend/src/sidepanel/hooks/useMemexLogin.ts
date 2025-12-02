@@ -5,13 +5,14 @@
  */
 
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { backgroundApi } from '../../contents/lib/backgroundApi';
 import {
     resetSessionAtom,
     sessionAtom,
     setLoggingInAtom,
     setMemexLoggedInAtom,
+    setMemexProfileInfoAtom,
     setUserAtom,
 } from '../atoms/sessionAtoms';
 
@@ -30,9 +31,13 @@ export interface UseMemexLoginReturn {
 export function useMemexLogin(): UseMemexLoginReturn {
     const session = useAtomValue(sessionAtom);
     const setMemexLoggedIn = useSetAtom(setMemexLoggedInAtom);
+    const setMemexProfileInfo = useSetAtom(setMemexProfileInfoAtom);
     const setLoggingIn = useSetAtom(setLoggingInAtom);
     const setUser = useSetAtom(setUserAtom);
     const resetSession = useSetAtom(resetSessionAtom);
+
+    // Join 요청 중복 방지
+    const joinRequestedRef = useRef(false);
 
     const {
         isMemexLoggedIn: isLoggedIn,
@@ -41,12 +46,78 @@ export function useMemexLogin(): UseMemexLoginReturn {
         memexUserTag: userTag,
         memexProfileImage: profileImageUrl,
         walletAddress,
+        // 프로필 정보 (토큰 관련)
+        memexWalletAddress,
+        myTokenAddr,
+        myTokenSymbol,
+        // 백엔드 유저 정보 (이미 Join 완료 여부 확인용)
+        user,
     } = session;
 
-    // 프로필 정보 가져오기 및 Join 요청
-    const fetchProfileAndJoin = useCallback(async (uname: string, utag: string) => {
+    // Join 요청 보내기 (sessionStore에서 데이터 읽어서 요청)
+    const sendJoinRequest = useCallback(async () => {
+        // 이미 User 정보가 있으면 스킵 (Join 완료됨)
+        if (user) {
+            console.log('🚀 [useMemexLogin] 이미 User 정보 있음, Join 스킵');
+            return;
+        }
+
+        // 이미 요청 중이면 스킵
+        if (joinRequestedRef.current) {
+            console.log('🚀 [useMemexLogin] Join 요청 진행 중, 스킵');
+            return;
+        }
+
+        // 필수 데이터 검증 (sessionStore에서)
+        if (!username || !userTag || !walletAddress) {
+            console.warn('⚠️ [useMemexLogin] Join 요청 스킵 - 기본 정보 누락:', { username, userTag, walletAddress });
+            return;
+        }
+
+        if (!profileImageUrl || !myTokenAddr || !myTokenSymbol || !memexWalletAddress) {
+            console.warn('⚠️ [useMemexLogin] Join 요청 스킵 - 프로필 정보 불완전:', {
+                profileImageUrl: !!profileImageUrl,
+                myTokenAddr: !!myTokenAddr,
+                myTokenSymbol: !!myTokenSymbol,
+                memexWalletAddress: !!memexWalletAddress
+            });
+            return;
+        }
+
+        const memeXLink = `https://app.memex.xyz/profile/${username}/${userTag}`;
+
+        console.log('🚀 [useMemexLogin] Join 요청 시작 (sessionStore 데이터):', {
+            username, userTag, walletAddress, profileImageUrl, myTokenAddr, myTokenSymbol, memexWalletAddress
+        });
+
         try {
-            console.log('🖼️ [useMemexLogin] 프로필 정보 가져오기 시작:', uname, utag);
+            joinRequestedRef.current = true;
+
+            const response = await backgroundApi.join({
+                username,
+                userTag,
+                walletAddress,
+                profileImageUrl,
+                memeXLink,
+                myTokenAddr,
+                myTokenSymbol,
+                memexWalletAddress,
+                isPolicyAgreed: true,
+            });
+
+            // User 정보를 세션에 저장
+            setUser(response.user);
+            console.log('✅ [useMemexLogin] Join 요청 성공, User 저장:', response.user);
+        } catch (joinErr) {
+            console.warn('⚠️ [useMemexLogin] Join 요청 실패:', joinErr);
+            joinRequestedRef.current = false; // 실패 시 다시 시도 가능하도록
+        }
+    }, [user, username, userTag, walletAddress, profileImageUrl, myTokenAddr, myTokenSymbol, memexWalletAddress, setUser]);
+
+    // 프로필 정보 가져오기 (sessionStore에 저장만 함)
+    const fetchProfileInfo = useCallback(async (uname: string, utag: string) => {
+        try {
+            console.log('🖼️ [useMemexLogin] 프로필 정보 가져오기 시작:', { uname, utag });
 
             // 1. 프로필 페이지로 이동 (DOM에서 정보를 가져오기 위해)
             const memeXLink = `https://app.memex.xyz/profile/${uname}/${utag}`;
@@ -65,41 +136,27 @@ export function useMemexLogin(): UseMemexLoginReturn {
 
             console.log('🖼️ [useMemexLogin] 프로필 정보:', { imageUrl, tokenAddr, tokenSymbol, memexWallet });
 
-            // 4. Join 요청 (백엔드에 사용자 등록) 및 User 상태 저장
-            if (walletAddress) {
-                console.log('🚀 [useMemexLogin] Join 요청 시작');
-                try {
-                    const response = await backgroundApi.join({
-                        username: uname,
-                        userTag: utag,
-                        walletAddress,
-                        profileImageUrl: imageUrl || '',
-                        memeXLink,
-                        myTokenAddr: tokenAddr,
-                        myTokenSymbol: tokenSymbol,
-                        memexWalletAddress: memexWallet,
-                        isPolicyAgreed: true,
-                    });
+            // 4. 프로필 정보를 sessionStore에 저장
+            setMemexProfileInfo({
+                profileImage: imageUrl,
+                myTokenAddr: tokenAddr,
+                myTokenSymbol: tokenSymbol,
+                memexWalletAddress: memexWallet,
+            });
 
-                    // User 정보를 세션에 저장
-                    setUser(response.user);
-                    console.log('✅ [useMemexLogin] Join 요청 성공, User 저장:', response.user);
-                } catch (joinErr) {
-                    console.warn('⚠️ [useMemexLogin] Join 요청 실패:', joinErr);
-                }
-            }
-
-            // MEMEX 로그인 상태 업데이트 (프로필 이미지 포함)
+            // 5. MEMEX 로그인 상태 업데이트
             setMemexLoggedIn({
                 isLoggedIn: true,
                 username: uname,
                 userTag: utag,
                 profileImage: imageUrl,
             });
+
+            console.log('✅ [useMemexLogin] 프로필 정보 sessionStore 저장 완료');
         } catch (err) {
             console.error('❌ [useMemexLogin] 프로필 정보 가져오기 실패:', err);
         }
-    }, [walletAddress, setMemexLoggedIn, setUser]);
+    }, [setMemexLoggedIn, setMemexProfileInfo]);
 
     // MEMEX 로그인 상태 확인 함수
     const checkLoginStatus = useCallback(async () => {
@@ -110,11 +167,23 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 username?: string;
                 userTag?: string;
             };
-            console.log('🔐 [useMemexLogin] checkLoginStatus 결과:', result);
+            console.log('🔐 [useMemexLogin] checkLoginStatus 결과:', result, 'walletAddress:', walletAddress);
 
             if (result?.isLoggedIn && result.username && result.userTag) {
-                // 로그인 성공 시 프로필 정보 가져오기 및 Join 요청
-                await fetchProfileAndJoin(result.username, result.userTag);
+                // MEMEX 로그인 상태 업데이트
+                setMemexLoggedIn({
+                    isLoggedIn: true,
+                    username: result.username,
+                    userTag: result.userTag,
+                });
+
+                // walletAddress가 없으면 프로필 정보만 가져오기 (Join 요청은 useEffect에서 자동으로)
+                if (!walletAddress) {
+                    console.warn('⚠️ [useMemexLogin] walletAddress 없음, 프로필 정보만 가져옴');
+                }
+
+                // 프로필 정보 가져오기 (sessionStore에 저장)
+                await fetchProfileInfo(result.username, result.userTag);
                 return true;
             }
 
@@ -125,7 +194,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
             setMemexLoggedIn({ isLoggedIn: false });
             return false;
         }
-    }, [setMemexLoggedIn, fetchProfileAndJoin]);
+    }, [setMemexLoggedIn, fetchProfileInfo, walletAddress]);
 
     // 로그아웃 함수
     const logout = useCallback(async () => {
@@ -156,6 +225,29 @@ export function useMemexLogin(): UseMemexLoginReturn {
     useEffect(() => {
         checkLoginStatus();
     }, [checkLoginStatus]);
+
+    // sessionStore의 모든 필수 데이터가 준비되면 자동으로 Join 요청
+    useEffect(() => {
+        // 이미 User 정보가 있으면 스킵
+        if (user) {
+            return;
+        }
+
+        // 모든 필수 데이터가 있는지 확인
+        const allDataReady = isLoggedIn &&
+            username &&
+            userTag &&
+            walletAddress &&
+            profileImageUrl &&
+            myTokenAddr &&
+            myTokenSymbol &&
+            memexWalletAddress;
+
+        if (allDataReady && !joinRequestedRef.current) {
+            console.log('✅ [useMemexLogin] 모든 데이터 준비됨, Join 요청 시작');
+            sendJoinRequest();
+        }
+    }, [user, isLoggedIn, username, userTag, walletAddress, profileImageUrl, myTokenAddr, myTokenSymbol, memexWalletAddress, sendJoinRequest]);
 
     // setLoggedIn 래퍼 함수
     const handleSetLoggedIn = useCallback((value: boolean) => {
