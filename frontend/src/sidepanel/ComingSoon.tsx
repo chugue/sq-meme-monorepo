@@ -9,6 +9,7 @@ import {
   TermsModal,
 } from "./components";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
+import { useMemexLogin } from "./hooks/useMemexLogin";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 
 interface ComingSoonProps {
@@ -17,6 +18,7 @@ interface ComingSoonProps {
 
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
   const { isConnected, address, isLoading, error, connect, refetch } = useSidepanelWallet();
+  const { setLoggingIn } = useMemexLogin();
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   const handleConnectWallet = async () => {
@@ -60,6 +62,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
       // 로그인 시작됨 - 폴링으로 로그인 완료 확인
       if (result?.loginStarted) {
         console.log("🔐 Google 로그인 시작됨, 폴링 시작...");
+        setLoggingIn(true);
         const maxWaitTime = 60000; // 60초
         const pollInterval = 2000; // 2초
         const startTime = Date.now();
@@ -68,6 +71,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
           const elapsed = Date.now() - startTime;
           if (elapsed >= maxWaitTime) {
             console.error("❌ 로그인 타임아웃");
+            setLoggingIn(false);
             return;
           }
 
@@ -81,6 +85,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
             if (checkResult?.isLoggedIn && onMemexLoginComplete) {
               console.log("✅ MEMEX 로그인 완료:", checkResult.username);
+              setLoggingIn(false);
               // 지갑 연결 상태 재확인 (jotai 전역 상태 업데이트)
               await refetch();
               onMemexLoginComplete();
@@ -100,6 +105,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
       }
     } catch (err) {
       console.error("❌ MEMEX login failed:", err);
+      setLoggingIn(false);
     }
   };
 

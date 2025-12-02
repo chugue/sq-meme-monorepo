@@ -23,3 +23,23 @@ export const isWalletLoadingAtom = atom<boolean>(true);
  * 지갑 에러 Atom
  */
 export const walletErrorAtom = atom<string | null>(null);
+
+/**
+ * MEMEX 로그인 중 상태 Atom
+ */
+export const isMemexLoggingInAtom = atom<boolean>(false);
+
+/**
+ * MEMEX 로그인 완료 상태 Atom
+ */
+export const isMemexLoggedInAtom = atom<boolean>(false);
+
+/**
+ * MEMEX 사용자 이름 Atom
+ */
+export const memexUsernameAtom = atom<string | null>(null);
+
+/**
+ * MEMEX 사용자 태그 Atom
+ */
+export const memexUserTagAtom = atom<string | null>(null);

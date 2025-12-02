@@ -1,9 +1,10 @@
 import { useState } from "react";
 import "./Dashboard.css";
+import { useMemexLogin } from "./hooks/useMemexLogin";
+import { backgroundApi } from "../contents/lib/backgroundApi";
 
 // Mock data
 const mockUserData = {
-  userName: "SquidMaster",
   profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
   walletAddress: "0x13a90df0418e2a2c7e5801cb75d0a0e00319bdd1",
 };
@@ -20,14 +21,19 @@ interface DashboardProps {
 }
 
 export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps) {
+  const { username, userTag } = useMemexLogin();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
-  const handleProfileClick = () => {
+  const handleProfileClick = async () => {
     if (onNavigateToProfile) {
       onNavigateToProfile();
-    } else {
-      // MEMEX 프로필 페이지로 이동
-      window.open(`https://app.memex.xyz/profile/${mockUserData.walletAddress}`, "_blank");
+    } else if (username && userTag) {
+      // MEMEX 프로필 페이지로 이동 (backgroundApi를 통해 탭 URL 변경)
+      try {
+        await backgroundApi.navigateToUrl(`https://app.memex.xyz/profile/${username}/${userTag}`);
+      } catch (err) {
+        console.error("프로필 이동 실패:", err);
+      }
     }
   };
 
@@ -48,7 +54,7 @@ export function Dashboard({ walletAddress, onNavigateToProfile }: DashboardProps
           <span>내 MemeX 프로필로 이동하기</span>
         </button>
         <div className="user-info">
-          <span className="user-name">{mockUserData.userName}</span>
+          <span className="user-name">{username || "User"}</span>
           <img
             src={mockUserData.profileImage}
             alt="Profile"

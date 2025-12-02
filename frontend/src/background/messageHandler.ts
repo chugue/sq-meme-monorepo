@@ -242,6 +242,36 @@ export function createMessageHandler() {
             break;
           }
 
+          case "NAVIGATE_TO_URL": {
+            console.log(`🔗 NAVIGATE_TO_URL 요청:`, (message as any).url);
+            try {
+              const { browser } = await import("wxt/browser");
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+
+              // MEMEX 페이지 탭 찾기
+              let memexTabs = await tabs.query({
+                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+              });
+
+              if (memexTabs.length > 0 && memexTabs[0].id) {
+                // 기존 MEMEX 탭의 URL 변경
+                await tabs.update(memexTabs[0].id, { url: (message as any).url, active: true });
+                result = { success: true, data: { success: true } };
+              } else {
+                // MEMEX 탭이 없으면 새 탭 열기
+                await tabs.create({ url: (message as any).url, active: true });
+                result = { success: true, data: { success: true } };
+              }
+            } catch (error: any) {
+              console.error("❌ NAVIGATE_TO_URL 오류:", error);
+              result = {
+                success: false,
+                error: error instanceof Error ? error.message : "URL 이동 실패",
+              };
+            }
+            break;
+          }
+
           case "MEMEX_LOGIN":
           case "WALLET_CONNECT":
           case "WALLET_GET_ACCOUNT": {

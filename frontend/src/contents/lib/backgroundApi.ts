@@ -42,7 +42,8 @@ export type BackgroundMessage =
     | { type: 'REGISTER_CLAIM_PRIZE'; gameAddress: string; txHash: string }
     | { type: 'WALLET_CONNECT' }
     | { type: 'WALLET_GET_ACCOUNT' }
-    | { type: 'MEMEX_LOGIN' };
+    | { type: 'MEMEX_LOGIN' }
+    | { type: 'NAVIGATE_TO_URL'; url: string };
 
 export type BackgroundResponse<T = any> =
     | { success: true; data: T }
@@ -221,6 +222,14 @@ export const backgroundApi = {
     memexLogin: async () => {
         return sendToBackground<{ success: boolean }>({
             type: 'MEMEX_LOGIN',
+        });
+    },
+
+    // URL로 이동 (MEMEX 탭에서)
+    navigateToUrl: async (url: string) => {
+        return sendToBackground<{ success: boolean }>({
+            type: 'NAVIGATE_TO_URL',
+            url,
         });
     },
 };
