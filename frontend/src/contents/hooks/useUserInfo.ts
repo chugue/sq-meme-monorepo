@@ -1,78 +1,59 @@
 /**
  * 사용자 정보 훅
- * 
- * 웹페이지의 sessionStorage에서 사용자 정보를 읽어와
- * Chrome Extension의 chrome.storage에 저장하고 전역 상태로 관리
+ *
+ * chrome.storage.session에서 DB에 저장된 전체 사용자 정보를 읽어옴
+ * Join 성공 후 Background Script가 자동으로 저장함
  */
 
 import { useAtom } from 'jotai';
 import { useEffect } from 'react';
-import { isUserInfoLoadingAtom, userInfoAtom, userInfoErrorAtom } from '../atoms/userAtoms';
-import { getUserInfoFromChromeStorage, saveUserInfoToChromeStorage } from '../lib/chromeStorage';
+import type { User } from '../../types/response.types';
+import {
+    isUserLoadingAtom,
+    userAtom,
+    userErrorAtom,
+} from '../atoms/userAtoms';
+import { getSquidUserFromStorage } from '../lib/chromeStorage';
 import { logger } from '../lib/injected/logger';
-import { waitForInjectedScript } from '../lib/injectedApi';
-import { getUserInfoFromSessionStorage } from '../lib/sessionStorage';
 
 /**
  * 사용자 정보 훅
+ *
+ * chrome.storage.session에서 User 정보를 읽어옴
+ * Join 성공 후 Background Script가 squid_user로 저장함
  */
 export function useUserInfo() {
-    const [userInfo, setUserInfo] = useAtom(userInfoAtom);
-    const [isLoading, setIsLoading] = useAtom(isUserInfoLoadingAtom);
-    const [error, setError] = useAtom(userInfoErrorAtom);
+    const [user, setUser] = useAtom(userAtom);
+    const [isLoading, setIsLoading] = useAtom(isUserLoadingAtom);
+    const [error, setError] = useAtom(userErrorAtom);
 
     /**
-     * 사용자 정보 로드 (내 정보)
-     * 
-     * 우선순위:
-     * 1. chrome.storage.session에서 읽기 (내 정보)
-     * 2. sessionStorage에서 읽기
-     * 
-     * 참고: fetchUserInfo는 별도 함수로 다른 유저 정보도 가져올 수 있음
+     * 사용자 정보 로드
+     * chrome.storage.session에서 squid_user 읽기
      */
-    const loadUserInfo = async () => {
+    const loadUser = async (): Promise<User | null> => {
         try {
             setIsLoading(true);
             setError(null);
-            logger.debug('🦑 loadUserInfo 시작 (내 정보)');
+            logger.debug('🦑 loadUser 시작');
 
-            // 1. Chrome Storage에서 사용자 정보 읽기 시도 (내 정보)
-            let info = await getUserInfoFromChromeStorage();
+            const userData = await getSquidUserFromStorage();
 
-            if (info) {
-                logger.info('chrome.storage에서 사용자 정보 로드 완료', { username: info.username, user_tag: info.user_tag });
-                setUserInfo(info);
-                return;
+            if (userData) {
+                logger.info('User 로드 완료', { id: userData.id, userName: userData.userName });
+                setUser(userData);
+                return userData;
             }
 
-            // 2. 웹페이지의 sessionStorage에서 읽기
-            logger.info('chrome.storage에 데이터 없음, 웹페이지 sessionStorage에서 읽기 시도');
-
-            // Injected script 준비 대기
-            const isReady = await waitForInjectedScript(3000);
-            if (!isReady) {
-                logger.warn('Injected script가 준비되지 않아 sessionStorage 읽기 불가');
-                setUserInfo(null);
-                return;
-            }
-
-            const sessionStorageData = await getUserInfoFromSessionStorage();
-
-            if (sessionStorageData) {
-                logger.info(`웹페이지 sessionStorage에서 사용자 정보 읽기 성공, chrome.storage에 저장 ${sessionStorageData.username} ${sessionStorageData.user_tag}`);
-                // chrome.storage에 저장 (내 정보)
-                await saveUserInfoToChromeStorage(sessionStorageData);
-                setUserInfo(sessionStorageData);
-                return;
-            }
-
-            logger.warn('모든 저장소에서 사용자 정보를 찾을 수 없음');
-            setUserInfo(null);
+            logger.debug('User 없음 (Join 필요)');
+            setUser(null);
+            return null;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage);
-            logger.error('사용자 정보 로드 실패', err);
-            setUserInfo(null);
+            logger.error('User 로드 실패', err);
+            setUser(null);
+            return null;
         } finally {
             setIsLoading(false);
         }
@@ -80,14 +61,13 @@ export function useUserInfo() {
 
     // 초기 로드
     useEffect(() => {
-        loadUserInfo();
+        loadUser();
     }, []);
 
     return {
-        userInfo,
+        user,
         isLoading,
         error,
-        refetch: loadUserInfo,
+        refetch: loadUser,
     };
 }
-

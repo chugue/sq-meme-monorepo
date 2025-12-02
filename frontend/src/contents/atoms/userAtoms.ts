@@ -3,27 +3,19 @@
  */
 
 import { atom } from 'jotai';
+import type { User } from '../../types/response.types';
 
 /**
- * 사용자 정보 타입
+ * 사용자 정보 Atom (DB에 저장된 전체 User 정보)
  */
-export interface UserInfo {
-    username: string;
-    user_tag: string;
-}
-
-/**
- * 사용자 정보 Atom
- */
-export const userInfoAtom = atom<UserInfo | null>(null);
+export const userAtom = atom<User | null>(null);
 
 /**
  * 사용자 정보 로딩 상태 Atom
  */
-export const isUserInfoLoadingAtom = atom<boolean>(false);
+export const isUserLoadingAtom = atom<boolean>(false);
 
 /**
  * 사용자 정보 에러 Atom
  */
-export const userInfoErrorAtom = atom<string | null>(null);
-
+export const userErrorAtom = atom<string | null>(null);

@@ -8,8 +8,8 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
 import { backgroundApi } from '../../contents/lib/backgroundApi';
 import {
-    getUserInfoFromChromeStorage,
-    saveUserInfoToChromeStorage,
+    getMemexUserInfo,
+    saveMemexUserInfo,
 } from '../../contents/lib/chromeStorage';
 
 // 모듈 레벨에서 중복 요청 방지 (Strict Mode에서도 유지됨)
@@ -142,7 +142,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
     const checkLoginStatus = useCallback(async () => {
         try {
             // 1. chrome.storage.session에서 캐시 먼저 확인
-            const cachedUserInfo = await getUserInfoFromChromeStorage();
+            const cachedUserInfo = await getMemexUserInfo();
 
             if (cachedUserInfo) {
                 console.log('🔐 [useMemexLogin] 캐시된 사용자 정보 발견:', cachedUserInfo);
@@ -177,7 +177,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 });
 
                 // 3. chrome.storage에 캐시 저장
-                await saveUserInfoToChromeStorage({
+                await saveMemexUserInfo({
                     username: result.username,
                     user_tag: result.userTag,
                 });

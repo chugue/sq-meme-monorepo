@@ -10,13 +10,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { formatUnits, type Address } from 'viem';
 import { useReadContract } from 'wagmi';
-import { useComments } from '../hooks/useComments';
-import { useWallet } from '../hooks/useWallet';
-import { Comment } from '../types/comment';
-import { erc20ABI } from '../lib/contract/abis/erc20';
-import { logger } from '../lib/injected/logger';
-import { ERROR_CODES, injectedApi } from '../lib/injectedApi';
-import { createCommentSignatureMessage, formatAddress, formatRelativeTime } from '../utils/messageFormatter';
+import { useComments } from '../../hooks/useComments';
+import { useWallet } from '../../hooks/useWallet';
+import { Comment } from '../../types/comment';
+import { erc20ABI } from '../../lib/contract/abis/erc20';
+import { logger } from '../../lib/injected/logger';
+import { ERROR_CODES, injectedApi } from '../../lib/injectedApi';
+import { createCommentSignatureMessage, formatAddress, formatRelativeTime } from '../../utils/messageFormatter';
 import './CommentSection.css';
 
 /**
