@@ -1,6 +1,7 @@
-import { useState } from "react";
 import { ChevronLeft, Home } from "lucide-react";
+import { useAtomValue } from "jotai";
 import { useMemexLogin } from "./hooks/useMemexLogin";
+import { currentStreakAtom, sessionAtom } from "./atoms/sessionAtoms";
 import "./ProfilePage.css";
 
 // Mock data
@@ -8,7 +9,6 @@ const mockUserData = {
   profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
   walletAddress: "0x13a90df0418e2a2c7e5801cb75d0a0e00319bdd1",
   comments: 23,
-  streak: 5,
 };
 
 interface ProfilePageProps {
@@ -18,17 +18,12 @@ interface ProfilePageProps {
 
 export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
   const { username, profileImageUrl, logout } = useMemexLogin();
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [editedUsername, setEditedUsername] = useState(username || "");
+  const session = useAtomValue(sessionAtom);
+  const currentStreak = useAtomValue(currentStreakAtom);
+  const { memexWalletAddress } = session;
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const handleUsernameChange = () => {
-    // TODO: 실제 username 변경 API 호출
-    setIsEditingUsername(false);
-    console.log("Username changed to:", editedUsername);
   };
 
   const handleCheckAssets = () => {
@@ -76,38 +71,28 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
         <div className="info-group">
           <label className="info-label">Username</label>
           <div className="info-input-wrapper">
-            {isEditingUsername ? (
-              <input
-                type="text"
-                value={editedUsername}
-                onChange={(e) => setEditedUsername(e.target.value)}
-                className="info-input editing"
-                autoFocus
-              />
-            ) : (
-              <span className="info-value">{username || "CodingCat"}</span>
-            )}
-            <button
-              className="change-btn"
-              onClick={() => {
-                if (isEditingUsername) {
-                  handleUsernameChange();
-                } else {
-                  setIsEditingUsername(true);
-                }
-              }}
-            >
-              {isEditingUsername ? "저장" : "변경"}
-            </button>
+            <span className="info-value">{username || "User"}</span>
           </div>
         </div>
 
         {/* Connected Wallet */}
         <div className="info-group">
-          <label className="info-label">ConnectedWallet</label>
+          <label className="info-label">Connected Wallet</label>
           <div className="info-input-wrapper">
             <span className="info-value wallet">
               {shortenAddress(walletAddress || mockUserData.walletAddress)}
+            </span>
+          </div>
+        </div>
+
+        {/* MEMEX Wallet Address */}
+        <div className="info-group">
+          <label className="info-label">MEMEX Wallet</label>
+          <div className="info-input-wrapper">
+            <span className="info-value wallet">
+              {memexWalletAddress
+                ? shortenAddress(memexWalletAddress)
+                : "Not connected"}
             </span>
           </div>
         </div>
@@ -123,7 +108,7 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
           <div className="stat-item">
             <span className="stat-label">Streak</span>
             <span className="stat-value">
-              {mockUserData.streak} <span className="stat-unit">days</span>
+              {currentStreak} <span className="stat-unit">days</span>
             </span>
           </div>
         </div>

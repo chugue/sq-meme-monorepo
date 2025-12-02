@@ -1,0 +1,237 @@
+.leaderboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%);
+  color: #fff;
+  padding: 16px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header */
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-header .back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-header .back-btn:hover {
+  color: #00ffff;
+}
+
+.leaderboard-header .header-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leaderboard-header .header-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.leaderboard-header .header-profile-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+/* Tabs */
+.leaderboard-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 0;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #888;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(138, 100, 255, 0.4), rgba(100, 150, 255, 0.3));
+  border-color: rgba(138, 100, 255, 0.6);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(138, 100, 255, 0.3);
+}
+
+/* Content */
+.leaderboard-content {
+  flex: 1;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+/* Leaderboard List */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 46, 0.8),
+    rgba(45, 27, 78, 0.6)
+  );
+  border: 1px solid rgba(255, 0, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.leaderboard-item:hover {
+  border-color: rgba(255, 0, 255, 0.4);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+}
+
+.rank-number {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff00ff, #00ffff);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000;
+  flex-shrink: 0;
+}
+
+.token-image {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.item-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.item-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00ffff;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+/* Quest List */
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.quest-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quest-category {
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 46, 0.8),
+    rgba(45, 27, 78, 0.6)
+  );
+  border: 1px solid rgba(255, 0, 255, 0.2);
+  border-radius: 12px;
+}
+
+.quest-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.claim-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 100, 0.15));
+  color: #00ffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.claim-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 255, 100, 0.25));
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+}
+
+.claim-btn.claimed {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #666;
+  cursor: not-allowed;
+}

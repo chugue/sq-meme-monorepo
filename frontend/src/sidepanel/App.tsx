@@ -3,10 +3,11 @@ import './App.css';
 import { ComingSoon } from './ComingSoon';
 import { Dashboard } from './Dashboard';
 import { ProfilePage } from './ProfilePage';
+import { LeaderboardPage } from './LeaderboardPage';
 import { useSidepanelWallet } from './hooks/useSidepanelWallet';
 import { useMemexLogin } from './hooks/useMemexLogin';
 
-type Page = 'dashboard' | 'profile';
+type Page = 'dashboard' | 'profile' | 'leaderboard';
 
 export function SidePanelApp() {
     const { isConnected, address, isLoading } = useSidepanelWallet();
@@ -44,10 +45,18 @@ export function SidePanelApp() {
                 />
             );
         }
+        if (currentPage === 'leaderboard') {
+            return (
+                <LeaderboardPage
+                    onBack={() => setCurrentPage('dashboard')}
+                />
+            );
+        }
         return (
             <Dashboard
                 walletAddress={address || undefined}
                 onNavigateToProfile={() => setCurrentPage('profile')}
+                onNavigateToLeaderboard={() => setCurrentPage('leaderboard')}
             />
         );
     }

@@ -30,11 +30,13 @@ const mockCharacters = [
 interface DashboardProps {
   walletAddress?: string;
   onNavigateToProfile?: () => void;
+  onNavigateToLeaderboard?: () => void;
 }
 
 export function Dashboard({
   walletAddress,
   onNavigateToProfile,
+  onNavigateToLeaderboard,
 }: DashboardProps) {
   const { username, userTag, profileImageUrl, logout } = useMemexLogin();
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -129,38 +131,13 @@ export function Dashboard({
         )}
 
         <button
-          className={`menu-item ${
-            activeSection === "leaderboard" ? "active" : ""
-          }`}
-          onClick={() => handleMenuClick("leaderboard")}
+          className="menu-item"
+          onClick={onNavigateToLeaderboard}
         >
           <span className="menu-icon">🏆</span>
           <span className="menu-text">리더 보드</span>
-          <span className="menu-arrow">
-            {activeSection === "leaderboard" ? "▼" : "▶"}
-          </span>
+          <span className="menu-arrow">▶</span>
         </button>
-        {activeSection === "leaderboard" && (
-          <div className="menu-content">
-            <div className="leaderboard-list">
-              <div className="leaderboard-item">
-                <span className="rank">1</span>
-                <span className="player">CryptoKing</span>
-                <span className="score">12,500 pts</span>
-              </div>
-              <div className="leaderboard-item">
-                <span className="rank">2</span>
-                <span className="player">MemeQueen</span>
-                <span className="score">10,200 pts</span>
-              </div>
-              <div className="leaderboard-item highlight">
-                <span className="rank">15</span>
-                <span className="player">You</span>
-                <span className="score">3,400 pts</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         <button
           className={`menu-item ${activeSection === "assets" ? "active" : ""}`}
