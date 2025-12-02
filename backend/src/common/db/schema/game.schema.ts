@@ -36,9 +36,14 @@ export const games = squidSchema.table(
 
         // 4. 상태 관련
         // isClaimed: 상금 수령 여부 (컨트랙트에서 전송)
-        // 게임 종료 여부(isEnded)는 endTime과 현재 시간 비교로 계산
+        // isEnded: 게임 종료 여부 (컨트랙트에서 전송)
         isClaimed: boolean('is_claimed').default(false).notNull(),
+        isEnded: boolean('is_ended').default(false).notNull(),
         lastCommentor: varchar('last_commentor', { length: 42 }).notNull(),
+
+        // 5. 펀딩 관련 (V2 ABI)
+        totalFunding: text('total_funding').default('0'),
+        funderCount: text('funder_count').default('0'),
 
         createdAt: timestamp('created_at').defaultNow(),
         updatedAt: timestamp('updated_at')

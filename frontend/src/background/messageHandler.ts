@@ -2,7 +2,7 @@ import {
   BackgroundMessage,
   BackgroundResponse,
 } from "../contents/lib/backgroundApi";
-import type { JoinRequest } from "../types/request.types";
+import type { JoinRequest, RegisterGameRequest } from "../types/request.types";
 import { apiCall } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -244,6 +244,29 @@ export function createMessageHandler() {
                 success: false,
                 error:
                   error instanceof Error ? error.message : "게임 저장 실패",
+              };
+            }
+            break;
+          }
+
+          case "REGISTER_GAME": {
+            const { data } = message as { type: string; data: RegisterGameRequest };
+            console.log("🎮 REGISTER_GAME 요청 (블록체인 조회 게임 등록):", data.gameId);
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { gameId: string };
+              }>("/v1/games/register", {
+                method: "POST",
+                body: JSON.stringify(data),
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 게임 등록 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "게임 등록 실패",
               };
             }
             break;

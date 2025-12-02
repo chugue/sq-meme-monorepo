@@ -3,7 +3,10 @@ import { eq } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
-import { CreateGameDtoSchema } from 'src/common/validator/game.validator';
+import {
+    CreateGameDtoSchema,
+    RegisterGameDtoSchema,
+} from 'src/common/validator/game.validator';
 
 @Injectable()
 export class GameRepository {
@@ -122,5 +125,71 @@ export class GameRepository {
             .limit(1);
 
         return game ?? null;
+    }
+
+    /**
+     * @description gameId로 게임 조회
+     */
+    async findByGameId(gameId: string): Promise<{ gameId: string } | null> {
+        const [game] = await this.db
+            .select({ gameId: schema.games.gameId })
+            .from(schema.games)
+            .where(eq(schema.games.gameId, gameId))
+            .limit(1);
+
+        return game ?? null;
+    }
+
+    /**
+     * @description 블록체인에서 조회한 게임 데이터를 검증하고 저장 (txHash 없음)
+     * @returns 생성된 게임 ID 또는 null (중복/실패 시)
+     */
+    async registerFromBlockchain(
+        rawData: unknown,
+    ): Promise<{ gameId: string } | null> {
+        const result = RegisterGameDtoSchema.safeParse(rawData);
+        if (!result.success) {
+            this.logger.error(
+                `Invalid register game data: ${result.error.message}`,
+            );
+            return null;
+        }
+
+        const dto = result.data;
+
+        // 중복 체크 (gameId로)
+        const existing = await this.findByGameId(dto.gameId);
+        if (existing) {
+            this.logger.warn(`중복 게임 등록 요청: gameId ${dto.gameId}`);
+            return existing;
+        }
+
+        try {
+            const [game] = await this.db
+                .insert(schema.games)
+                .values({
+                    gameId: dto.gameId,
+                    gameAddress: dto.gameId, // V2에서는 gameId를 gameAddress로 사용
+                    gameToken: dto.gameToken,
+                    tokenSymbol: dto.tokenSymbol,
+                    initiator: dto.initiator,
+                    gameTime: dto.gameTime,
+                    endTime: new Date(Number(dto.endTime) * 1000),
+                    cost: dto.cost,
+                    prizePool: dto.prizePool,
+                    lastCommentor: dto.lastCommentor,
+                    isClaimed: dto.isClaimed,
+                    isEnded: dto.isEnded,
+                    totalFunding: dto.totalFunding,
+                    funderCount: dto.funderCount,
+                })
+                .returning({ gameId: schema.games.gameId });
+
+            this.logger.log(`✅ 블록체인 게임 등록 완료: ${game.gameId}`);
+            return { gameId: game.gameId };
+        } catch (error) {
+            this.logger.error(`❌ 블록체인 게임 등록 실패: ${error.message}`);
+            return null;
+        }
     }
 }

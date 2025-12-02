@@ -13,6 +13,7 @@ import {
     ApiCreateGame,
     ApiGetGameByToken,
     ApiRegisterClaimPrize,
+    ApiRegisterGame,
 } from 'src/common/decorators';
 import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
@@ -62,5 +63,12 @@ export class GameController {
         }
 
         return game;
+    }
+
+    @Post('register')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiRegisterGame('블록체인에서 조회한 게임 등록')
+    async registerGame(@Body() body: unknown) {
+        return this.gameService.registerGame(body);
     }
 }

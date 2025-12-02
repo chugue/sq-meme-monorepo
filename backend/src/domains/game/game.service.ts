@@ -109,4 +109,23 @@ export class GameService {
             return Result.fail('게임 저장에 실패했습니다.');
         }
     }
+
+    /**
+     * @description 블록체인에서 조회한 게임 데이터를 등록 (txHash 없음)
+     */
+    async registerGame(data: unknown): Promise<Result<{ gameId: string }>> {
+        try {
+            const result =
+                await this.gameRepository.registerFromBlockchain(data);
+
+            if (!result) {
+                return Result.fail('게임 등록에 실패했습니다.');
+            }
+
+            return Result.ok(result);
+        } catch (error) {
+            this.logger.error(`Register game failed: ${error.message}`);
+            return Result.fail('게임 등록에 실패했습니다.');
+        }
+    }
 }

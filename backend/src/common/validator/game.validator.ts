@@ -37,3 +37,24 @@ export const CreateGameDtoSchema = z.object({
 });
 
 export type CreateGameDto = z.infer<typeof CreateGameDtoSchema>;
+
+/**
+ * 블록체인에서 조회한 게임 등록 스키마 (V2 ABI 전체 필드, txHash 없음)
+ */
+export const RegisterGameDtoSchema = z.object({
+    gameId: numericStringSchema,
+    initiator: ethereumAddressSchema,
+    gameToken: ethereumAddressSchema,
+    cost: numericStringSchema,
+    gameTime: numericStringSchema,
+    tokenSymbol: z.string().min(1),
+    endTime: numericStringSchema,
+    lastCommentor: ethereumAddressSchema,
+    prizePool: numericStringSchema,
+    isClaimed: z.boolean(),
+    isEnded: z.boolean(),
+    totalFunding: numericStringSchema,
+    funderCount: numericStringSchema,
+});
+
+export type RegisterGameDto = z.infer<typeof RegisterGameDtoSchema>;

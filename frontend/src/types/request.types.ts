@@ -26,6 +26,23 @@ export interface CreateGameRequest {
   isClaimed: boolean;
 }
 
+// 블록체인에서 조회한 게임 등록 요청 DTO (V2 ABI GameInfo 전체 필드)
+export interface RegisterGameRequest {
+  gameId: string;
+  initiator: string;
+  gameToken: string;
+  cost: string;
+  gameTime: string;
+  tokenSymbol: string;
+  endTime: string;
+  lastCommentor: string;
+  prizePool: string;
+  isClaimed: boolean;
+  isEnded: boolean;
+  totalFunding: string;
+  funderCount: string;
+}
+
 // Join 요청 DTO
 export interface JoinRequest {
   username: string;

@@ -45,3 +45,12 @@ export const ApiGetGameByToken = (summary = '토큰 주소로 게임 조회') =>
             description: '해당 토큰으로 생성된 게임이 없습니다',
         }),
     );
+
+export const ApiRegisterGame = (summary = '블록체인 게임 등록') =>
+    applyDecorators(
+        ApiOperation({ summary }),
+        ApiResponse({
+            status: 201,
+            description: '게임 등록 완료',
+        }),
+    );
