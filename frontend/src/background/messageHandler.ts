@@ -1,7 +1,7 @@
 import {
   BackgroundMessage,
   BackgroundResponse,
-  LogInRequest,
+  JoinRequest,
 } from "../contents/lib/backgroundApi";
 import { apiCall } from "./api";
 import { openSidePanel } from "./sidepanel";
@@ -311,9 +311,9 @@ export function createMessageHandler() {
             break;
           }
 
-          case "LOG_IN": {
-            const { data } = message as { type: string; data: LogInRequest };
-            console.log(`🚀 LOG_IN 요청 DTO:`, {
+          case "JOIN": {
+            const { data } = message as { type: string; data: JoinRequest };
+            console.log(`🚀 JOIN 요청 DTO:`, {
               username: data.username,
               userTag: data.userTag,
               walletAddress: data.walletAddress,
@@ -325,17 +325,17 @@ export function createMessageHandler() {
               isPolicyAgreed: data.isPolicyAgreed,
             });
             try {
-              const response = await apiCall<{ success: boolean }>("/v1/users/login", {
+              const response = await apiCall<{ success: boolean }>("/v1/users/join", {
                 method: "POST",
                 body: JSON.stringify(data),
               });
               result = { success: true, data: response };
             } catch (error: any) {
-              console.error("❌ LOG_IN 오류:", error);
+              console.error("❌ JOIN 오류:", error);
               // 백엔드 미구현 상태에서는 에러가 발생할 수 있으므로 로그만 남김
               result = {
                 success: false,
-                error: error instanceof Error ? error.message : "LogIn 요청 실패",
+                error: error instanceof Error ? error.message : "Join 요청 실패",
               };
             }
             break;

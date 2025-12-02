@@ -1,5 +1,6 @@
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import {
+    boolean,
     index,
     json,
     serial,
@@ -28,10 +29,13 @@ export const users = squidSchema.table(
     {
         id: serial('id').primaryKey(),
 
-        // Wallet address (unique identifier)
+        // Wallet address (unique identifier) - MetaMask 지갑 주소
         walletAddress: varchar('wallet_address', { length: 42 })
             .notNull()
             .unique(),
+
+        // MEMEX에 등록된 지갑 주소 (walletAddress와 다를 수 있음)
+        memexWalletAddress: varchar('memex_wallet_address', { length: 42 }),
 
         // User basic info
         userName: varchar('user_name', { length: 64 }),
@@ -40,6 +44,10 @@ export const users = squidSchema.table(
 
         // External link
         memexLink: text('memex_link'),
+
+        // 사용자의 토큰 정보
+        myTokenAddr: varchar('my_token_addr', { length: 42 }), // 사용자 토큰 컨트랙트 주소
+        myTokenSymbol: varchar('my_token_symbol', { length: 32 }), // 사용자 토큰 심볼 (예: CC)
 
         // Token balances (BigInt -> Text)
         mTokenBalance: text('m_token_balance').default('0').notNull(), // Main token
@@ -54,6 +62,9 @@ export const users = squidSchema.table(
         checkInHistory: json('check_in_history')
             .$type<CheckInRecord[]>()
             .default([]),
+
+        // 약관 동의 여부
+        isPolicyAgreed: boolean('is_policy_agreed').default(false).notNull(),
 
         createdAt: timestamp('created_at').defaultNow(),
         updatedAt: timestamp('updated_at')

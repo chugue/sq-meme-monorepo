@@ -28,8 +28,8 @@ export interface CreateGameRequest {
     isClaimed: boolean;
 }
 
-// LogIn 요청 DTO
-export interface LogInRequest {
+// Join 요청 DTO
+export interface JoinRequest {
     username: string;
     userTag: string;
     walletAddress: string;
@@ -58,7 +58,7 @@ export type BackgroundMessage =
     | { type: 'MEMEX_LOGIN'; triggerLogin?: boolean }
     | { type: 'NAVIGATE_TO_URL'; url: string }
     | { type: 'FETCH_MEMEX_PROFILE_INFO'; username: string; userTag: string }
-    | { type: 'LOG_IN'; data: LogInRequest }
+    | { type: 'JOIN'; data: JoinRequest }
     | { type: 'LOGOUT' }
     | { type: 'WALLET_DISCONNECT' };
 
@@ -265,10 +265,10 @@ export const backgroundApi = {
         });
     },
 
-    // LogIn 요청 (백엔드에 사용자 등록)
-    logIn: async (data: LogInRequest) => {
+    // Join 요청 (백엔드에 사용자 등록)
+    join: async (data: JoinRequest) => {
         return sendToBackground<{ success: boolean }>({
-            type: 'LOG_IN',
+            type: 'JOIN',
             data,
         });
     },

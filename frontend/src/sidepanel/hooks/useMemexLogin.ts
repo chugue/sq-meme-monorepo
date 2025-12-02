@@ -61,11 +61,11 @@ export function useMemexLogin(): UseMemexLoginReturn {
             setProfileImageUrl(imageUrl);
             console.log('🖼️ [useMemexLogin] 프로필 정보:', { imageUrl, tokenAddr, tokenSymbol, memexWallet });
 
-            // 4. LogIn 요청 (백엔드에 사용자 등록)
+            // 4. Join 요청 (백엔드에 사용자 등록)
             if (walletAddress) {
-                console.log('🚀 [useMemexLogin] LogIn 요청 시작');
+                console.log('🚀 [useMemexLogin] Join 요청 시작');
                 try {
-                    await backgroundApi.logIn({
+                    await backgroundApi.join({
                         username: uname,
                         userTag: utag,
                         walletAddress,
@@ -76,10 +76,10 @@ export function useMemexLogin(): UseMemexLoginReturn {
                         memexWalletAddress: memexWallet,
                         isPolicyAgreed: true, // Terms 동의 후 호출되므로 true
                     });
-                    console.log('✅ [useMemexLogin] LogIn 요청 성공');
-                } catch (loginErr) {
+                    console.log('✅ [useMemexLogin] Join 요청 성공');
+                } catch (joinErr) {
                     // 백엔드 미구현 상태에서는 에러가 발생할 수 있으므로 로그만 남김
-                    console.warn('⚠️ [useMemexLogin] LogIn 요청 실패 (백엔드 미구현 가능):', loginErr);
+                    console.warn('⚠️ [useMemexLogin] Join 요청 실패 (백엔드 미구현 가능):', joinErr);
                 }
             }
         } catch (err) {
