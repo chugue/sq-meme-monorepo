@@ -39,35 +39,55 @@ export type BackgroundMessage =
     | { type: 'GET_GAME_BY_TOKEN'; tokenAddress: string }
     | { type: 'SAVE_COMMENT'; data: CreateCommentRequest }
     | { type: 'SAVE_GAME'; data: CreateGameRequest }
-    | { type: 'REGISTER_CLAIM_PRIZE'; gameAddress: string; txHash: string };
+    | { type: 'REGISTER_CLAIM_PRIZE'; gameAddress: string; txHash: string }
+    | { type: 'WALLET_CONNECT' }
+    | { type: 'WALLET_GET_ACCOUNT' }
+    | { type: 'MEMEX_LOGIN' };
 
 export type BackgroundResponse<T = any> =
     | { success: true; data: T }
     | { success: false; error: string };
+
+// Chrome runtime 가져오기 (content script, sidepanel 모두 지원)
+function getRuntime() {
+    // @ts-ignore
+    if (typeof browser !== 'undefined' && browser?.runtime) {
+        // @ts-ignore
+        return browser.runtime;
+    }
+    // @ts-ignore
+    if (typeof chrome !== 'undefined' && chrome?.runtime) {
+        // @ts-ignore
+        return chrome.runtime;
+    }
+    return null;
+}
 
 // Background Script로 메시지 전송
 export async function sendToBackground<T>(
     message: BackgroundMessage
 ): Promise<T> {
     return new Promise((resolve, reject) => {
-        // Content Script에서는 chrome 또는 browser 객체가 전역으로 제공됨
-        // @ts-ignore - Chrome Extension API
-        const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+        const runtime = getRuntime();
 
         if (!runtime) {
+            console.error('❌ Chrome Extension API를 찾을 수 없습니다.');
             reject(new Error('Chrome Extension API를 찾을 수 없습니다.'));
             return;
         }
 
+        console.log('📤 [backgroundApi] sendMessage:', message.type);
+
         runtime.sendMessage(message, (response: BackgroundResponse<T>) => {
-            // @ts-ignore - Chrome Extension API
-            const lastError = runtime.lastError || chrome?.runtime?.lastError;
+            const lastError = runtime.lastError;
 
             if (lastError) {
                 console.error('❌ Runtime 오류:', lastError);
                 reject(new Error(lastError.message || '메시지 전송 실패'));
                 return;
             }
+
+            console.log('📥 [backgroundApi] response:', response);
 
             if (!response) {
                 reject(new Error('응답이 없습니다. Background Script가 실행 중인지 확인하세요.'));
@@ -180,6 +200,27 @@ export const backgroundApi = {
             type: 'REGISTER_CLAIM_PRIZE',
             gameAddress,
             txHash,
+        });
+    },
+
+    // 지갑 연결 요청 (sidepanel -> content script)
+    walletConnect: async () => {
+        return sendToBackground<{ address: string }>({
+            type: 'WALLET_CONNECT',
+        });
+    },
+
+    // 현재 연결된 지갑 계정 조회
+    walletGetAccount: async () => {
+        return sendToBackground<{ address: string | null; isConnected: boolean }>({
+            type: 'WALLET_GET_ACCOUNT',
+        });
+    },
+
+    // MEMEX Google 로그인 트리거
+    memexLogin: async () => {
+        return sendToBackground<{ success: boolean }>({
+            type: 'MEMEX_LOGIN',
         });
     },
 };

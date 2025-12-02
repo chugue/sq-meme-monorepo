@@ -8,14 +8,23 @@ import {
   NeonBar,
   TermsModal,
 } from "./components";
+import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
+import { backgroundApi } from "../contents/lib/backgroundApi";
 
-export function ComingSoon() {
-  // 임시: 지갑 연결 상태 (나중에 실제 지갑 연결 로직으로 교체)
-  const [isWalletConnected, setIsWalletConnected] = useState(true);
+interface ComingSoonProps {
+  onMemexLoginComplete?: () => void;
+}
+
+export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
+  const { isConnected, address, isLoading, error, connect, refetch } = useSidepanelWallet();
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
-  const handleConnectWallet = () => {
-    setIsWalletConnected(true);
+  const handleConnectWallet = async () => {
+    try {
+      await connect();
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+    }
   };
 
   const handleConnectMemex = () => {
@@ -26,10 +35,72 @@ export function ComingSoon() {
     setIsTermsModalOpen(false);
   };
 
-  const handleAgreeTerms = () => {
+  const handleAgreeTerms = async () => {
     setIsTermsModalOpen(false);
-    // TODO: MEMEX 연결 로직 구현
-    console.log("Terms agreed, connecting to MEMEX...");
+    try {
+      console.log("🔐 Terms agreed, triggering MEMEX login...");
+
+      // 첫 번째 호출: 로그인 상태 확인 또는 Google 버튼 클릭
+      const result = await backgroundApi.memexLogin() as {
+        success: boolean;
+        isLoggedIn?: boolean;
+        loginStarted?: boolean;
+        username?: string;
+        userTag?: string;
+      };
+      console.log("🔐 MEMEX login result:", result);
+
+      // 이미 로그인되어 있으면 바로 완료
+      if (result?.isLoggedIn && onMemexLoginComplete) {
+        console.log("✅ MEMEX 로그인 완료:", result.username);
+        onMemexLoginComplete();
+        return;
+      }
+
+      // 로그인 시작됨 - 폴링으로 로그인 완료 확인
+      if (result?.loginStarted) {
+        console.log("🔐 Google 로그인 시작됨, 폴링 시작...");
+        const maxWaitTime = 60000; // 60초
+        const pollInterval = 2000; // 2초
+        const startTime = Date.now();
+
+        const checkLoginStatus = async (): Promise<void> => {
+          const elapsed = Date.now() - startTime;
+          if (elapsed >= maxWaitTime) {
+            console.error("❌ 로그인 타임아웃");
+            return;
+          }
+
+          try {
+            const checkResult = await backgroundApi.memexLogin() as {
+              success: boolean;
+              isLoggedIn?: boolean;
+              username?: string;
+            };
+            console.log("🔐 로그인 상태 확인:", checkResult, Math.floor(elapsed / 1000), "초 경과");
+
+            if (checkResult?.isLoggedIn && onMemexLoginComplete) {
+              console.log("✅ MEMEX 로그인 완료:", checkResult.username);
+              // 지갑 연결 상태 재확인 (jotai 전역 상태 업데이트)
+              await refetch();
+              onMemexLoginComplete();
+              return;
+            }
+
+            // 아직 로그인 안됨, 다시 체크
+            setTimeout(checkLoginStatus, pollInterval);
+          } catch (err) {
+            console.log("🔐 로그인 확인 중 오류 (재시도):", err);
+            setTimeout(checkLoginStatus, pollInterval);
+          }
+        };
+
+        // 5초 후 폴링 시작 (Google 로그인 완료 시간 대기)
+        setTimeout(checkLoginStatus, 5000);
+      }
+    } catch (err) {
+      console.error("❌ MEMEX login failed:", err);
+    }
   };
 
   return (
@@ -50,7 +121,7 @@ export function ComingSoon() {
           <p className="marketing-text">BUCKLE UP, SHIT'S ABOUT TO GET REAL</p>
         </div>
         <ConnectButton
-          isWalletConnected={isWalletConnected}
+          isWalletConnected={isConnected}
           onConnectWallet={handleConnectWallet}
           onConnectMemex={handleConnectMemex}
         />

@@ -1,0 +1,329 @@
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%);
+  color: #fff;
+  padding: 16px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #ff00ff33, #00ffff33);
+  border: 1px solid #ff00ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-link-btn:hover {
+  background: linear-gradient(135deg, #ff00ff55, #00ffff55);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.link-icon {
+  font-size: 14px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.profile-image {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #ff00ff;
+  box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+/* Characters Section */
+.characters-section {
+  flex: 0 0 auto;
+  padding: 24px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.characters-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.character-row {
+  display: flex;
+  gap: 24px;
+}
+
+.character-item {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a1a2e, #2d1b4e);
+  border: 2px solid #ff00ff;
+  box-shadow:
+    0 0 20px rgba(255, 0, 255, 0.3),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.character-item:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 30px rgba(255, 0, 255, 0.5),
+    0 0 60px rgba(0, 255, 255, 0.3);
+}
+
+.character-item.character-main {
+  width: 100px;
+  height: 100px;
+  border-color: #00ffff;
+  box-shadow:
+    0 0 25px rgba(0, 255, 255, 0.4),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.character-item img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+/* Menu Section */
+.menu-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(45, 27, 78, 0.6));
+  border: 1px solid rgba(255, 0, 255, 0.3);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  background: linear-gradient(135deg, rgba(45, 27, 78, 0.9), rgba(26, 26, 46, 0.8));
+  border-color: #ff00ff;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+  transform: translateX(4px);
+}
+
+.menu-item.active {
+  background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(0, 255, 255, 0.1));
+  border-color: #00ffff;
+}
+
+.menu-icon {
+  font-size: 20px;
+}
+
+.menu-text {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+.menu-arrow {
+  font-size: 10px;
+  color: #ff00ff;
+}
+
+/* Menu Content */
+.menu-content {
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: -4px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Game List */
+.game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.game-name {
+  font-size: 13px;
+  color: #fff;
+}
+
+.game-status {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #888;
+}
+
+.game-status.active {
+  background: rgba(0, 255, 0, 0.2);
+  color: #00ff00;
+}
+
+/* Leaderboard List */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.leaderboard-item.highlight {
+  background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(0, 255, 255, 0.1));
+  border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.leaderboard-item .rank {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff00ff, #00ffff);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  color: #000;
+}
+
+.leaderboard-item .player {
+  flex: 1;
+  font-size: 13px;
+}
+
+.leaderboard-item .score {
+  font-size: 12px;
+  color: #00ffff;
+  font-weight: 600;
+}
+
+/* Assets List */
+.assets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asset-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.asset-icon {
+  font-size: 20px;
+}
+
+.asset-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.asset-amount {
+  font-size: 14px;
+  color: #00ff00;
+  font-weight: 600;
+}
+
+/* Footer */
+.dashboard-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+}
+
+.wallet-label {
+  color: #666;
+}
+
+.wallet-address {
+  color: #00ffff;
+  font-family: 'Courier New', monospace;
+  background: rgba(0, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}

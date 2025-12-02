@@ -488,6 +488,120 @@ export default defineContentScript({
 
         window.addEventListener('message', spaNavigationListener);
 
+        // Background script로부터의 메시지 처리 (sidepanel -> background -> content)
+        const { browser } = await import('wxt/browser');
+        const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+
+        if (runtime?.onMessage) {
+            runtime.onMessage.addListener(
+                (
+                    message: { type: string },
+                    _sender: any,
+                    sendResponse: (response: any) => void
+                ) => {
+                    if (message.type === 'WALLET_CONNECT') {
+                        console.log('🔐 [Content] WALLET_CONNECT 요청 수신');
+                        // injected script를 통해 MetaMask 연결
+                        import('@/contents/lib/injectedApi').then(({ injectedApi }) => {
+                            injectedApi
+                                .requestAccounts()
+                                .then((accounts) => {
+                                    console.log('✅ [Content] 지갑 연결 성공:', accounts[0]);
+                                    sendResponse({ address: accounts[0] });
+                                })
+                                .catch((error) => {
+                                    console.error('❌ [Content] 지갑 연결 실패:', error);
+                                    sendResponse({ error: error.message });
+                                });
+                        });
+                        return true; // 비동기 응답
+                    }
+
+                    if (message.type === 'WALLET_GET_ACCOUNT') {
+                        console.log('🔐 [Content] WALLET_GET_ACCOUNT 요청 수신');
+
+                        // localStorage의 @appkit/connection_status로 연결 상태 확인
+                        const connectionStatus = window.localStorage.getItem('@appkit/connection_status');
+                        const isConnected = connectionStatus === 'connected';
+                        console.log('🔐 [Content] @appkit/connection_status:', connectionStatus);
+
+                        if (isConnected) {
+                            // 연결된 경우 identity_cache에서 주소 추출
+                            try {
+                                const identityCache = window.localStorage.getItem('@appkit/identity_cache');
+                                if (identityCache) {
+                                    const parsed = JSON.parse(identityCache);
+                                    // 첫 번째 주소 추출 (키가 주소임)
+                                    const address = Object.keys(parsed)[0] || null;
+                                    console.log('✅ [Content] 지갑 연결됨:', { isConnected: true, address });
+                                    sendResponse({ isConnected: true, address });
+                                    return;
+                                }
+                            } catch (e) {
+                                console.error('❌ [Content] identity_cache 파싱 오류:', e);
+                            }
+
+                            // identity_cache가 없으면 MetaMask에서 직접 조회
+                            import('@/contents/lib/injectedApi').then(({ injectedApi }) => {
+                                injectedApi
+                                    .getAccounts()
+                                    .then((accounts) => {
+                                        console.log('✅ [Content] MetaMask 계정 조회:', accounts[0]);
+                                        sendResponse({ isConnected: true, address: accounts[0] || null });
+                                    })
+                                    .catch(() => {
+                                        sendResponse({ isConnected: true, address: null });
+                                    });
+                            });
+                        } else {
+                            console.log('✅ [Content] 지갑 미연결');
+                            sendResponse({ isConnected: false, address: null });
+                        }
+                        return true; // 비동기 응답
+                    }
+
+                    if (message.type === 'MEMEX_LOGIN') {
+                        console.log('🔐 [Content] MEMEX_LOGIN 요청 수신');
+
+                        // sessionStorage의 gtm_user_identifier 확인
+                        try {
+                            const data = window.sessionStorage.getItem('gtm_user_identifier');
+                            if (data) {
+                                const parsed = JSON.parse(data);
+                                if (parsed.username && parsed.user_tag) {
+                                    console.log('✅ [Content] 이미 로그인되어 있음:', parsed.username);
+                                    sendResponse({
+                                        success: true,
+                                        isLoggedIn: true,
+                                        username: parsed.username,
+                                        userTag: parsed.user_tag
+                                    });
+                                    return true;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('❌ [Content] gtm_user_identifier 파싱 오류:', e);
+                        }
+
+                        // 로그인 안됨 - Google 버튼 클릭 후 즉시 응답 (폴링은 sidepanel에서)
+                        const googleButton = document.querySelector('button.page_googleButton__XByPk') as HTMLButtonElement;
+                        if (googleButton) {
+                            console.log('✅ [Content] Google 로그인 버튼 발견, 클릭');
+                            googleButton.click();
+                            sendResponse({ success: true, isLoggedIn: false, loginStarted: true });
+                        } else {
+                            console.log('🔐 [Content] Google 버튼 없음, 로그인 상태만 반환');
+                            sendResponse({ success: true, isLoggedIn: false, loginStarted: false });
+                        }
+                        return true;
+                    }
+
+                    return false;
+                }
+            );
+            console.log('🦑 [Content] Background 메시지 리스너 등록 완료');
+        }
+
         // 클린업 함수 등록
         ctx.onInvalidated(() => {
             window.removeEventListener('message', spaNavigationListener);

@@ -242,6 +242,94 @@ export function createMessageHandler() {
             break;
           }
 
+          case "MEMEX_LOGIN":
+          case "WALLET_CONNECT":
+          case "WALLET_GET_ACCOUNT": {
+            console.log(`🔐 ${message.type} 요청`);
+            try {
+              const { browser } = await import("wxt/browser");
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+
+              // MEMEX 페이지 탭 찾기 (활성 탭이 아니어도 됨)
+              let memexTabs = await tabs.query({
+                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+              });
+
+              console.log(`🔐 MEMEX 탭 찾기 결과:`, memexTabs.length, "개");
+
+              // MEMEX 탭이 없으면 새로 열기
+              if (memexTabs.length === 0) {
+                console.log(`🔐 MEMEX 탭 없음, 새 탭 열기`);
+                const newTab = await tabs.create({
+                  url: "https://app.memex.xyz",
+                  active: true,
+                });
+
+                // 탭이 완전히 로드될 때까지 대기
+                await new Promise<void>((resolve) => {
+                  const listener = (
+                    tabId: number,
+                    changeInfo: { status?: string }
+                  ) => {
+                    if (tabId === newTab.id && changeInfo.status === "complete") {
+                      tabs.onUpdated.removeListener(listener);
+                      // content script 초기화 시간 추가 대기
+                      setTimeout(resolve, 1000);
+                    }
+                  };
+                  tabs.onUpdated.addListener(listener);
+                  // 타임아웃 (10초)
+                  setTimeout(() => {
+                    tabs.onUpdated.removeListener(listener);
+                    resolve();
+                  }, 10000);
+                });
+
+                // 다시 조회
+                memexTabs = await tabs.query({
+                  url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                });
+
+                if (memexTabs.length === 0) {
+                  result = {
+                    success: false,
+                    error: "MEMEX 페이지 로딩 중입니다. 잠시 후 다시 시도해주세요.",
+                  };
+                  break;
+                }
+              }
+
+              // 첫 번째 MEMEX 탭 사용
+              const targetTab = memexTabs[0];
+              console.log(`🔐 타겟 탭:`, targetTab.id, targetTab.url);
+
+              if (!targetTab?.id) {
+                result = {
+                  success: false,
+                  error: "MEMEX 탭 ID를 찾을 수 없습니다.",
+                };
+                break;
+              }
+
+              // Content script로 메시지 전달
+              const response = await tabs.sendMessage(targetTab.id, {
+                type: message.type,
+              });
+
+              result = { success: true, data: response };
+            } catch (error: any) {
+              console.error(`❌ ${message.type} 오류:`, error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "지갑 연결 실패. MEMEX 페이지가 열려있는지 확인하세요.",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,
