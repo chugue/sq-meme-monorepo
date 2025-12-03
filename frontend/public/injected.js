@@ -601,13 +601,73 @@
     sendReadyWithCachedToken();
 
     /**
+     * __next_f에서 토큰 정보 추출 (캐시 사용 안함)
+     */
+    function extractTokenFromNextF() {
+        try {
+            const nextFArray = self.__next_f || window.__next_f;
+            if (!nextFArray || !Array.isArray(nextFArray)) {
+                return null;
+            }
+
+            // 현재 URL에서 username, userTag 추출
+            const currentUrl = window.location.href;
+            const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+            if (!profileMatch) {
+                return null;
+            }
+            const [, username, userTag] = profileMatch;
+
+            let tokenAddr = null;
+            let tokenSymbol = null;
+
+            for (const item of nextFArray) {
+                const content = Array.isArray(item) ? item[1] : (typeof item === 'string' ? item : '');
+                if (typeof content !== 'string') continue;
+
+                // tokenAddress 추출
+                if (!tokenAddr && content.includes('tokenAddress')) {
+                    const match = content.match(/"tokenAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/);
+                    if (match) {
+                        tokenAddr = match[1];
+                    }
+                }
+
+                // tokenSymbol 추출
+                if (!tokenSymbol && content.includes('tokenSymbol')) {
+                    const match = content.match(/"tokenSymbol"\s*:\s*"([^"]+)"/);
+                    if (match) {
+                        tokenSymbol = match[1];
+                    }
+                }
+
+                if (tokenAddr && tokenSymbol) break;
+            }
+
+            if (tokenAddr) {
+                return {
+                    id: '',
+                    contractAddress: tokenAddr,
+                    username,
+                    userTag,
+                    symbol: tokenSymbol,
+                    timestamp: Date.now()
+                };
+            }
+        } catch (e) {
+            log.error('__next_f 토큰 추출 실패', e);
+        }
+        return null;
+    }
+
+    /**
      * SPA 네비게이션 감지
      * history.pushState와 replaceState를 가로채서 Content Script에 알림
      */
     function setupSpaNavigationDetection() {
         let lastUrl = window.location.href;
 
-        // URL 변경 알림 함수
+        // URL 변경 알림 함수 (캐시 미사용 - 항상 __next_f에서 직접 추출)
         const notifyUrlChange = (newUrl, type) => {
             if (newUrl === lastUrl) {
                 return;
@@ -620,21 +680,10 @@
 
             lastUrl = newUrl;
 
-            // 새 URL에서 캐시된 토큰 정보 확인
+            // 프로필 페이지인지 확인
             const profileMatch = newUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
-            let cachedToken = null;
-            if (profileMatch) {
-                const [, username, userTag] = profileMatch;
-                const cacheKey = `${username}#${userTag}`;
-                cachedToken = tokenContractCache.get(cacheKey) || null;
 
-                // window 캐시에서도 확인
-                if (!cachedToken && window.__SQUID_MEME_TOKEN_CONTRACTS__) {
-                    cachedToken = window.__SQUID_MEME_TOKEN_CONTRACTS__[cacheKey] || null;
-                }
-            }
-
-            // Content Script에 URL 변경 알림 + 캐시된 토큰 정보
+            // Content Script에 URL 변경 알림 (토큰 정보 없이 먼저 전송)
             window.postMessage(
                 {
                     source: MESSAGE_SOURCE.SPA_NAVIGATION,
@@ -643,13 +692,37 @@
                         type: type,
                         timestamp: Date.now()
                     },
-                    cachedToken: cachedToken
+                    cachedToken: null  // 캐시 미사용
                 },
                 '*'
             );
 
-            if (cachedToken) {
-                log.info('SPA 네비게이션 + 캐시된 토큰 정보 전송', cachedToken);
+            // 프로필 페이지면 __next_f에서 토큰 정보 추출 후 전송
+            if (profileMatch) {
+                // DOM 렌더링 후 __next_f 추출 시도 (약간의 딜레이)
+                const tryExtractToken = (attempt = 1) => {
+                    const tokenInfo = extractTokenFromNextF();
+
+                    if (tokenInfo) {
+                        log.info(`__next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
+                        window.postMessage(
+                            {
+                                source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
+                                data: tokenInfo,
+                            },
+                            '*'
+                        );
+                    } else if (attempt < 5) {
+                        // 최대 5회 재시도 (100ms, 300ms, 500ms, 700ms)
+                        log.info(`토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
+                        setTimeout(() => tryExtractToken(attempt + 1), 200 * attempt);
+                    } else {
+                        log.warn('토큰 정보 추출 실패 (최대 재시도 초과)');
+                    }
+                };
+
+                // 첫 시도는 약간의 딜레이 후
+                setTimeout(() => tryExtractToken(1), 100);
             }
         };
 
