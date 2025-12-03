@@ -65,6 +65,21 @@ export class GameController {
         return game;
     }
 
+    @Get('active/by-token/:tokenAddress')
+    @ApiGetGameByToken('토큰 주소로 활성 게임 조회 (isEnded = false)')
+    async getActiveGameByToken(@Param('tokenAddress') tokenAddress: string) {
+        const game =
+            await this.gameRepository.findActiveByTokenAddress(tokenAddress);
+
+        if (!game) {
+            throw new NotFoundException(
+                `No active game found for token address: ${tokenAddress}`,
+            );
+        }
+
+        return game;
+    }
+
     @Post('register')
     @HttpCode(HttpStatus.CREATED)
     @ApiRegisterGame('블록체인에서 조회한 게임 등록')

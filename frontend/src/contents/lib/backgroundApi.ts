@@ -43,6 +43,7 @@ export type BackgroundMessage =
   | { type: "SET_STORAGE"; key: string; value: any; area?: "session" | "local" }
   | { type: "REMOVE_STORAGE"; key: string; area?: "session" | "local" }
   | { type: "GET_GAME_BY_TOKEN"; tokenAddress: string }
+  | { type: "GET_ACTIVE_GAME_BY_TOKEN"; tokenAddress: string }
   | { type: "SAVE_COMMENT"; data: CreateCommentRequest }
   | { type: "SAVE_GAME"; data: CreateGameRequest }
   | { type: "REGISTER_CLAIM_PRIZE"; gameAddress: string; txHash: string }
@@ -213,6 +214,14 @@ export const backgroundApi = {
   getGameByToken: async (tokenAddress: string) => {
     return sendToBackground<GameInfo | null>({
       type: "GET_GAME_BY_TOKEN",
+      tokenAddress,
+    });
+  },
+
+  // 토큰 주소로 활성 게임 조회 (isEnded = false)
+  getActiveGameByToken: async (tokenAddress: string) => {
+    return sendToBackground<GameInfo | null>({
+      type: "GET_ACTIVE_GAME_BY_TOKEN",
       tokenAddress,
     });
   },

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -34,6 +34,33 @@ export class GameRepository {
         } catch (error) {
             this.logger.error(
                 `❌ 토큰 주소로 게임 조회 실패 ${tokenAddress}: ${error.message}`,
+            );
+            return null;
+        }
+    }
+
+    /**
+     * @description 토큰 주소로 활성 게임을 조회합니다 (isEnded = false).
+     * @param tokenAddress 게임 토큰 주소 (0x...)
+     * @returns 활성 게임 정보 또는 null
+     */
+    async findActiveByTokenAddress(tokenAddress: string) {
+        try {
+            const result = await this.db
+                .select()
+                .from(schema.games)
+                .where(
+                    and(
+                        eq(schema.games.gameToken, tokenAddress.toLowerCase()),
+                        eq(schema.games.isEnded, false),
+                    ),
+                )
+                .limit(1);
+
+            return result[0] || null;
+        } catch (error) {
+            this.logger.error(
+                `❌ 토큰 주소로 활성 게임 조회 실패 ${tokenAddress}: ${error.message}`,
             );
             return null;
         }

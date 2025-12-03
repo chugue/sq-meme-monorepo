@@ -95,26 +95,53 @@ export function useTokenContract() {
   );
 
   /**
-   * 블록체인에서 gameId로 게임 정보 조회
+   * 블록체인에서 게임 정보 조회 (gameId 또는 tokenAddress)
+   * - gameId가 있으면: getGameInfo(gameId) 1회 호출
+   * - gameId가 없으면: getActiveGameId(tokenAddress) + getGameInfo(gameId) 2회 호출
    */
-  const fetchGameById = useCallback(
-    async (gameId: string): Promise<BlockchainGameInfo | null> => {
+  const fetchGameFromBlockchain = useCallback(
+    async (params: { gameId?: string; tokenAddress?: string }): Promise<BlockchainGameInfo | null> => {
       try {
-        logger.info("블록체인에서 게임 조회 (gameId)", { gameId });
+        const v2Client = getV2Client();
+        let gameId = params.gameId ? BigInt(params.gameId) : null;
 
-        const result = await getV2Client().read<BlockchainGameInfo>({
+        // gameId가 없으면 tokenAddress로 조회
+        if (!gameId && params.tokenAddress) {
+          logger.info("블록체인에서 활성 게임 ID 조회", { tokenAddress: params.tokenAddress });
+
+          const gameIdResult = await v2Client.read<bigint>({
+            functionName: "getActiveGameId",
+            args: [params.tokenAddress as Address],
+          });
+
+          gameId = gameIdResult.data;
+          if (!gameId || gameId === 0n) {
+            logger.info("블록체인에 활성 게임 없음");
+            return null;
+          }
+        }
+
+        if (!gameId) {
+          logger.warn("gameId 또는 tokenAddress가 필요합니다");
+          return null;
+        }
+
+        // getGameInfo로 게임 정보 조회
+        logger.info("블록체인에서 게임 정보 조회", { gameId: gameId.toString() });
+
+        const result = await v2Client.read<BlockchainGameInfo>({
           functionName: "getGameInfo",
-          args: [BigInt(gameId)],
+          args: [gameId],
         });
 
         logger.info("게임 정보 조회 완료", {
-          gameId,
+          gameId: gameId.toString(),
           isEnded: result.data.isEnded,
         });
 
         return result.data;
       } catch (err) {
-        logger.error("게임 정보 조회 실패", err);
+        logger.error("블록체인 게임 조회 실패", err);
         return null;
       }
     },
@@ -122,44 +149,13 @@ export function useTokenContract() {
   );
 
   /**
-   * 블록체인에서 토큰 주소로 활성 게임 조회
-   */
-  const fetchActiveGameByToken = useCallback(
-    async (tokenAddress: string): Promise<BlockchainGameInfo | null> => {
-      try {
-        logger.info("블록체인에서 활성 게임 조회 (tokenAddress)", {
-          tokenAddress,
-        });
-
-        const v2Client = getV2Client();
-
-        // getActiveGameId로 활성 게임 ID 조회
-        const gameIdResult = await v2Client.read<bigint>({
-          functionName: "getActiveGameId",
-          args: [tokenAddress as Address],
-        });
-
-        const gameId = gameIdResult.data;
-        if (!gameId || gameId === 0n) {
-          logger.info("블록체인에 활성 게임 없음");
-          return null;
-        }
-
-        // gameId로 게임 정보 조회
-        return await fetchGameById(gameId.toString());
-      } catch (err) {
-        logger.error("활성 게임 조회 실패", err);
-        return null;
-      }
-    },
-    [getV2Client, fetchGameById]
-  );
-
-  /**
    * 토큰 주소로 게임 정보 조회
-   * 1. 백엔드 API에서 gameId 조회
-   * 2. 블록체인에서 최신 상태 확인 (isEnded 등)
-   * 3. 백엔드에 없으면 블록체인에서 직접 조회
+   *
+   * 흐름:
+   * 1. 백엔드 조회 → 있으면 바로 UI 표시 (빠른 응답)
+   * 2. 블록체인 조회 (병렬) → 최신 상태 확인 (isEnded, endTime 등)
+   * 3. 블록체인 결과로 상태 업데이트
+   * 4. 백엔드에 없고 블록체인에만 있으면 → 백엔드 등록
    */
   const fetchGameByToken = useCallback(
     async (
@@ -178,38 +174,49 @@ export function useTokenContract() {
 
       try {
         const queryTokenAddress = MOCK_ERC20_ADDRESS;
-        logger.info("토큰 주소로 게임 조회 시작", {
-          tokenAddress,
-          queryTokenAddress,
-        });
+        logger.info("토큰 주소로 게임 조회 시작", { tokenAddress, queryTokenAddress });
 
-        // 1. 백엔드 API에서 게임 조회
-        const backendGame = await backgroundApi.getGameByToken(
-          queryTokenAddress
-        );
+        // 1. 백엔드 + 블록체인 동시 조회
+        const [backendGame, blockchainGame] = await Promise.all([
+          backgroundApi.getGameByToken(queryTokenAddress),
+          fetchGameFromBlockchain({ tokenAddress: queryTokenAddress }),
+        ]);
 
-        if (backendGame) {
-          logger.info("백엔드에서 게임 정보 조회 성공", {
-            gameId: backendGame.gameId,
-            tokenSymbol: backendGame.tokenSymbol,
+        // 2. 블록체인에 활성 게임이 있는 경우 (getActiveGameId > 0)
+        if (blockchainGame) {
+          const gameInfo = toActiveGameInfo(blockchainGame);
+          const blockchainGameId = blockchainGame.id.toString();
+          const isSameGame = backendGame?.gameId === blockchainGameId;
+
+          logger.info("블록체인 활성 게임 확인", {
+            blockchainGameId,
+            backendGameId: backendGame?.gameId || "없음",
+            isSameGame,
+            isEnded: blockchainGame.isEnded,
           });
 
-          // 2. 블록체인에서 최신 상태 확인
-          const blockchainGame = await fetchGameById(backendGame.gameId);
+          // 블록체인 최신 상태로 UI 업데이트
+          setGameState(gameInfo, blockchainGame.isEnded);
 
-          if (blockchainGame) {
-            const gameInfo = toActiveGameInfo(blockchainGame);
-            const isEnded = blockchainGame.isEnded;
-
-            logger.info(isEnded ? "게임이 종료됨" : "게임이 진행 중", {
-              gameId: backendGame.gameId,
+          // 백엔드에 없거나 다른 게임이면 등록
+          if (!isSameGame) {
+            logger.info("새 게임 백엔드 등록", { gameId: blockchainGameId });
+            backgroundApi.registerGame(blockchainGame).catch((err) => {
+              logger.error("백엔드 게임 등록 실패 (무시)", err);
             });
-
-            setGameState(gameInfo, isEnded);
-            return isEnded ? null : backendGame;
           }
 
-          // 블록체인 조회 실패 시 백엔드 데이터 사용
+          // 같은 게임이면 백엔드 데이터 반환 (추가 정보 활용)
+          return isSameGame ? backendGame : null;
+        }
+
+        // 3. 블록체인에 활성 게임 없음 (getActiveGameId === 0)
+        // 백엔드에 게임이 있으면 종료된 게임으로 처리
+        if (backendGame) {
+          logger.info("블록체인에 활성 게임 없음, 백엔드 게임은 종료됨", {
+            gameId: backendGame.gameId,
+          });
+
           const gameInfo: ActiveGameInfo = {
             id: backendGame.gameId,
             initiator: backendGame.initiator,
@@ -221,45 +228,21 @@ export function useTokenContract() {
             lastCommentor: backendGame.lastCommentor,
             prizePool: backendGame.prizePool,
             isClaimed: backendGame.isClaimed,
-            isEnded: backendGame.isEnded,
+            isEnded: true, // 블록체인에 없으면 종료된 것
             totalFunding: backendGame.totalFunding || "0",
             funderCount: backendGame.funderCount || "0",
           };
 
-          setGameState(gameInfo, backendGame.isEnded);
-          return backendGame.isEnded ? null : backendGame;
-        }
-
-        // 3. 백엔드에 없으면 블록체인에서 직접 조회
-        logger.info("백엔드에 게임 없음, 블록체인 조회 시도");
-        const blockchainGame = await fetchActiveGameByToken(queryTokenAddress);
-
-        if (blockchainGame) {
-          const gameInfo = toActiveGameInfo(blockchainGame);
-          const isEnded = blockchainGame.isEnded;
-
-          logger.info(isEnded ? "게임이 종료됨" : "블록체인에서 게임 발견", {
-            gameId: gameInfo.id,
-          });
-
-          setGameState(gameInfo, isEnded);
-
-          // 진행 중인 게임은 백엔드에 등록
-          if (!isEnded) {
-            backgroundApi.registerGame(blockchainGame).catch((err) => {
-              logger.error("백엔드 게임 등록 실패 (무시)", err);
-            });
-          }
-
+          setGameState(gameInfo, true);
           return null;
         }
 
+        // 4. 양쪽 모두 게임 없음
         logger.info("게임 없음 (백엔드 및 블록체인 모두)", { tokenAddress });
         setGameState(null, false);
         return null;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "게임 조회 실패";
+        const errorMessage = err instanceof Error ? err.message : "게임 조회 실패";
         logger.error("게임 조회 실패", err);
         setError(errorMessage);
         setGameState(null, false);
@@ -268,14 +251,7 @@ export function useTokenContract() {
         setIsLoading(false);
       }
     },
-    [
-      setIsLoading,
-      setError,
-      setGameState,
-      fetchGameById,
-      fetchActiveGameByToken,
-      toActiveGameInfo,
-    ]
+    [setIsLoading, setError, setGameState, fetchGameFromBlockchain, toActiveGameInfo]
   );
 
   /**

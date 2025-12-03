@@ -206,6 +206,31 @@ export function createMessageHandler() {
             break;
           }
 
+          case "GET_ACTIVE_GAME_BY_TOKEN": {
+            console.log("🎮 GET_ACTIVE_GAME_BY_TOKEN 요청:", message.tokenAddress);
+            try {
+              const response = await apiCall<any>(
+                `/v1/games/active/by-token/${encodeURIComponent(message.tokenAddress)}`
+              );
+              result = { success: true, data: response };
+            } catch (error: any) {
+              // 404는 활성 게임이 없는 정상 케이스
+              const errorMsg = error.message || "";
+              if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                console.log("🎮 활성 게임 없음 (404):", message.tokenAddress);
+                result = { success: true, data: null };
+              } else {
+                console.error("❌ 활성 게임 조회 오류:", error);
+                result = {
+                  success: false,
+                  error:
+                    error instanceof Error ? error.message : "활성 게임 조회 실패",
+                };
+              }
+            }
+            break;
+          }
+
           case "SAVE_COMMENT": {
             console.log("💬 SAVE_COMMENT 요청:", message.data);
             try {
