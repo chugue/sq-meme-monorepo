@@ -11,7 +11,8 @@ import { useCallback, useEffect, useRef } from "react";
 import type { Address } from "viem";
 import type { BlockchainGameInfo } from "../../types/request.types";
 import {
-  currentChallengeIdAtom,
+  ActiveGameInfo,
+  activeGameInfoAtom,
   EndedGameInfo,
   endedGameInfoAtom,
   isGameEndedAtom,
@@ -42,7 +43,7 @@ export function useTokenContract() {
   const [tokenContract, setTokenContract] = useAtom(tokenContractAtom);
   const [isLoading, setIsLoading] = useAtom(isTokenContractLoadingAtom);
   const [error, setError] = useAtom(tokenContractErrorAtom);
-  const [, setGameAddress] = useAtom(currentChallengeIdAtom);
+  const [, setActiveGameInfo] = useAtom(activeGameInfoAtom);
   const [, setIsGameEnded] = useAtom(isGameEndedAtom);
   const [, setEndedGameInfo] = useAtom(endedGameInfoAtom);
 
@@ -216,13 +217,29 @@ export function useTokenContract() {
             logger.info("게임이 종료됨 (블록체인 타임스탬프 기준)", {
               gameId: game.gameId,
             });
-            // 종료된 게임은 gameId를 null로 설정하여 CreateGame UI 표시
-            setGameAddress(null);
+            // 종료된 게임은 null로 설정하여 CreateGame UI 표시
+            setActiveGameInfo(null);
             return null;
           }
 
-          // 게임 ID를 currentChallengeIdAtom에 저장
-          setGameAddress(game.gameId);
+          // 백엔드 GameInfo → ActiveGameInfo 변환하여 저장
+          // 백엔드에는 totalFunding, funderCount, isClaimed이 없으므로 기본값 사용
+          const activeGameInfo: ActiveGameInfo = {
+            id: game.gameId,
+            initiator: game.initiator,
+            gameToken: game.gameToken,
+            cost: game.cost,
+            gameTime: game.gameTime,
+            tokenSymbol: game.tokenSymbol || "",
+            endTime: game.endTime,
+            lastCommentor: game.lastCommentor,
+            prizePool: game.prizePool,
+            isClaimed: false, // 백엔드에 없음, 기본값
+            isEnded: game.isEnded,
+            totalFunding: "0", // 백엔드에 없음, 기본값
+            funderCount: "0", // 백엔드에 없음, 기본값
+          };
+          setActiveGameInfo(activeGameInfo);
 
           return game;
         }
@@ -255,8 +272,8 @@ export function useTokenContract() {
             };
             setEndedGameInfo(endedInfo);
 
-            // 종료된 게임은 gameId를 null로 설정하여 CreateGame UI 표시
-            setGameAddress(null);
+            // 종료된 게임은 null로 설정하여 CreateGame UI 표시
+            setActiveGameInfo(null);
             return null;
           }
 
@@ -269,14 +286,29 @@ export function useTokenContract() {
             logger.error("백엔드 게임 등록 실패 (계속 진행)", registerErr);
           }
 
-          // 게임 ID를 설정하여 댓글 UI가 표시되도록 함
-          setGameAddress(gameId);
+          // 블록체인 GameInfo → ActiveGameInfo 변환하여 저장
+          const activeGameInfo: ActiveGameInfo = {
+            id: gameId,
+            initiator: blockchainGame.initiator,
+            gameToken: blockchainGame.gameToken,
+            cost: blockchainGame.cost.toString(),
+            gameTime: blockchainGame.gameTime.toString(),
+            tokenSymbol: blockchainGame.tokenSymbol,
+            endTime: blockchainGame.endTime.toString(),
+            lastCommentor: blockchainGame.lastCommentor,
+            prizePool: blockchainGame.prizePool.toString(),
+            isClaimed: blockchainGame.isClaimed,
+            isEnded: blockchainGame.isEnded,
+            totalFunding: blockchainGame.totalFunding.toString(),
+            funderCount: blockchainGame.funderCount.toString(),
+          };
+          setActiveGameInfo(activeGameInfo);
 
           return null;
         }
 
         logger.info("게임 없음 (백엔드 및 블록체인 모두)", { tokenAddress });
-        setGameAddress(null);
+        setActiveGameInfo(null);
         return null;
       } catch (err) {
         const errorMessage =
@@ -291,7 +323,7 @@ export function useTokenContract() {
     [
       setIsLoading,
       setError,
-      setGameAddress,
+      setActiveGameInfo,
       setIsGameEnded,
       setEndedGameInfo,
       fetchGameFromBlockchain,

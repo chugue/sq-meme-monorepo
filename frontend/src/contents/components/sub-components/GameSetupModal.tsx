@@ -7,9 +7,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Address } from 'viem';
-import { useCreateGame, type CreateGameStep, type ExistingGameInfo } from '../hooks/useCreateGame';
-import { useTokenBalance } from '../hooks/useTokenBalance';
-import { useWallet } from '../hooks/useWallet';
+import { useCreateGame, type CreateGameStep, type ExistingGameInfo } from '../../hooks/useCreateGame';
+import { useTokenBalance } from '../../hooks/useTokenBalance';
+import { useWallet } from '../../hooks/useWallet';
 import './GameSetupModal.css';
 
 // 게임 설정 단계
