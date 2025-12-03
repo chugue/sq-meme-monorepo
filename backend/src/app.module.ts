@@ -7,6 +7,7 @@ import { DbModule } from './common/db/db.module';
 import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
 import { UsersModule } from './domains/users/users.module';
+import { UploadModule } from './domains/upload/upload.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -27,6 +28,7 @@ import { AppController } from './app.controller';
         GameModule,
         CommentModule,
         UsersModule,
+        UploadModule,
     ],
     controllers: [AppController],
     providers: [],

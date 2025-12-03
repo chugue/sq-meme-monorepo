@@ -37,7 +37,8 @@ export type BackgroundMessage =
   | { type: "JOIN"; data: JoinRequest }
   | { type: "LOGOUT" }
   | { type: "WALLET_DISCONNECT" }
-  | { type: "REGISTER_GAME"; data: BlockchainGameInfo };
+  | { type: "REGISTER_GAME"; data: BlockchainGameInfo }
+  | { type: "UPLOAD_IMAGE"; fileData: string; fileName: string; mimeType: string };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -294,6 +295,29 @@ export const backgroundApi = {
     return sendToBackground<{ gameId: string }>({
       type: "REGISTER_GAME",
       data,
+    });
+  },
+
+  // 이미지 업로드 (Supabase Storage)
+  uploadImage: async (file: File) => {
+    // File을 base64로 변환
+    const fileData = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // data:image/png;base64,... 에서 base64 부분만 추출
+        const base64 = result.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    return sendToBackground<{ url: string; path: string }>({
+      type: "UPLOAD_IMAGE",
+      fileData,
+      fileName: file.name,
+      mimeType: file.type,
     });
   },
 };

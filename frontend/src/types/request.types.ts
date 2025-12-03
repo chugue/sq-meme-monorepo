@@ -29,13 +29,13 @@ export interface CreateGameRequest {
 // 블록체인에서 조회한 게임 정보 (V2 ABI GameInfo - bigint 타입)
 export interface BlockchainGameInfo {
   id: bigint;
-  initiator: string;
-  gameToken: string;
+  initiator: `0x${string}`;
+  gameToken: `0x${string}`;
   cost: bigint;
   gameTime: bigint;
   tokenSymbol: string;
   endTime: bigint;
-  lastCommentor: string;
+  lastCommentor: `0x${string}`;
   prizePool: bigint;
   isClaimed: boolean;
   isEnded: boolean;

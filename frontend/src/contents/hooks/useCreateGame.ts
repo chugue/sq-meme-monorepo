@@ -214,6 +214,7 @@ export function useCreateGame(): UseCreateGameReturn {
         // 네트워크 확인
         await ensureNetwork();
 
+        // TODO: 밈코어 메인넷 배포시 실제 토큰으로 변경 필요, currentPageInfo에서 꺼내서 사용
         const actualTokenAddress = MOCK_ERC20_ADDRESS;
         const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
 
@@ -330,44 +331,40 @@ export function useCreateGame(): UseCreateGameReturn {
           logsCount: createGameReceipt.logs.length,
         });
 
-        // GameCreated 이벤트에서 gameId 파싱
-        // topics[1] = gameId (indexed)
-        let createdGameId: bigint | null = null;
+        // getActiveGameId로 생성된 게임 ID 조회 후 getGameInfo로 전체 정보 가져오기
+        const activeGameIdResult = await v2Client.read<bigint>({
+          functionName: "getActiveGameId",
+          args: [actualTokenAddress],
+        });
 
-        for (const log of createGameReceipt.logs) {
-          // GameCreated 이벤트 시그니처 확인
-          if (
-            log.address.toLowerCase() === v2ContractAddress.toLowerCase() &&
-            log.topics.length >= 2
-          ) {
-            // topics[1]이 gameId (indexed)
-            createdGameId = BigInt(log.topics[1]);
-            break;
-          }
-        }
-
-        if (!createdGameId) {
-          // 이벤트 파싱 실패 시 getActiveGameId로 조회
-          logger.warn(
-            "GameCreated 이벤트를 찾을 수 없음, getActiveGameId로 조회"
-          );
-
-          const activeGameIdResult = await v2Client.read<bigint>({
-            functionName: "getActiveGameId",
-            args: [actualTokenAddress],
-          });
-
-          createdGameId = activeGameIdResult.data;
-        }
+        const createdGameId = activeGameIdResult.data;
 
         if (!createdGameId || createdGameId === 0n) {
           throw new Error("게임 ID를 조회할 수 없습니다.");
         }
 
+        // 게임 정보 조회
+        const gameInfoResult = await v2Client.read<GameInfo>({
+          functionName: "getGameInfo",
+          args: [createdGameId],
+        });
+
+        const gameInfo = gameInfoResult.data;
+
         setGameId(createdGameId.toString());
         setGameAddress(v2ContractAddress);
 
         logger.info("게임 생성 완료", { gameId: createdGameId.toString() });
+
+        // DB에 게임 정보 등록
+        try {
+          await backgroundApi.registerGame(gameInfo);
+          logger.info("게임 정보 DB 등록 완료", {
+            gameId: createdGameId.toString(),
+          });
+        } catch (dbError) {
+          logger.warn("게임 정보 DB 등록 실패", { error: dbError });
+        }
 
         // ============================================
         // Step 3: First Comment - 첫 댓글 작성 (V2)

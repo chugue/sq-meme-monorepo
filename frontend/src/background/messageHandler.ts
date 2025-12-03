@@ -3,7 +3,7 @@ import {
   BackgroundResponse,
 } from "../contents/lib/backgroundApi";
 import type { BlockchainGameInfo, JoinRequest } from "../types/request.types";
-import { apiCall } from "./api";
+import { apiCall, apiUpload } from "./api";
 import { openSidePanel } from "./sidepanel";
 
 export function createMessageHandler() {
@@ -488,6 +488,46 @@ export function createMessageHandler() {
               result = {
                 success: false,
                 error: error instanceof Error ? error.message : "로그아웃 실패",
+              };
+            }
+            break;
+          }
+
+          case "UPLOAD_IMAGE": {
+            console.log("📤 UPLOAD_IMAGE 요청");
+            try {
+              const { fileData, fileName, mimeType } = message as {
+                type: string;
+                fileData: string; // base64 encoded
+                fileName: string;
+                mimeType: string;
+              };
+
+              // base64를 Blob으로 변환
+              const byteCharacters = atob(fileData);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: mimeType });
+
+              // FormData 생성
+              const formData = new FormData();
+              formData.append("file", blob, fileName);
+
+              const response = await apiUpload<{
+                success: boolean;
+                data: { url: string; path: string };
+              }>("/v1/upload/image", formData);
+
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 이미지 업로드 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "이미지 업로드 실패",
               };
             }
             break;

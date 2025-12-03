@@ -5,7 +5,7 @@
  * - 익스플로러 링크 제공
  */
 
-import "./GameSetupModal.css";
+import "../game-setup-modal/GameSetupModal.css";
 
 interface TransactionSuccessModalProps {
   isOpen: boolean;
