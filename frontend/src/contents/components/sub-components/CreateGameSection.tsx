@@ -9,7 +9,7 @@ import { useState } from "react";
 import type { Address } from "viem";
 import { useWallet } from "../../hooks/useWallet";
 import { formatAddress } from "../../utils/messageFormatter";
-import { GameSetupModal } from "./GameSetupModal";
+import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
 
 interface CreateGameSectionProps {
   tokenAddress: Address;

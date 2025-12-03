@@ -1,14 +1,12 @@
 /**
  * 지갑 연결 및 상태 관리 훅
  *
- * 시니어급 기준으로 개선:
- * - 상태 관리 개선
- * - 에러 처리 강화
- * - 이벤트 리스너 정리
- * - 타입 안정성
+ * backgroundApi를 통해 지갑 상태를 관리하여
+ * SidePanel과 Content Script 간 상태 동기화
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { backgroundApi } from '../lib/backgroundApi';
 import { memeCoreChain } from '../config/wagmi';
 import { getChainConfig } from '../lib/injected/chainConfig';
 import { logger } from '../lib/injected/logger';
@@ -16,7 +14,7 @@ import {
     isAccountsChangedMessage,
     isChainChangedMessage,
 } from '../lib/injected/messageValidator';
-import { ERROR_CODES, injectedApi, waitForInjectedScript } from '../lib/injectedApi';
+import { ERROR_CODES, injectedApi } from '../lib/injectedApi';
 
 export interface WalletState {
     isConnected: boolean;
@@ -34,24 +32,19 @@ export interface UseWalletReturn extends WalletState {
     ensureNetwork: () => Promise<void>;
 }
 
-// 모듈 레벨 초기화 플래그 (여러 컴포넌트에서 중복 초기화 방지)
-let isGlobalInitialized = false;
-let globalInitPromise: Promise<{ accounts: string[]; chainId: string } | null> | null = null;
-
 /**
  * 지갑 연결 및 상태 관리 훅
+ * backgroundApi를 통해 SidePanel과 동일한 진실의 원천 사용
  */
 export function useWallet(): UseWalletReturn {
     const [state, setState] = useState<WalletState>({
         isConnected: false,
         address: null,
         chainId: null,
-        isLoading: !isGlobalInitialized, // 이미 초기화됐으면 로딩 false
+        isLoading: true,
         error: null,
         errorCode: null,
     });
-
-    const abortControllerRef = useRef<AbortController | null>(null);
 
     /**
      * 상태 업데이트 헬퍼
@@ -77,75 +70,46 @@ export function useWallet(): UseWalletReturn {
     );
 
     /**
-     * 지갑 상태 초기화 (모듈 레벨에서 중복 방지)
+     * 지갑 상태 조회 (backgroundApi 사용)
      */
-    const initializeWallet = useCallback(async () => {
-        // 이미 초기화 중이면 기존 Promise 재사용
-        if (globalInitPromise) {
-            try {
-                const result = await globalInitPromise;
-                if (result) {
-                    updateState({
-                        isConnected: result.accounts.length > 0,
-                        address: result.accounts[0] || null,
-                        chainId: result.chainId || null,
-                        isLoading: false,
-                        error: null,
-                        errorCode: null,
-                    });
-                }
-            } catch {
-                // 에러는 첫 번째 호출에서 처리됨
-            }
-            return;
-        }
-
-        // 이미 초기화됐으면 스킵
-        if (isGlobalInitialized) {
-            return;
-        }
-
-        // 초기화 Promise 생성 및 저장
-        globalInitPromise = (async () => {
-            try {
-                updateState({ isLoading: true, error: null, errorCode: null });
-
-                // Injected script 준비 대기
-                const isReady = await waitForInjectedScript(3000);
-                if (!isReady) {
-                    throw new Error('Injected script가 준비되지 않았습니다');
-                }
-
-                // 현재 연결 상태 확인
-                const [accounts, chainId] = await Promise.all([
-                    injectedApi.getAccounts(),
-                    injectedApi.getChainId(),
-                ]);
-
-                isGlobalInitialized = true;
-                return { accounts, chainId };
-            } catch (error) {
-                globalInitPromise = null; // 실패 시 재시도 가능하도록
-                throw error;
-            }
-        })();
-
+    const fetchWalletState = useCallback(async () => {
         try {
-            const result = await globalInitPromise;
-            if (result) {
-                updateState({
-                    isConnected: result.accounts.length > 0,
-                    address: result.accounts[0] || null,
-                    chainId: result.chainId || null,
-                    isLoading: false,
-                    error: null,
-                    errorCode: null,
-                });
+            updateState({ isLoading: true, error: null, errorCode: null });
+
+            const result = await backgroundApi.walletGetAccount();
+            logger.debug('지갑 상태 조회 결과', result);
+
+            updateState({
+                isConnected: result.isConnected,
+                address: result.address,
+                isLoading: false,
+                error: null,
+                errorCode: null,
+            });
+
+            // chainId는 별도로 조회 (injectedApi 사용)
+            if (result.isConnected) {
+                try {
+                    const chainId = await injectedApi.getChainId();
+                    updateState({ chainId: chainId || null });
+                } catch {
+                    // chainId 조회 실패는 무시
+                }
             }
+
+            return result.isConnected;
         } catch (error) {
-            setError(error, error instanceof Error && 'code' in error ? String(error.code) : ERROR_CODES.UNKNOWN_ERROR);
+            logger.error('지갑 상태 조회 실패', error);
+            updateState({
+                isConnected: false,
+                address: null,
+                isLoading: false,
+                error: null, // 초기 로드 에러는 표시하지 않음
+                errorCode: null,
+            });
+            return false;
         }
-    }, [updateState, setError]);
+    }, [updateState]);
 
     /**
      * 네트워크 전환 (필요시 체인 추가)
@@ -204,22 +168,27 @@ export function useWallet(): UseWalletReturn {
     }, [switchToTargetNetwork, updateState]);
 
     /**
-     * 지갑 연결
+     * 지갑 연결 (backgroundApi 사용)
      */
     const connect = useCallback(async () => {
         try {
             updateState({ isLoading: true, error: null, errorCode: null });
 
-            // 계정 연결
-            const accounts = await injectedApi.requestAccounts();
+            const result = await backgroundApi.walletConnect();
+            logger.info('지갑 연결 성공', result);
 
-            // 최종 체인 ID 확인
-            const chainId = await injectedApi.getChainId();
+            // 연결 후 chainId 조회
+            let chainId: string | null = null;
+            try {
+                chainId = await injectedApi.getChainId();
+            } catch {
+                // chainId 조회 실패는 무시
+            }
 
             updateState({
-                isConnected: accounts.length > 0,
-                address: accounts[0] || null,
-                chainId: chainId || null,
+                isConnected: true,
+                address: result.address,
+                chainId,
                 isLoading: false,
                 error: null,
                 errorCode: null,
@@ -248,32 +217,15 @@ export function useWallet(): UseWalletReturn {
     }, [updateState]);
 
     /**
-     * 지갑 상태 새로고침
+     * 지갑 상태 새로고침 (backgroundApi 사용)
      */
     const refresh = useCallback(async () => {
-        try {
-            updateState({ isLoading: true, error: null, errorCode: null });
-
-            const [accounts, chainId] = await Promise.all([
-                injectedApi.getAccounts(),
-                injectedApi.getChainId(),
-            ]);
-
-            updateState({
-                isConnected: accounts.length > 0,
-                address: accounts[0] || null,
-                chainId: chainId || null,
-                isLoading: false,
-                error: null,
-                errorCode: null,
-            });
-        } catch (error) {
-            setError(error, error instanceof Error && 'code' in error ? String(error.code) : ERROR_CODES.UNKNOWN_ERROR);
-        }
-    }, [updateState, setError]);
+        await fetchWalletState();
+    }, [fetchWalletState]);
 
     /**
      * MetaMask 이벤트 리스너 설정
+     * accountsChanged, chainChanged 이벤트 수신
      */
     useEffect(() => {
         const handleAccountsChanged = (accounts: string[]) => {
@@ -320,19 +272,12 @@ export function useWallet(): UseWalletReturn {
         return () => {
             window.removeEventListener('message', messageListener);
         };
-    }, [disconnect, updateState, switchToTargetNetwork]);
+    }, [disconnect, updateState]);
 
-    // 초기화
+    // 초기화: backgroundApi를 통해 현재 지갑 상태 조회
     useEffect(() => {
-        initializeWallet();
-
-        // Cleanup
-        return () => {
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-        };
-    }, [initializeWallet]);
+        fetchWalletState();
+    }, [fetchWalletState]);
 
     return {
         ...state,
