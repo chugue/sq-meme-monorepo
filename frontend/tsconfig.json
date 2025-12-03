@@ -16,7 +16,5 @@
     },
     "include": [
         "src/**/*",
-        "entrypoints/**/*",
-        "src/injected.js"
     ]
 }

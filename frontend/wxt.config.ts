@@ -4,6 +4,8 @@ import { defineConfig } from 'wxt';
 // See https://wxt.dev/api/config.html
 export default defineConfig({
     modules: ['@wxt-dev/module-react'],
+    // entrypoints 폴더 위치 지정 (src 안으로 이동)
+    entrypointsDir: 'src/entrypoints',
     // WXT 개발 서버 포트 (백엔드 3000과 충돌 방지)
     dev: {
         server: {
@@ -19,6 +21,7 @@ export default defineConfig({
                 '@/sidepanel': path.resolve(__dirname, './src/sidepanel'),
                 '@/shared': path.resolve(__dirname, './src/shared'),
                 '@/contents': path.resolve(__dirname, './src/contents'),
+                '@/entrypoints': path.resolve(__dirname, './src/entrypoints'),
             },
         },
     }),

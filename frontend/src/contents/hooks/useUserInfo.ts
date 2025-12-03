@@ -9,7 +9,7 @@ import { useAtom } from "jotai";
 import { useEffect } from "react";
 import type { User } from "../../types/response.types";
 import { isUserLoadingAtom, userAtom, userErrorAtom } from "../atoms/userAtoms";
-import { getSquidUserFromStorage } from "../lib/chromeStorage";
+import { backgroundApi } from "../lib/backgroundApi";
 import { logger } from "../lib/injected/logger";
 
 /**
@@ -19,54 +19,54 @@ import { logger } from "../lib/injected/logger";
  * Join 성공 후 Background Script가 squid_user로 저장함
  */
 export function useUserInfo() {
-  const [user, setUser] = useAtom(userAtom);
-  const [isLoading, setIsLoading] = useAtom(isUserLoadingAtom);
-  const [error, setError] = useAtom(userErrorAtom);
+    const [user, setUser] = useAtom(userAtom);
+    const [isLoading, setIsLoading] = useAtom(isUserLoadingAtom);
+    const [error, setError] = useAtom(userErrorAtom);
 
-  /**
-   * 사용자 정보 로드
-   * chrome.storage.session에서 squid_user 읽기
-   */
-  const loadUser = async (): Promise<User | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      logger.debug("🦑 loadUser 시작");
+    /**
+     * 사용자 정보 로드
+     * chrome.storage.session에서 squid_user 읽기
+     */
+    const loadUser = async (): Promise<User | null> => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            logger.debug("🦑 loadUser 시작");
 
-      const userData = await getSquidUserFromStorage();
+            const userData = await backgroundApi.getStorage<User>('squid_user', 'session');
 
-      if (userData) {
-        logger.info("User 로드 완료", {
-          id: userData.id,
-          userName: userData.userName,
-        });
-        setUser(userData);
-        return userData;
-      }
+            if (userData) {
+                logger.info("User 로드 완료", {
+                    id: userData.id,
+                    userName: userData.userName,
+                });
+                setUser(userData);
+                return userData;
+            }
 
-      logger.debug("User 없음 (로그인 필요)");
-      setUser(null);
-      return null;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      logger.error("User 로드 실패", err);
-      setUser(null);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            logger.debug("User 없음 (로그인 필요)");
+            setUser(null);
+            return null;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setError(errorMessage);
+            logger.error("User 로드 실패", err);
+            setUser(null);
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  // 초기 로드
-  useEffect(() => {
-    loadUser();
-  }, []);
+    // 초기 로드
+    useEffect(() => {
+        loadUser();
+    }, []);
 
-  return {
-    user,
-    isLoading,
-    error,
-    refetch: loadUser,
-  };
+    return {
+        user,
+        isLoading,
+        error,
+        refetch: loadUser,
+    };
 }

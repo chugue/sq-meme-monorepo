@@ -440,136 +440,8 @@
             }
         }
 
-        // GET_NEXT_F_DATA 메서드 처리 (Next.js streaming data)
-        if (method === 'GET_NEXT_F_DATA') {
-            try {
-                log.info('🔍 GET_NEXT_F_DATA 요청 수신');
-
-                let profileImageUrl = null;
-                let tokenAddr = null;
-                let tokenSymbol = null;
-                let memexWalletAddress = null;
-
-                // self.__next_f 배열에서 데이터 추출
-                const nextFArray = self.__next_f || window.__next_f;
-
-                if (nextFArray && Array.isArray(nextFArray)) {
-                    log.info('✅ self.__next_f 배열 발견, 길이:', nextFArray.length);
-
-                    for (const item of nextFArray) {
-                        // __next_f 배열의 각 항목은 [id, content] 형태
-                        const content = Array.isArray(item) ? item[1] : (typeof item === 'string' ? item : '');
-                        if (typeof content !== 'string') continue;
-
-                        // tokenAddress가 포함된 항목 찾기
-                        if (content.includes('tokenAddress') || content.includes('profileImageUrl') || content.includes('walletAddress')) {
-                            // tokenAddress 추출 (0x로 시작하는 42자)
-                            if (!tokenAddr) {
-                                const tokenAddrMatch = content.match(/"tokenAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/);
-                                if (tokenAddrMatch) {
-                                    tokenAddr = tokenAddrMatch[1];
-                                    log.info('✅ tokenAddress 발견:', tokenAddr);
-                                }
-                            }
-
-                            // tokenSymbol 추출
-                            if (!tokenSymbol) {
-                                const tokenSymbolMatch = content.match(/"tokenSymbol"\s*:\s*"([^"]+)"/);
-                                if (tokenSymbolMatch) {
-                                    tokenSymbol = tokenSymbolMatch[1];
-                                    log.info('✅ tokenSymbol 발견:', tokenSymbol);
-                                }
-                            }
-
-                            // profileImageUrl 추출
-                            if (!profileImageUrl) {
-                                const profileImgMatch = content.match(/"profileImageUrl"\s*:\s*"([^"]+)"/);
-                                if (profileImgMatch) {
-                                    profileImageUrl = profileImgMatch[1];
-                                    log.info('✅ profileImageUrl 발견:', profileImageUrl);
-                                }
-                            }
-
-                            // walletAddress 추출 (MEMEX에 등록된 지갑 주소)
-                            if (!memexWalletAddress) {
-                                const walletMatch = content.match(/"walletAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/);
-                                if (walletMatch) {
-                                    memexWalletAddress = walletMatch[1];
-                                    log.info('✅ memexWalletAddress 발견:', memexWalletAddress);
-                                }
-                            }
-
-                            // 모든 정보를 찾았으면 루프 종료
-                            if (tokenAddr && tokenSymbol && profileImageUrl && memexWalletAddress) {
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    log.warn('⚠️ self.__next_f 배열을 찾을 수 없음');
-                }
-
-                log.info('🖼️ GET_NEXT_F_DATA 결과:', { profileImageUrl, tokenAddr, tokenSymbol, memexWalletAddress });
-
-                window.postMessage(
-                    {
-                        source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
-                        id: payload.id,
-                        result: { profileImageUrl, tokenAddr, tokenSymbol, memexWalletAddress },
-                    },
-                    '*'
-                );
-            } catch (error) {
-                log.error('GET_NEXT_F_DATA 실패', error);
-                window.postMessage(
-                    {
-                        source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
-                        id: payload.id,
-                        error: error?.message || 'Failed to get __next_f data',
-                    },
-                    '*'
-                );
-            }
-        }
 
     });
-
-    /**
-     * Authorization 토큰 가져오기
-     * 저장된 토큰만 사용 (window 또는 localStorage의 Mock 토큰)
-     */
-    function getAuthorizationToken() {
-        // 1. 캐시된 토큰 사용
-        if (cachedAuthToken) {
-            return cachedAuthToken;
-        }
-
-        // 2. window에 저장된 토큰 확인 (Content Script가 저장한 것 또는 Mock 토큰)
-        const storedToken = getStoredToken();
-        if (storedToken) {
-            cachedAuthToken = storedToken; // 캐시에 저장
-            return storedToken;
-        }
-
-        // 3. localStorage에서 Mock 토큰 확인 (개발/테스트 환경)
-        try {
-            const mockToken = localStorage.getItem('__SQUID_MEME_MOCK_TOKEN__');
-            if (mockToken) {
-                // Bearer 접두사 확인 및 추가
-                let normalizedToken = mockToken;
-                if (!normalizedToken.startsWith('Bearer ')) {
-                    normalizedToken = `Bearer ${normalizedToken}`;
-                }
-                cachedAuthToken = normalizedToken; // 캐시에 저장
-                return normalizedToken;
-            }
-        } catch (e) {
-            // localStorage 접근 실패는 무시
-        }
-
-        return null;
-    }
-
 
     /**
      * MetaMask 이벤트 리스너 설정
@@ -641,210 +513,105 @@
         }, 10000);
     }
 
-    // 준비 완료 알림 + __next_f에서 토큰 정보 추출하여 전송
-    const sendReadyWithToken = () => {
-        // 현재 URL에서 프로필 정보 확인
-        const currentUrl = window.location.href;
-        const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
-
-        // 먼저 준비 완료 메시지 전송 (토큰 정보 없이)
-        window.postMessage(
-            {
-                source: MESSAGE_SOURCE.INJECTED_SCRIPT_READY,
-                cachedToken: null,
-            },
-            '*'
-        );
-
-        // 프로필 페이지면 __next_f에서 토큰 정보 추출 시도
-        if (profileMatch) {
-            const tryExtractToken = (attempt = 1) => {
-                const tokenInfo = extractTokenFromNextF();
-
-                if (tokenInfo) {
-                    log.info(`초기 로드: __next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
-                    window.postMessage(
-                        {
-                            source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
-                            data: tokenInfo,
-                        },
-                        '*'
-                    );
-                } else if (attempt < 10) {
-                    // 최대 10회 재시도 (100ms, 200ms, 300ms, ...)
-                    log.info(`초기 로드: 토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
-                    setTimeout(() => tryExtractToken(attempt + 1), 100 * attempt);
-                } else {
-                    log.warn('초기 로드: 토큰 정보 추출 실패 (최대 재시도 초과)');
-                }
-            };
-
-            // 첫 시도는 약간의 딜레이 후 (DOM 렌더링 대기)
-            setTimeout(() => tryExtractToken(1), 200);
-        }
-    };
-
-    sendReadyWithToken();
-
-    /**
-     * __next_f에서 토큰 정보 추출 (캐시 사용 안함)
-     */
-    function extractTokenFromNextF() {
-        try {
-            const nextFArray = self.__next_f || window.__next_f;
-            if (!nextFArray || !Array.isArray(nextFArray)) {
-                return null;
-            }
-
-            // 현재 URL에서 username, userTag 추출
-            const currentUrl = window.location.href;
-            const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
-            if (!profileMatch) {
-                return null;
-            }
-            const [, username, userTag] = profileMatch;
-
-            let tokenAddr = null;
-            let tokenSymbol = null;
-
-            for (const item of nextFArray) {
-                const content = Array.isArray(item) ? item[1] : (typeof item === 'string' ? item : '');
-                if (typeof content !== 'string') continue;
-
-                // tokenAddress 추출 (escaped quotes 지원: \" 또는 ")
-                if (!tokenAddr && content.includes('tokenAddress')) {
-                    const match = content.match(/["\\]tokenAddress["\\]\s*:\s*["\\](0x[a-fA-F0-9]{40})["\\]/);
-                    if (match) {
-                        tokenAddr = match[1];
-                    }
-                }
-
-                // tokenSymbol 추출 (escaped quotes 지원: \" 또는 ")
-                if (!tokenSymbol && content.includes('tokenSymbol')) {
-                    const match = content.match(/["\\]tokenSymbol["\\]\s*:\s*["\\]([^"\\]+)["\\]/);
-                    if (match) {
-                        tokenSymbol = match[1];
-                    }
-                }
-
-                if (tokenAddr && tokenSymbol) break;
-            }
-
-            if (tokenAddr) {
-                return {
-                    id: '',
-                    contractAddress: tokenAddr,
-                    username,
-                    userTag,
-                    symbol: tokenSymbol,
-                    timestamp: Date.now()
-                };
-            }
-        } catch (e) {
-            log.error('__next_f 토큰 추출 실패', e);
-        }
-        return null;
-    }
-
     /**
      * SPA 네비게이션 감지
      * history.pushState와 replaceState를 가로채서 Content Script에 알림
      */
-    function setupSpaNavigationDetection() {
-        let lastUrl = window.location.href;
+    // function setupSpaNavigationDetection() {
+    //     let lastUrl = window.location.href;
 
-        // URL 변경 알림 함수 (캐시 미사용 - 항상 __next_f에서 직접 추출)
-        const notifyUrlChange = (newUrl, type) => {
-            if (newUrl === lastUrl) {
-                return;
-            }
+    //     // URL 변경 알림 함수 (캐시 미사용 - 항상 __next_f에서 직접 추출)
+    //     const notifyUrlChange = (newUrl, type) => {
+    //         if (newUrl === lastUrl) {
+    //             return;
+    //         }
 
-            log.info(`🔄 SPA Navigation detected (${type})`, {
-                from: lastUrl,
-                to: newUrl
-            });
+    //         log.info(`🔄 SPA Navigation detected (${type})`, {
+    //             from: lastUrl,
+    //             to: newUrl
+    //         });
 
-            lastUrl = newUrl;
+    //         lastUrl = newUrl;
 
-            // 프로필 페이지인지 확인
-            const profileMatch = newUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+    //         // 프로필 페이지인지 확인
+    //         const profileMatch = newUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-            // Content Script에 URL 변경 알림 (토큰 정보 없이 먼저 전송)
-            window.postMessage(
-                {
-                    source: MESSAGE_SOURCE.SPA_NAVIGATION,
-                    data: {
-                        url: newUrl,
-                        type: type,
-                        timestamp: Date.now()
-                    },
-                    cachedToken: null  // 캐시 미사용
-                },
-                '*'
-            );
+    //         // Content Script에 URL 변경 알림 (토큰 정보 없이 먼저 전송)
+    //         window.postMessage(
+    //             {
+    //                 source: MESSAGE_SOURCE.SPA_NAVIGATION,
+    //                 data: {
+    //                     url: newUrl,
+    //                     type: type,
+    //                     timestamp: Date.now()
+    //                 },
+    //                 cachedToken: null  // 캐시 미사용
+    //             },
+    //             '*'
+    //         );
 
-            // 프로필 페이지면 __next_f에서 토큰 정보 추출 후 전송
-            if (profileMatch) {
-                // DOM 렌더링 후 __next_f 추출 시도 (약간의 딜레이)
-                const tryExtractToken = (attempt = 1) => {
-                    const tokenInfo = extractTokenFromNextF();
+    //         // 프로필 페이지면 __next_f에서 토큰 정보 추출 후 전송
+    //         if (profileMatch) {
+    //             // DOM 렌더링 후 __next_f 추출 시도 (약간의 딜레이)
+    //             const tryExtractToken = (attempt = 1) => {
+    //                 const tokenInfo = extractTokenFromNextF();
 
-                    if (tokenInfo) {
-                        log.info(`__next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
-                        window.postMessage(
-                            {
-                                source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
-                                data: tokenInfo,
-                            },
-                            '*'
-                        );
-                    } else if (attempt < 5) {
-                        // 최대 5회 재시도 (100ms, 300ms, 500ms, 700ms)
-                        log.info(`토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
-                        setTimeout(() => tryExtractToken(attempt + 1), 200 * attempt);
-                    } else {
-                        log.warn('토큰 정보 추출 실패 (최대 재시도 초과)');
-                    }
-                };
+    //                 if (tokenInfo) {
+    //                     log.info(`__next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
+    //                     window.postMessage(
+    //                         {
+    //                             source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
+    //                             data: tokenInfo,
+    //                         },
+    //                         '*'
+    //                     );
+    //                 } else if (attempt < 5) {
+    //                     // 최대 5회 재시도 (100ms, 300ms, 500ms, 700ms)
+    //                     log.info(`토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
+    //                     setTimeout(() => tryExtractToken(attempt + 1), 200 * attempt);
+    //                 } else {
+    //                     log.warn('토큰 정보 추출 실패 (최대 재시도 초과)');
+    //                 }
+    //             };
 
-                // 첫 시도는 약간의 딜레이 후
-                setTimeout(() => tryExtractToken(1), 100);
-            }
-        };
+    //             // 첫 시도는 약간의 딜레이 후
+    //             setTimeout(() => tryExtractToken(1), 100);
+    //         }
+    //     };
 
-        // history.pushState 가로채기
-        const originalPushState = history.pushState;
-        history.pushState = function(...args) {
-            const result = originalPushState.apply(this, args);
-            // pushState 후 약간의 딜레이를 주고 URL 확인
-            setTimeout(() => {
-                notifyUrlChange(window.location.href, 'pushState');
-            }, 0);
-            return result;
-        };
+    //     // history.pushState 가로채기
+    //     const originalPushState = history.pushState;
+    //     history.pushState = function (...args) {
+    //         const result = originalPushState.apply(this, args);
+    //         // pushState 후 약간의 딜레이를 주고 URL 확인
+    //         setTimeout(() => {
+    //             notifyUrlChange(window.location.href, 'pushState');
+    //         }, 0);
+    //         return result;
+    //     };
 
-        // history.replaceState 가로채기
-        const originalReplaceState = history.replaceState;
-        history.replaceState = function(...args) {
-            const result = originalReplaceState.apply(this, args);
-            setTimeout(() => {
-                notifyUrlChange(window.location.href, 'replaceState');
-            }, 0);
-            return result;
-        };
+    //     // history.replaceState 가로채기
+    //     const originalReplaceState = history.replaceState;
+    //     history.replaceState = function (...args) {
+    //         const result = originalReplaceState.apply(this, args);
+    //         setTimeout(() => {
+    //             notifyUrlChange(window.location.href, 'replaceState');
+    //         }, 0);
+    //         return result;
+    //     };
 
-        // popstate 이벤트 (브라우저 뒤로/앞으로 버튼)
-        window.addEventListener('popstate', () => {
-            setTimeout(() => {
-                notifyUrlChange(window.location.href, 'popstate');
-            }, 0);
-        });
+    //     // popstate 이벤트 (브라우저 뒤로/앞으로 버튼)
+    //     window.addEventListener('popstate', () => {
+    //         setTimeout(() => {
+    //             notifyUrlChange(window.location.href, 'popstate');
+    //         }, 0);
+    //     });
 
-        log.info('✅ SPA navigation detection 설정 완료');
-    }
+    //     log.info('✅ SPA navigation detection 설정 완료');
+    // }
 
-    // SPA 네비게이션 감지 설정
-    setupSpaNavigationDetection();
+    // // SPA 네비게이션 감지 설정
+    // setupSpaNavigationDetection();
 
     log.info('Injected script ready');
 })();

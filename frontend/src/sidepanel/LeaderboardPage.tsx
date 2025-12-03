@@ -45,7 +45,6 @@ interface LeaderboardPageProps {
 
 export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
   const { username, profileImageUrl } = useMemexLogin();
-  const session = useAtomValue(sessionAtom);
   const [activeTab, setActiveTab] = useState<TabType>("games");
 
   const renderGamesTab = () => (

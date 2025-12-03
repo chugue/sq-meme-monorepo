@@ -5,21 +5,27 @@
  */
 
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { backgroundApi } from '../../contents/lib/backgroundApi';
 import {
     getMemexUserInfo,
     saveMemexUserInfo,
-} from '../../contents/lib/chromeStorage';
+} from '../lib/memexStorage';
+import { removeStorage } from '../lib/sessionStorage';
 
 // 모듈 레벨에서 중복 요청 방지 (Strict Mode에서도 유지됨)
 let joinRequestInProgress = false;
+
+
+
+import { LOGIN_CHECK_COMPLETED_KEY, SESSION_STATE_KEY } from '@/shared/config/constants';
 import {
+    loginCheckCompletedAtom,
     resetSessionAtom,
     sessionAtom,
     setLoggingInAtom,
+    setLoginCheckCompletedAtom,
     setMemexLoggedInAtom,
-    setMemexProfileInfoAtom,
     setUserAtom,
 } from '../atoms/sessionAtoms';
 
@@ -38,14 +44,12 @@ export interface UseMemexLoginReturn {
 
 export function useMemexLogin(): UseMemexLoginReturn {
     const session = useAtomValue(sessionAtom);
+    const loginCheckCompleted = useAtomValue(loginCheckCompletedAtom);
     const setMemexLoggedIn = useSetAtom(setMemexLoggedInAtom);
-    const setMemexProfileInfo = useSetAtom(setMemexProfileInfoAtom);
     const setLoggingIn = useSetAtom(setLoggingInAtom);
     const setUser = useSetAtom(setUserAtom);
     const resetSession = useSetAtom(resetSessionAtom);
-
-    // Join 요청 중복 방지 (useRef 대신 모듈 레벨 변수 사용)
-    const initialCheckDone = useRef(false);
+    const setLoginCheckCompleted = useSetAtom(setLoginCheckCompletedAtom);
 
     const {
         isMemexLoggedIn: isLoggedIn,
@@ -94,49 +98,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setUser]);
 
-    // 프로필 정보 가져오기 (sessionStore에 저장만 함)
-    const fetchProfileInfo = useCallback(async (uname: string, utag: string) => {
-        try {
-            console.log('🖼️ [useMemexLogin] 프로필 정보 가져오기 시작:', { uname, utag });
-
-            // 1. 프로필 페이지로 이동 (DOM에서 정보를 가져오기 위해)
-            const memeXLink = `https://app.memex.xyz/profile/${uname}/${utag}`;
-            console.log('🖼️ [useMemexLogin] 프로필 페이지로 이동:', memeXLink);
-            await backgroundApi.navigateToUrl(memeXLink);
-
-            // 2. 페이지 로딩 대기 (DOM 렌더링 시간)
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // 3. 프로필 정보 가져오기 (이미지, 토큰 주소, 토큰 심볼, MEMEX 지갑 주소)
-            const profileInfo = await backgroundApi.fetchMemexProfileInfo(uname, utag);
-            const imageUrl = profileInfo?.profileImageUrl || null;
-            const tokenAddr = profileInfo?.tokenAddr || null;
-            const tokenSymbol = profileInfo?.tokenSymbol || null;
-            const memexWallet = profileInfo?.memexWalletAddress || null;
-
-            console.log('🖼️ [useMemexLogin] 프로필 정보:', { imageUrl, tokenAddr, tokenSymbol, memexWallet });
-
-            // 4. 프로필 정보를 sessionStore에 저장
-            setMemexProfileInfo({
-                profileImage: imageUrl,
-                myTokenAddr: tokenAddr,
-                myTokenSymbol: tokenSymbol,
-                memexWalletAddress: memexWallet,
-            });
-
-            // 5. MEMEX 로그인 상태 업데이트
-            setMemexLoggedIn({
-                isLoggedIn: true,
-                username: uname,
-                userTag: utag,
-                profileImage: imageUrl,
-            });
-
-            console.log('✅ [useMemexLogin] 프로필 정보 sessionStore 저장 완료');
-        } catch (err) {
-            console.error('❌ [useMemexLogin] 프로필 정보 가져오기 실패:', err);
-        }
-    }, [setMemexLoggedIn, setMemexProfileInfo]);
 
     // MEMEX 로그인 상태 확인 함수
     const checkLoginStatus = useCallback(async () => {
@@ -147,15 +108,12 @@ export function useMemexLogin(): UseMemexLoginReturn {
             if (cachedUserInfo) {
                 console.log('🔐 [useMemexLogin] 캐시된 사용자 정보 발견:', cachedUserInfo);
 
-                // 캐시된 기본 정보로 상태 업데이트
+                // 캐시된 정보로 로그인 상태만 업데이트 (프로필 정보는 URL 변경 감지로 자동 처리)
                 setMemexLoggedIn({
                     isLoggedIn: true,
                     username: cachedUserInfo.username,
                     userTag: cachedUserInfo.user_tag,
                 });
-
-                // 프로필 정보 가져오기 (이미지, 토큰 등)
-                await fetchProfileInfo(cachedUserInfo.username, cachedUserInfo.user_tag);
                 return true;
             }
 
@@ -166,29 +124,23 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 username?: string;
                 userTag?: string;
             };
-            console.log('🔐 [useMemexLogin] checkLoginStatus 결과:', result, 'walletAddress:', walletAddress);
+            console.log('🔐 [useMemexLogin] checkLoginStatus 결과:', result);
 
             if (result?.isLoggedIn && result.username && result.userTag) {
-                // MEMEX 로그인 상태 업데이트
+                // 로그인 상태 업데이트
                 setMemexLoggedIn({
                     isLoggedIn: true,
                     username: result.username,
                     userTag: result.userTag,
                 });
 
-                // 3. chrome.storage에 캐시 저장
+                // chrome.storage에 캐시 저장
                 await saveMemexUserInfo({
                     username: result.username,
                     user_tag: result.userTag,
                 });
 
-                // walletAddress가 없으면 프로필 정보만 가져오기 (Join 요청은 useEffect에서 자동으로)
-                if (!walletAddress) {
-                    console.warn('⚠️ [useMemexLogin] walletAddress 없음, 프로필 정보만 가져옴');
-                }
-
-                // 프로필 정보 가져오기 (sessionStore에 저장)
-                await fetchProfileInfo(result.username, result.userTag);
+                // 프로필 정보는 URL 변경 감지로 자동 처리되므로 여기서는 가져오지 않음
                 return true;
             }
 
@@ -199,7 +151,7 @@ export function useMemexLogin(): UseMemexLoginReturn {
             setMemexLoggedIn({ isLoggedIn: false });
             return false;
         }
-    }, [setMemexLoggedIn, fetchProfileInfo, walletAddress]);
+    }, [setMemexLoggedIn]);
 
     // 로그아웃 함수
     const logout = useCallback(async () => {
@@ -217,7 +169,16 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 console.warn('⚠️ [useMemexLogin] 지갑 연결 해제 실패 (무시):', walletErr);
             }
 
-            // 3. 전체 세션 초기화
+            // 3. 저장소에서 세션 상태 삭제 (atomWithStorage가 자동으로 처리하지만 명시적으로 삭제)
+            try {
+                await removeStorage(SESSION_STATE_KEY);
+                await removeStorage(LOGIN_CHECK_COMPLETED_KEY);
+                console.log('✅ [useMemexLogin] 저장소에서 세션 상태 삭제 완료');
+            } catch (storageErr) {
+                console.warn('⚠️ [useMemexLogin] 저장소 삭제 실패 (무시):', storageErr);
+            }
+
+            // 4. 전체 세션 초기화 (atomWithStorage가 자동으로 저장소에 반영)
             resetSession();
 
             console.log('✅ [useMemexLogin] 로그아웃 완료');
@@ -226,15 +187,29 @@ export function useMemexLogin(): UseMemexLoginReturn {
         }
     }, [resetSession]);
 
-    // 앱 시작 시 로그인 상태 확인 (마운트 시 한 번만)
+    // 앱 시작 시 로그인 상태 확인 (Jotai atomWithStorage가 자동으로 저장소에서 불러옴)
     useEffect(() => {
-        if (initialCheckDone.current) {
+        // 이미 체크 완료되었으면 스킵
+        if (loginCheckCompleted) {
             return;
         }
-        initialCheckDone.current = true;
-        checkLoginStatus();
+
+        // 기존 데이터가 있으면 활용하고 체크 완료로 표시
+        if (username && userTag) {
+            console.log('🔐 [useMemexLogin] 기존 세션 데이터 활용:', { username, userTag });
+            setLoginCheckCompleted(true);
+            return;
+        }
+
+        // 데이터가 없으면 조회 수행
+        const performCheck = async () => {
+            await checkLoginStatus();
+            setLoginCheckCompleted(true);
+        };
+
+        performCheck();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [loginCheckCompleted, username, userTag, setLoginCheckCompleted]);
 
     // sessionStore의 모든 필수 데이터가 준비되면 자동으로 Join 요청
     useEffect(() => {
@@ -257,7 +232,9 @@ export function useMemexLogin(): UseMemexLoginReturn {
             console.log('✅ [useMemexLogin] 모든 데이터 준비됨, Join 요청 시작');
             sendJoinRequest();
         }
-    }, [user, isLoggedIn, username, userTag, walletAddress, profileImageUrl, myTokenAddr, myTokenSymbol, memexWalletAddress, sendJoinRequest]);
+        // sendJoinRequest는 useCallback으로 메모이제이션되어 있으므로 의존성에서 제외
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, isLoggedIn, username, userTag, walletAddress, profileImageUrl, myTokenAddr, myTokenSymbol, memexWalletAddress]);
 
     // setLoggedIn 래퍼 함수
     const handleSetLoggedIn = useCallback((value: boolean) => {

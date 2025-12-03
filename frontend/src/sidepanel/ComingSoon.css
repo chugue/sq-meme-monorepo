@@ -306,7 +306,7 @@
 }
 
 /* Squid Character Pixel Art */
-.squid-character {
+.squid-character-coming-soon {
     position: relative;
     width: 120px;
     height: 140px;
@@ -314,7 +314,6 @@
     animation: float 2s ease-in-out infinite;
     filter: drop-shadow(0 0 15px #ff00ff);
     will-change: transform;
-    transform: translateZ(0);
 }
 
 .squid-body {
