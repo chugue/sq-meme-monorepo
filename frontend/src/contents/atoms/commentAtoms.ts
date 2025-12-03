@@ -31,12 +31,21 @@ export const currentChallengeIdAtom = atom(
 // null = 아직 확인 전, true = 종료됨, false = 진행 중
 export const isGameEndedAtom = atom<boolean | null>(null);
 
-// 종료된 게임 정보 (Claim 안내용)
+// 종료된 게임 정보 (Claim 안내용) - ActiveGameInfo와 동일한 구조
 export interface EndedGameInfo {
-    gameAddress: string;
+    id: string;
+    initiator: string;
+    gameToken: string;
+    cost: string;
+    gameTime: string;
+    tokenSymbol: string;
+    endTime: string;
     lastCommentor: string;
-    isClaimed: boolean;
     prizePool: string;
+    isClaimed: boolean;
+    isEnded: boolean;
+    totalFunding: string;
+    funderCount: string;
 }
 export const endedGameInfoAtom = atom<EndedGameInfo | null>(null);
 

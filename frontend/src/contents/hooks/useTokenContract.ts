@@ -38,6 +38,7 @@ const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS ||
 const MESSAGE_SOURCE = {
   TOKEN_CONTRACT_CACHED: "TOKEN_CONTRACT_CACHED",
   SPA_NAVIGATION: "SPA_NAVIGATION",
+  INJECTED_SCRIPT_READY: "INJECTED_SCRIPT_READY",
 };
 
 export function useTokenContract() {
@@ -97,10 +98,19 @@ export function useTokenContract() {
         // 게임이 종료된 경우 종료 정보 저장
         if (isEnded) {
           const endedInfo: EndedGameInfo = {
-            gameAddress: gameId, // V2에서는 gameId를 사용
+            id: gameId,
+            initiator: gameInfo.initiator,
+            gameToken: gameInfo.gameToken,
+            cost: gameInfo.cost.toString(),
+            gameTime: gameInfo.gameTime.toString(),
+            tokenSymbol: gameInfo.tokenSymbol,
+            endTime: gameInfo.endTime.toString(),
             lastCommentor: gameInfo.lastCommentor,
-            isClaimed: gameInfo.isClaimed,
             prizePool: gameInfo.prizePool.toString(),
+            isClaimed: gameInfo.isClaimed,
+            isEnded: gameInfo.isEnded,
+            totalFunding: gameInfo.totalFunding.toString(),
+            funderCount: gameInfo.funderCount.toString(),
           };
 
           logger.info("종료된 게임 정보", { ...endedInfo });
@@ -210,21 +220,8 @@ export function useTokenContract() {
             tokenSymbol: game.tokenSymbol,
           });
 
-          // 블록체인에서 게임 종료 여부 확인 (V2: gameId로 확인)
-          const isEnded = await checkGameEnded(game.gameId);
-          setIsGameEnded(isEnded);
-
-          if (isEnded) {
-            logger.info("게임이 종료됨 (블록체인 타임스탬프 기준)", {
-              gameId: game.gameId,
-            });
-            // 종료된 게임은 null로 설정하여 CreateGame UI 표시
-            setActiveGameInfo(null);
-            return null;
-          }
-
-          // 백엔드 GameInfo → ActiveGameInfo 변환하여 저장
-          const activeGameInfo: ActiveGameInfo = {
+          // 백엔드 GameInfo → ActiveGameInfo/EndedGameInfo 변환
+          const gameInfo: ActiveGameInfo = {
             id: game.gameId,
             initiator: game.initiator,
             gameToken: game.gameToken,
@@ -240,8 +237,20 @@ export function useTokenContract() {
             funderCount: game.funderCount || "0",
           };
 
-          setActiveGameInfo(activeGameInfo);
+          // 블록체인에서 게임 종료 여부 확인 (V2: gameId로 확인)
+          const isEnded = await checkGameEnded(game.gameId);
+          setIsGameEnded(isEnded);
 
+          if (isEnded) {
+            logger.info("게임이 종료됨 (블록체인 타임스탬프 기준)", {
+              gameId: game.gameId,
+            });
+            // checkGameEnded에서 이미 endedGameInfo 설정됨
+            setActiveGameInfo(null);
+            return null;
+          }
+
+          setActiveGameInfo(gameInfo);
           return game;
         }
 
@@ -257,38 +266,8 @@ export function useTokenContract() {
             tokenSymbol: blockchainGame.tokenSymbol,
           });
 
-          // 게임 종료 여부 확인 (블록체인 GameInfo에서 직접 확인)
-          const isEnded = blockchainGame.isEnded;
-          setIsGameEnded(isEnded);
-
-          if (isEnded) {
-            logger.info("게임이 종료됨", { gameId });
-
-            // 종료된 게임 정보 저장
-            const endedInfo: EndedGameInfo = {
-              gameAddress: gameId,
-              lastCommentor: blockchainGame.lastCommentor,
-              isClaimed: blockchainGame.isClaimed,
-              prizePool: blockchainGame.prizePool.toString(),
-            };
-            setEndedGameInfo(endedInfo);
-
-            // 종료된 게임은 null로 설정하여 CreateGame UI 표시
-            setActiveGameInfo(null);
-            return null;
-          }
-
-          // 게임이 진행 중이면 백엔드에 등록
-          try {
-            logger.info("백엔드에 게임 등록 시도", { gameId });
-            await backgroundApi.registerGame(blockchainGame);
-            logger.info("백엔드에 게임 등록 완료", { gameId });
-          } catch (registerErr) {
-            logger.error("백엔드 게임 등록 실패 (계속 진행)", registerErr);
-          }
-
-          // 블록체인 GameInfo → ActiveGameInfo 변환하여 저장
-          const activeGameInfo: ActiveGameInfo = {
+          // 블록체인 GameInfo → ActiveGameInfo/EndedGameInfo 변환
+          const gameInfo: ActiveGameInfo = {
             id: gameId,
             initiator: blockchainGame.initiator,
             gameToken: blockchainGame.gameToken,
@@ -303,8 +282,28 @@ export function useTokenContract() {
             totalFunding: blockchainGame.totalFunding.toString(),
             funderCount: blockchainGame.funderCount.toString(),
           };
-          setActiveGameInfo(activeGameInfo);
 
+          // 게임 종료 여부 확인 (블록체인 GameInfo에서 직접 확인)
+          const isEnded = blockchainGame.isEnded;
+          setIsGameEnded(isEnded);
+
+          if (isEnded) {
+            logger.info("게임이 종료됨", { gameId });
+            setEndedGameInfo(gameInfo);
+            setActiveGameInfo(null);
+            return null;
+          }
+
+          // 게임이 진행 중이면 백엔드에 등록
+          try {
+            logger.info("백엔드에 게임 등록 시도", { gameId });
+            await backgroundApi.registerGame(blockchainGame);
+            logger.info("백엔드에 게임 등록 완료", { gameId });
+          } catch (registerErr) {
+            logger.error("백엔드 게임 등록 실패 (계속 진행)", registerErr);
+          }
+
+          setActiveGameInfo(gameInfo);
           return null;
         }
 
@@ -355,22 +354,29 @@ export function useTokenContract() {
   const checkInitialTokenInfo = useCallback(() => {
     try {
       const cachedTokens = (window as any).__SQUID_MEME_TOKEN_CONTRACTS__;
-      if (cachedTokens && typeof cachedTokens === "object") {
-        // 현재 URL에서 username/usertag 추출
-        const currentUrl = window.location.href;
-        const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+      const currentUrl = window.location.href;
+      const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-        if (profileMatch) {
-          const [, username, userTag] = profileMatch;
-          const cacheKey = `${username}#${userTag}`;
+      logger.info("초기 토큰 정보 확인 시작", {
+        hasCachedTokens: !!cachedTokens,
+        currentUrl,
+        isProfilePage: !!profileMatch,
+      });
 
-          const tokenInfo = cachedTokens[cacheKey];
-          if (tokenInfo) {
-            logger.info("초기 토큰 정보 발견", tokenInfo);
-            // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
-            lastTokenAddressRef.current = null;
-            handleTokenContractCached(tokenInfo);
-          }
+      if (cachedTokens && typeof cachedTokens === "object" && profileMatch) {
+        const [, username, userTag] = profileMatch;
+        const cacheKey = `${username}#${userTag}`;
+
+        const tokenInfo = cachedTokens[cacheKey];
+        logger.info("캐시 확인", { cacheKey, hasTokenInfo: !!tokenInfo });
+
+        if (tokenInfo) {
+          logger.info("초기 토큰 정보 발견", tokenInfo);
+          // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
+          lastTokenAddressRef.current = null;
+          handleTokenContractCached(tokenInfo);
+        } else {
+          logger.info("캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기");
         }
       }
     } catch (err) {
@@ -397,20 +403,34 @@ export function useTokenContract() {
       if (event.source !== window) return;
       if (!event.data || typeof event.data !== "object") return;
 
-      // SPA 네비게이션 감지 시 상태 초기화
-      if (event.data.source === MESSAGE_SOURCE.SPA_NAVIGATION) {
-        resetState();
-        // 새 페이지의 토큰 정보 확인 (약간의 딜레이 후)
-        setTimeout(() => {
-          checkInitialTokenInfo();
-        }, 500);
+      // injected.js 준비 완료 + 캐시된 토큰 정보 수신
+      if (event.data.source === MESSAGE_SOURCE.INJECTED_SCRIPT_READY) {
+        const { cachedToken } = event.data;
+        if (cachedToken?.contractAddress) {
+          logger.info("injected.js 준비 완료 + 캐시된 토큰 정보", cachedToken);
+          handleTokenContractCached(cachedToken);
+        }
         return;
       }
 
-      // 토큰 컨트랙트 캐시 메시지 처리
+      // SPA 네비게이션 감지 시 상태 초기화 + 캐시된 토큰 정보 처리
+      if (event.data.source === MESSAGE_SOURCE.SPA_NAVIGATION) {
+        resetState();
+        // 캐시된 토큰 정보가 있으면 즉시 처리
+        const { cachedToken } = event.data;
+        if (cachedToken?.contractAddress) {
+          logger.info("SPA 네비게이션 + 캐시된 토큰 정보", cachedToken);
+          handleTokenContractCached(cachedToken);
+        }
+        // 없으면 TOKEN_CONTRACT_CACHED 메시지를 기다림
+        return;
+      }
+
+      // 토큰 컨트랙트 캐시 메시지 처리 (이벤트 드리븐)
       if (event.data.source === MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED) {
         const { data } = event.data;
         if (data?.contractAddress) {
+          logger.info("토큰 컨트랙트 캐시 메시지 수신 (이벤트 드리븐)", data);
           handleTokenContractCached(data);
         }
       }
@@ -418,14 +438,11 @@ export function useTokenContract() {
 
     window.addEventListener("message", handleMessage);
 
-    // 초기 토큰 정보 확인 (약간의 딜레이 후)
-    const timeoutId = setTimeout(() => {
-      checkInitialTokenInfo();
-    }, 500);
+    // 초기 토큰 정보 확인 (이미 캐시되어 있는 경우)
+    checkInitialTokenInfo();
 
     return () => {
       window.removeEventListener("message", handleMessage);
-      clearTimeout(timeoutId);
     };
   }, [handleTokenContractCached, checkInitialTokenInfo, resetState]);
 

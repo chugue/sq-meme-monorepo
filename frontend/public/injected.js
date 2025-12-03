@@ -567,13 +567,38 @@
         }, 10000);
     }
 
-    // 준비 완료 알림
-    window.postMessage(
-        {
-            source: MESSAGE_SOURCE.INJECTED_SCRIPT_READY,
-        },
-        '*'
-    );
+    // 준비 완료 알림 + 현재 URL의 캐시된 토큰 정보 전송
+    const sendReadyWithCachedToken = () => {
+        // 현재 URL에서 프로필 정보 확인
+        const currentUrl = window.location.href;
+        const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+
+        let cachedToken = null;
+        if (profileMatch) {
+            const [, username, userTag] = profileMatch;
+            const cacheKey = `${username}#${userTag}`;
+            cachedToken = tokenContractCache.get(cacheKey) || null;
+
+            // window 캐시에서도 확인
+            if (!cachedToken && window.__SQUID_MEME_TOKEN_CONTRACTS__) {
+                cachedToken = window.__SQUID_MEME_TOKEN_CONTRACTS__[cacheKey] || null;
+            }
+        }
+
+        window.postMessage(
+            {
+                source: MESSAGE_SOURCE.INJECTED_SCRIPT_READY,
+                cachedToken: cachedToken,
+            },
+            '*'
+        );
+
+        if (cachedToken) {
+            log.info('준비 완료 + 캐시된 토큰 정보 전송', cachedToken);
+        }
+    };
+
+    sendReadyWithCachedToken();
 
     /**
      * SPA 네비게이션 감지
@@ -595,7 +620,21 @@
 
             lastUrl = newUrl;
 
-            // Content Script에 URL 변경 알림
+            // 새 URL에서 캐시된 토큰 정보 확인
+            const profileMatch = newUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+            let cachedToken = null;
+            if (profileMatch) {
+                const [, username, userTag] = profileMatch;
+                const cacheKey = `${username}#${userTag}`;
+                cachedToken = tokenContractCache.get(cacheKey) || null;
+
+                // window 캐시에서도 확인
+                if (!cachedToken && window.__SQUID_MEME_TOKEN_CONTRACTS__) {
+                    cachedToken = window.__SQUID_MEME_TOKEN_CONTRACTS__[cacheKey] || null;
+                }
+            }
+
+            // Content Script에 URL 변경 알림 + 캐시된 토큰 정보
             window.postMessage(
                 {
                     source: MESSAGE_SOURCE.SPA_NAVIGATION,
@@ -603,10 +642,15 @@
                         url: newUrl,
                         type: type,
                         timestamp: Date.now()
-                    }
+                    },
+                    cachedToken: cachedToken
                 },
                 '*'
             );
+
+            if (cachedToken) {
+                log.info('SPA 네비게이션 + 캐시된 토큰 정보 전송', cachedToken);
+            }
         };
 
         // history.pushState 가로채기

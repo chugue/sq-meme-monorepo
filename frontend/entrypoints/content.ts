@@ -4,10 +4,8 @@ import mockUserData from "@/contents/utils/mock-user-data.json";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 
-// 현재 URL 경로와 마운트된 UI 트래킹
+// 현재 URL 경로 트래킹
 let currentPath = "";
-let mountedUi: { mount: () => void; remove: () => void } | null = null;
-let currentRoot: Root | null = null;
 
 // 프로필 페이지 패턴 확인 함수
 function isProfilePage(url: string): boolean {
@@ -397,7 +395,6 @@ export default defineContentScript({
 
     // UI 마운트
     ui.mount();
-    mountedUi = ui;
     currentPath = window.location.pathname;
 
     // SPA 네비게이션 감지를 위한 URL 변경 리스너
@@ -421,88 +418,16 @@ export default defineContentScript({
 
       currentPath = newPath;
 
-      // 프로필 페이지가 아니면 UI 제거
+      // SPA 네비게이션 시 UI를 재마운트하지 않음
+      // React 내부에서 SPA_NAVIGATION 메시지를 받아 상태를 업데이트함
+      // 이렇게 하면 메시지 리스너가 unmount되지 않아 cachedToken을 받을 수 있음
+      console.log("🦑 SPA 네비게이션 감지 - React 내부에서 상태 업데이트 처리");
+
+      // 프로필 페이지가 아니면 로그만 출력 (UI는 React에서 처리)
       if (!isProfilePage(window.location.href)) {
-        console.log("🦑 프로필 페이지 아님, UI 유지하지 않음");
-        return;
+        console.log("🦑 프로필 페이지 아님");
       }
 
-      // 다른 토큰의 프로필 페이지로 이동 시 UI 재마운트
-      console.log("🦑 새 프로필 페이지로 이동, UI 재마운트 시작");
-
-      // 기존 UI 제거
-      if (mountedUi) {
-        try {
-          mountedUi.remove();
-        } catch (e) {
-          console.log("🦑 기존 UI 제거 중 오류 (무시):", e);
-        }
-      }
-
-      // 기존 컨테이너 제거
-      const existingContainer = document.getElementById(
-        "squid-meme-comment-root"
-      );
-      if (existingContainer) {
-        existingContainer.remove();
-      }
-
-      // 약간의 딜레이 후 새 UI 마운트 (DOM이 업데이트될 시간)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // 새 타겟 요소 찾기
-      const newTargetElement = await findTargetElementWithRetry(10, 500, 5000);
-
-      if (newTargetElement && newTargetElement !== document.body) {
-        console.log(
-          "🦑 [SPA] 타겟 요소 (오른쪽 사이드바):",
-          newTargetElement.className
-        );
-      }
-
-      // 새 UI 생성 및 마운트
-      // @ts-ignore
-      const newUi = createIntegratedUi(ctx, {
-        position: "inline",
-        anchor: newTargetElement || "body",
-        // @ts-ignore
-        onMount: (container: HTMLElement) => {
-          console.log("🦑 [SPA] UI 마운트 시작", {
-            containerId: container.id,
-            containerParent: container.parentElement?.tagName,
-          });
-
-          container.id = "squid-meme-comment-root";
-          container.style.marginTop = "20px";
-          container.style.marginBottom = "20px";
-          container.style.zIndex = "9999";
-          container.style.position = "relative";
-          container.style.minHeight = "100px";
-          container.style.width = "100%";
-          container.setAttribute("data-squid-meme", "true");
-
-          try {
-            const root: Root = createRoot(container);
-            root.render(React.createElement(CommentApp));
-            currentRoot = root;
-            console.log("🦑 [SPA] React 컴포넌트 렌더링 완료");
-            return root;
-          } catch (error) {
-            console.error("❌ [SPA] React 컴포넌트 렌더링 오류:", error);
-            return null;
-          }
-        },
-        // @ts-ignore
-        onRemove: (root) => {
-          console.log("🦑 [SPA] UI 제거");
-          if (root) {
-            root.unmount();
-          }
-        },
-      });
-
-      newUi.mount();
-      mountedUi = newUi;
     };
 
     // Injected Script로부터 SPA 네비게이션 메시지 수신
