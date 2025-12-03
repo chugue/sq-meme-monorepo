@@ -214,6 +214,7 @@ export const commentGameV2ABI = [
         anonymous: false,
         inputs: [
             { indexed: true, internalType: 'uint256', name: 'gameId', type: 'uint256' },
+            { indexed: true, internalType: 'uint256', name: 'commentId', type: 'uint256' },
             { indexed: true, internalType: 'address', name: 'commentor', type: 'address' },
             { indexed: false, internalType: 'string', name: 'message', type: 'string' },
             { indexed: false, internalType: 'uint256', name: 'newEndTime', type: 'uint256' },
@@ -221,6 +222,14 @@ export const commentGameV2ABI = [
         ],
         name: 'CommentAdded',
         type: 'event',
+    },
+    // 게임별 댓글 ID 카운터 조회
+    {
+        inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        name: 'commentIdCounter',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
     },
     // 상금 풀 펀딩 이벤트
     {

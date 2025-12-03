@@ -13,7 +13,10 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
     
     // 게임 ID 카운터
     uint256 public gameIdCounter;
-    
+
+    // 게임별 댓글 ID 카운터
+    mapping(uint256 => uint256) public commentIdCounter;
+
     // 게임 데이터 구조체
     struct GameData {
         uint256 id;
@@ -68,6 +71,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
 
     event CommentAdded(
         uint256 indexed gameId,
+        uint256 indexed commentId,
         address indexed commentor,
         string message,
         uint256 newEndTime,
@@ -252,11 +256,15 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         // 즉시 펀딩자들에게 분배
         _distributeCommentFee(_gameId, game.cost);
         
+        // 댓글 ID 증가
+        commentIdCounter[_gameId]++;
+        uint256 commentId = commentIdCounter[_gameId];
+
         // 상태 업데이트
         game.lastCommentor = msg.sender;
         game.endTime = block.timestamp + game.gameTime;
-        
-        emit CommentAdded(_gameId, msg.sender, _message, game.endTime, block.timestamp);
+
+        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, block.timestamp);
     }
 
     /**

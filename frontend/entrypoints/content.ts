@@ -626,11 +626,14 @@ export default defineContentScript({
 
             // 로그인 안됨 - triggerLogin이 true일 때만 Google 버튼 클릭
             if (triggerLogin) {
-              const googleButton = document.querySelector(
-                "button.page_googleButton__XByPk"
+              // 여러 선택자로 시도 (클래스명이 빌드마다 변경될 수 있음)
+              const googleButton = (
+                document.querySelector('button[class*="googleButton"]') ||
+                document.querySelector('button:has(img[alt="Sign in with Google"])') ||
+                document.querySelector('button.page_googleButton__XByPk')
               ) as HTMLButtonElement;
               if (googleButton) {
-                console.log("✅ [Content] Google 로그인 버튼 발견, 클릭");
+                console.log("✅ [Content] Google 로그인 버튼 발견, 클릭", googleButton.className);
                 googleButton.click();
                 sendResponse({
                   success: true,

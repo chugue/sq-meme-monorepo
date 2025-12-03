@@ -799,6 +799,23 @@ export async function sendLogoutToInjectedScript(): Promise<{ success: boolean }
 }
 
 /**
+ * 이벤트 로그 조회 (eth_getLogs)
+ * @param params - 로그 필터 파라미터
+ * @returns 로그 배열
+ */
+export interface GetLogsParams {
+    address?: string | string[];
+    topics?: (string | string[] | null)[];
+    fromBlock?: string | 'latest' | 'earliest' | 'pending';
+    toBlock?: string | 'latest' | 'earliest' | 'pending';
+}
+
+export async function getLogs(params: GetLogsParams): Promise<TransactionLog[]> {
+    const result = await sendEthereumRequest<TransactionLog[]>('eth_getLogs', [params]);
+    return result;
+}
+
+/**
  * Injected API 객체
  */
 export const injectedApi = {
@@ -823,6 +840,7 @@ export const injectedApi = {
     revokePermissions,
     getNextFData,
     sendLogoutToInjectedScript,
+    getLogs,
 } as const;
 
 // 타입 export

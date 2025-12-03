@@ -1,13 +1,23 @@
 /**
  * 댓글 섹션 메인 컴포넌트
+ * V2 컨트랙트 사용 - 스마트 컨트랙트 직접 호출
  */
 
+import { useAtomValue } from "jotai";
 import { useCallback, useState } from "react";
+import type { Address } from "viem";
+import { activeGameInfoAtom } from "../../atoms/commentAtoms";
 import { useComments } from "../../hooks/useComments";
 import { useWallet } from "../../hooks/useWallet";
+import { backgroundApi, type CreateCommentRequest } from "../../lib/backgroundApi";
+import {
+  COMMENT_GAME_V2_ADDRESS,
+  commentGameV2ABI,
+  type GameInfo,
+} from "../../lib/contract/abis/commentGameV2";
+import { createContractClient } from "../../lib/contract/contractClient";
 import { logger } from "../../lib/injected/logger";
 import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
-import { createCommentSignatureMessage } from "../../utils/messageFormatter";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
@@ -20,7 +30,8 @@ export function CommentSection() {
     location: window.location.href,
   });
 
-  const { comments, isLoading, createComment, isSubmitting } = useComments();
+  const { comments, isLoading, refetch } = useComments();
+  const activeGameInfo = useAtomValue(activeGameInfoAtom);
   const {
     isConnected,
     address,
@@ -32,7 +43,7 @@ export function CommentSection() {
   } = useWallet();
   const [newComment, setNewComment] = useState("");
   const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
-  const [isSigning, setIsSigning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = useCallback(async () => {
     if (!newComment.trim()) {
@@ -48,29 +59,81 @@ export function CommentSection() {
       return;
     }
 
-    try {
-      setIsSigning(true);
+    if (!activeGameInfo?.id) {
+      alert("게임 정보를 찾을 수 없습니다.");
+      return;
+    }
 
+    setIsSubmitting(true);
+
+    try {
       await ensureNetwork();
 
-      const messageToSign = createCommentSignatureMessage(
-        newComment.trim(),
-        address
+      const gameId = BigInt(activeGameInfo.id);
+      const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
+
+      logger.info("댓글 작성 시작 (V2)", {
+        gameId: gameId.toString(),
+        userAddress: address,
+        messageLength: newComment.trim().length,
+      });
+
+      // V2 컨트랙트 클라이언트 생성
+      const v2Client = createContractClient({
+        address: v2ContractAddress,
+        abi: commentGameV2ABI,
+      });
+
+      // addComment(gameId, message) 호출
+      const result = await v2Client.write(
+        {
+          functionName: "addComment",
+          args: [gameId, newComment.trim()],
+          gas: 500000n,
+        },
+        address as Address
       );
 
-      const signature = await injectedApi.signMessage({
-        message: messageToSign,
-        address,
+      logger.info("댓글 트랜잭션 전송됨", { hash: result.hash });
+
+      // 트랜잭션 확정 대기
+      const receipt = await injectedApi.waitForTransaction(result.hash);
+
+      logger.info("댓글 트랜잭션 확정됨", {
+        hash: result.hash,
+        blockNumber: receipt.blockNumber,
       });
 
-      logger.info("서명 완료", { signature: signature.slice(0, 20) + "..." });
-
-      await createComment({
-        player_address: address,
-        content: newComment.trim(),
-        signature,
-        message: messageToSign,
+      // 게임 정보 다시 조회하여 newEndTime, prizePool 가져오기
+      const gameInfoResult = await v2Client.read<GameInfo>({
+        functionName: "getGameInfo",
+        args: [gameId],
       });
+
+      const updatedGameInfo = gameInfoResult.data;
+
+      // 백엔드에 댓글 저장
+      const apiRequest: CreateCommentRequest = {
+        txHash: result.hash,
+        gameId: activeGameInfo.id,
+        gameAddress: v2ContractAddress,
+        commentor: address,
+        message: newComment.trim(),
+        imageUrl: commentImageUrl,
+        newEndTime: updatedGameInfo.endTime.toString(),
+        prizePool: updatedGameInfo.prizePool.toString(),
+        timestamp: Math.floor(Date.now() / 1000).toString(),
+      };
+
+      try {
+        const savedComment = await backgroundApi.saveComment(apiRequest);
+        logger.info("백엔드에 댓글 저장 완료", { commentId: savedComment?.id });
+      } catch (apiError) {
+        logger.warn("백엔드 댓글 저장 실패 (트랜잭션은 성공)", { error: apiError });
+      }
+
+      // 댓글 목록 새로고침
+      await refetch();
 
       setNewComment("");
       setCommentImageUrl(undefined);
@@ -93,9 +156,9 @@ export function CommentSection() {
         error instanceof Error ? error.message : "알 수 없는 오류";
       alert(`댓글 작성에 실패했습니다: ${errorMessage}`);
     } finally {
-      setIsSigning(false);
+      setIsSubmitting(false);
     }
-  }, [newComment, isConnected, address, connect, createComment, ensureNetwork]);
+  }, [newComment, commentImageUrl, isConnected, address, connect, ensureNetwork, activeGameInfo, refetch]);
 
   return (
     <div className="squid-comment-section" data-testid="squid-comment-section">
@@ -123,7 +186,7 @@ export function CommentSection() {
         onImageChange={setCommentImageUrl}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
-        isSigning={isSigning}
+        isSigning={false}
         isConnected={isConnected}
       />
 
