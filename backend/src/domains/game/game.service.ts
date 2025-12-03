@@ -1,33 +1,41 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
 import { Result } from 'src/common/types';
+import { WinnersService } from '../winners/winners.service';
 import { GameRepository } from './game.repository';
 
+// V2 컨트랙트 이벤트 시그니처
 const PRIZE_CLAIMED_EVENT =
-    'event PrizeClaimed(address indexed winner, uint256 winnerShare, uint256 platformShare, uint256 timestamp)';
+    'event PrizeClaimed(uint256 indexed gameId, address indexed winner, uint256 prizeAmount, uint256 timestamp)';
 
 @Injectable()
 export class GameService {
     private readonly logger = new Logger(GameService.name);
     private prizeClaimedIface: ethers.Interface;
+    private readonly contractAddress: string;
 
     constructor(
+        private readonly configService: ConfigService,
         private readonly ethereumProvider: EthereumProvider,
         private readonly gameRepository: GameRepository,
+        private readonly winnersService: WinnersService,
     ) {
         this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
+        this.contractAddress =
+            this.configService.get<string>('COMMENT_GAME_V2_ADDRESS') || '';
     }
 
     /**
      * 트랜잭션 영수증에서 PrizeClaimed 이벤트를 파싱하고 DB 업데이트
      * @param txHash 트랜잭션 해시
-     * @param gameAddress 게임 컨트랙트 주소
+     * @param gameId 게임 ID (V2에서는 단일 컨트랙트 + gameId 방식)
      * @returns 성공 여부
      */
     async processPrizeClaimedTransaction(
         txHash: string,
-        gameAddress: string,
+        gameId: string,
     ): Promise<boolean> {
         try {
             const receipt =
@@ -43,24 +51,26 @@ export class GameService {
                 return false;
             }
 
-            // PrizeClaimed 이벤트 찾기
+            // PrizeClaimed 이벤트 찾기 (V2: 단일 컨트랙트 주소 사용)
             const prizeClaimedTopic =
                 this.prizeClaimedIface.getEvent('PrizeClaimed')?.topicHash;
 
             const prizeClaimedLog = receipt.logs.find(
                 (log) =>
                     log.topics[0] === prizeClaimedTopic &&
-                    log.address.toLowerCase() === gameAddress.toLowerCase(),
+                    log.address.toLowerCase() ===
+                        this.contractAddress.toLowerCase(),
             );
 
             if (!prizeClaimedLog) {
                 this.logger.warn(
-                    `PrizeClaimed 이벤트 없음: ${txHash}, game: ${gameAddress}`,
+                    `PrizeClaimed 이벤트 없음: ${txHash}, gameId: ${gameId}`,
                 );
                 return false;
             }
 
             // 이벤트 디코딩
+            // V2: event PrizeClaimed(uint256 indexed gameId, address indexed winner, uint256 prizeAmount, uint256 timestamp)
             const decoded = this.prizeClaimedIface.decodeEventLog(
                 'PrizeClaimed',
                 prizeClaimedLog.data,
@@ -68,20 +78,49 @@ export class GameService {
             );
 
             const rawEvent = decoded.toObject();
+            const eventGameId = rawEvent.gameId.toString();
+            const winner = rawEvent.winner as string;
+            const prizeAmount = rawEvent.prizeAmount.toString();
+            const timestamp = Number(rawEvent.timestamp);
 
             this.logger.log(
-                `🏆 PrizeClaimed 확인: gameAddress=${gameAddress}, winner=${rawEvent.winner}`,
+                `🏆 PrizeClaimed 확인: gameId=${eventGameId}, winner=${winner}, prize=${prizeAmount}`,
             );
 
-            // DB 업데이트
-            await this.gameRepository.updateGameState(
-                gameAddress.toLowerCase(),
-                {
-                    isClaimed: true,
-                },
-            );
+            // gameId 검증
+            if (eventGameId !== gameId) {
+                this.logger.warn(
+                    `gameId 불일치: 요청=${gameId}, 이벤트=${eventGameId}`,
+                );
+                return false;
+            }
 
-            this.logger.log(`✅ 게임 상금 수령 완료 처리: ${gameAddress}`);
+            // 1. 게임 정보 조회 (tokenSymbol, gameToken 획득)
+            const game = await this.gameRepository.findFullByGameId(gameId);
+            if (!game) {
+                this.logger.warn(`게임 정보 없음: gameId=${gameId}`);
+                return false;
+            }
+
+            // 2. Winner 레코드 생성
+            await this.winnersService.createWinner({
+                walletAddress: winner,
+                gameId: gameId,
+                prize: prizeAmount,
+                tokenSymbol: game.tokenSymbol || 'UNKNOWN',
+                tokenAddress: game.gameToken,
+                claimTxHash: txHash,
+                claimedAt: new Date(timestamp * 1000),
+            });
+
+            this.logger.log(`✅ Winner 레코드 생성 완료: ${winner}`);
+
+            // 3. 게임 상태 업데이트 (isClaimed = true)
+            await this.gameRepository.updateGameState(gameId, {
+                isClaimed: true,
+            });
+
+            this.logger.log(`✅ 게임 상금 수령 완료 처리: gameId=${gameId}`);
             return true;
         } catch (error) {
             this.logger.error(

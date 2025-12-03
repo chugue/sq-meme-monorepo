@@ -68,9 +68,10 @@ export class GameRepository {
 
     /**
      * @description 게임 상태를 업데이트합니다 (종료시간, 상금풀, 마지막 댓글 작성자 등)
+     * @param gameId 게임 ID (V2에서는 gameId와 gameAddress가 동일)
      */
     async updateGameState(
-        gameAddress: string,
+        gameId: string,
         updates: {
             endTime?: Date;
             prizePool?: string;
@@ -82,10 +83,10 @@ export class GameRepository {
             await this.db
                 .update(schema.games)
                 .set(updates)
-                .where(eq(schema.games.gameAddress, gameAddress));
+                .where(eq(schema.games.gameId, gameId));
         } catch (error) {
             this.logger.error(
-                `❌ 게임 업데이트 실패 ${gameAddress}: ${error.message}`,
+                `❌ 게임 업데이트 실패 ${gameId}: ${error.message}`,
             );
             throw error;
         }
@@ -155,11 +156,24 @@ export class GameRepository {
     }
 
     /**
-     * @description gameId로 게임 조회
+     * @description gameId로 게임 존재 여부 조회
      */
     async findByGameId(gameId: string): Promise<{ gameId: string } | null> {
         const [game] = await this.db
             .select({ gameId: schema.games.gameId })
+            .from(schema.games)
+            .where(eq(schema.games.gameId, gameId))
+            .limit(1);
+
+        return game ?? null;
+    }
+
+    /**
+     * @description gameId로 전체 게임 정보 조회
+     */
+    async findFullByGameId(gameId: string) {
+        const [game] = await this.db
+            .select()
             .from(schema.games)
             .where(eq(schema.games.gameId, gameId))
             .limit(1);
