@@ -17,18 +17,6 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
     // 게임별 댓글 ID 카운터
     mapping(uint256 => uint256) public commentIdCounter;
 
-    // 댓글 구조체
-    struct Comment {
-        uint256 id;
-        address commentor;
-        string message;
-        uint256 timestamp;
-        uint256 endTime;  // 이 댓글로 인해 갱신된 종료 시간
-    }
-
-    // 게임 ID -> 댓글 배열 맵핑
-    mapping(uint256 => Comment[]) public gameComments;
-
     // 게임 데이터 구조체
     struct GameData {
         uint256 id;
@@ -87,6 +75,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         address indexed commentor,
         string message,
         uint256 newEndTime,
+        uint256 prizePool,
         uint256 timestamp
     );
 
@@ -285,7 +274,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
             endTime: game.endTime
         }));
 
-        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, block.timestamp);
+        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, game.prizePool, block.timestamp);
     }
 
     /**

@@ -395,24 +395,9 @@ export function useCreateGame(): UseCreateGameReturn {
           logsCount: commentReceipt.logs.length,
         });
 
-        // 트랜잭션 확정 후 즉시 게임 정보 조회하여 백엔드에 댓글 저장
-        const updatedGameInfoResult = await v2Client.read<GameInfo>({
-          functionName: "getGameInfo",
-          args: [createdGameId],
-        });
-
-        const updatedGameInfo = updatedGameInfoResult.data;
-
         const commentApiRequest: CreateCommentRequest = {
           txHash: commentResult.hash,
-          gameId: createdGameId.toString(),
-          gameAddress: v2ContractAddress,
-          commentor: userAddress,
-          message: settings.firstComment,
           imageUrl: settings.firstCommentImage,
-          newEndTime: updatedGameInfo.endTime.toString(),
-          prizePool: updatedGameInfo.prizePool.toString(),
-          timestamp: Math.floor(Date.now() / 1000).toString(),
         };
 
         const savedComment = await backgroundApi.saveComment(commentApiRequest);

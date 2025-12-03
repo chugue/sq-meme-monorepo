@@ -13,7 +13,6 @@ import { backgroundApi, type CreateCommentRequest } from "../../lib/backgroundAp
 import {
   COMMENT_GAME_V2_ADDRESS,
   commentGameV2ABI,
-  type GameInfo,
 } from "../../lib/contract/abis/commentGameV2";
 import { createContractClient } from "../../lib/contract/contractClient";
 import { logger } from "../../lib/injected/logger";
@@ -104,25 +103,10 @@ export function CommentSection() {
         blockNumber: receipt.blockNumber,
       });
 
-      // 게임 정보 다시 조회하여 newEndTime, prizePool 가져오기
-      const gameInfoResult = await v2Client.read<GameInfo>({
-        functionName: "getGameInfo",
-        args: [gameId],
-      });
-
-      const updatedGameInfo = gameInfoResult.data;
-
-      // 백엔드에 댓글 저장
+      // 백엔드에 댓글 저장 (txHash로 이벤트 파싱)
       const apiRequest: CreateCommentRequest = {
         txHash: result.hash,
-        gameId: activeGameInfo.id,
-        gameAddress: v2ContractAddress,
-        commentor: address,
-        message: newComment.trim(),
         imageUrl: commentImageUrl,
-        newEndTime: updatedGameInfo.endTime.toString(),
-        prizePool: updatedGameInfo.prizePool.toString(),
-        timestamp: Math.floor(Date.now() / 1000).toString(),
       };
 
       try {

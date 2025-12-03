@@ -127,6 +127,13 @@
       "when": 1764774373979,
       "tag": "0017_reflective_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1764777792066,
+      "tag": "0018_public_master_chief",
+      "breakpoints": true
     }
   ]
 }

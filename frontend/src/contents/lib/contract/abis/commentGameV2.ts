@@ -218,6 +218,7 @@ export const commentGameV2ABI = [
             { indexed: true, internalType: 'address', name: 'commentor', type: 'address' },
             { indexed: false, internalType: 'string', name: 'message', type: 'string' },
             { indexed: false, internalType: 'uint256', name: 'newEndTime', type: 'uint256' },
+            { indexed: false, internalType: 'uint256', name: 'prizePool', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'timestamp', type: 'uint256' },
         ],
         name: 'CommentAdded',
