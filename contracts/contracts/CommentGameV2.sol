@@ -65,8 +65,12 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         uint256 indexed gameId,
         address indexed initiator,
         address indexed gameToken,
-        uint256 initialFunding,
-        uint256 endTime
+        uint256 cost,
+        uint256 gameTime,
+        string tokenSymbol,
+        uint256 endTime,
+        address lastCommentor,
+        uint256 totalFunding
     );
 
     event CommentAdded(
@@ -75,7 +79,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         address indexed commentor,
         string message,
         uint256 newEndTime,
-        uint256 prizePool,
+        uint256 totalFunding,
         uint256 timestamp
     );
 
@@ -160,7 +164,17 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         activeGameByToken[_gameToken] = gameId;
         allGameIds.push(gameId);
         
-        emit GameCreated(gameId, msg.sender, _gameToken, _initialFunding, game.endTime);
+        emit GameCreated(
+            gameId,
+            msg.sender,
+            _gameToken,
+            game.cost,
+            game.gameTime,
+            game.tokenSymbol,
+            game.endTime,
+            game.lastCommentor,
+            game.totalFunding
+        );
         
         return gameId;
     }
@@ -265,16 +279,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         game.lastCommentor = msg.sender;
         game.endTime = block.timestamp + game.gameTime;
 
-        // 댓글 저장
-        gameComments[_gameId].push(Comment({
-            id: commentId,
-            commentor: msg.sender,
-            message: _message,
-            timestamp: block.timestamp,
-            endTime: game.endTime
-        }));
-
-        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, game.prizePool, block.timestamp);
+        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, game.totalFunding, block.timestamp);
     }
 
     /**
@@ -394,16 +399,6 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         }
         
         return allGames;
-    }
-
-    /**
-     * @notice 특정 게임의 모든 댓글을 반환합니다.
-     * @param _gameId 게임 ID
-     * @return 댓글 배열
-     */
-    function getCommentsByGameId(uint256 _gameId) external view returns (Comment[] memory) {
-        require(games[_gameId].id > 0, "Game does not exist");
-        return gameComments[_gameId];
     }
 
     /**

@@ -141,6 +141,13 @@
       "when": 1764782285025,
       "tag": "0019_goofy_spencer_smythe",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1764782783691,
+      "tag": "0020_rich_agent_zero",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "squid_meme"."games" ADD COLUMN "token_image_url" text;
