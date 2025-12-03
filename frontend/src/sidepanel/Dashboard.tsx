@@ -44,9 +44,7 @@ export function Dashboard({
   const { username, userTag, profileImageUrl, logout } = useMemexLogin();
 
   const handleProfileClick = async () => {
-    if (onNavigateToProfile) {
-      onNavigateToProfile();
-    } else if (username && userTag) {
+    if (username && userTag) {
       // MEMEX 프로필 페이지로 이동 (backgroundApi를 통해 탭 URL 변경)
       try {
         await backgroundApi.navigateToUrl(
@@ -103,28 +101,19 @@ export function Dashboard({
 
       {/* Menu Sections */}
       <section className="menu-section">
-        <button
-          className="menu-item"
-          onClick={onNavigateToMyGames}
-        >
+        <button className="menu-item" onClick={onNavigateToMyGames}>
           <span className="menu-icon">🎮</span>
           <span className="menu-text">내가 참여하고 있는 게임</span>
           <span className="menu-arrow">▶</span>
         </button>
 
-        <button
-          className="menu-item"
-          onClick={onNavigateToLeaderboard}
-        >
+        <button className="menu-item" onClick={onNavigateToLeaderboard}>
           <span className="menu-icon">🏆</span>
           <span className="menu-text">리더 보드</span>
           <span className="menu-arrow">▶</span>
         </button>
 
-        <button
-          className="menu-item"
-          onClick={onNavigateToMyAssets}
-        >
+        <button className="menu-item" onClick={onNavigateToMyAssets}>
           <span className="menu-icon">💰</span>
           <span className="menu-text">나의 보유 자산 확인</span>
           <span className="menu-arrow">▶</span>

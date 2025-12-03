@@ -727,6 +727,78 @@ export async function waitForTransaction(
 }
 
 /**
+ * Injected script에 로그아웃 요청 전송
+ * 토큰 캐시 및 세션 데이터를 초기화합니다.
+ */
+export async function sendLogoutToInjectedScript(): Promise<{ success: boolean }> {
+    return new Promise((resolve) => {
+        const id = requestIdManager.generateId();
+        const timeout = INJECTED_CONFIG.REQUEST_TIMEOUT;
+        let timeoutId: NodeJS.Timeout | null = null;
+        let messageListener: ((event: MessageEvent) => void) | null = null;
+
+        const cleanup = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            if (messageListener) {
+                window.removeEventListener('message', messageListener);
+                messageListener = null;
+            }
+        };
+
+        // 타임아웃 설정
+        timeoutId = setTimeout(() => {
+            cleanup();
+            logger.warn('LOGOUT 타임아웃', { id });
+            // 타임아웃이어도 성공으로 처리 (injected script가 없을 수 있음)
+            resolve({ success: true });
+        }, timeout);
+
+        // 응답 리스너
+        messageListener = (event: MessageEvent) => {
+            if (!isInjectedScriptResponse(event, id)) {
+                return;
+            }
+
+            cleanup();
+
+            const response = event.data as InjectedScriptResponse;
+            if (response.error) {
+                logger.warn('LOGOUT 응답 에러', { error: response.error });
+                // 에러가 있어도 성공으로 처리
+                resolve({ success: true });
+            } else {
+                logger.info('✅ Injected script 로그아웃 완료');
+                resolve(response.result as { success: boolean });
+            }
+        };
+
+        window.addEventListener('message', messageListener);
+
+        // 메시지 전송
+        try {
+            window.postMessage(
+                {
+                    source: 'CONTENT_SCRIPT',
+                    method: 'LOGOUT',
+                    payload: { id },
+                },
+                '*'
+            );
+
+            logger.info('🚪 LOGOUT 요청 전송', { id });
+        } catch (error) {
+            cleanup();
+            logger.warn('LOGOUT 메시지 전송 실패', { error: String(error) });
+            // 전송 실패해도 성공으로 처리
+            resolve({ success: true });
+        }
+    });
+}
+
+/**
  * Injected API 객체
  */
 export const injectedApi = {
@@ -750,6 +822,7 @@ export const injectedApi = {
     waitForTransaction,
     revokePermissions,
     getNextFData,
+    sendLogoutToInjectedScript,
 } as const;
 
 // 타입 export

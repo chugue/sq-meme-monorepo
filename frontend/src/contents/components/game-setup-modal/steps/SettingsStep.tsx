@@ -2,10 +2,10 @@
  * 2단계: 게임 설정 입력 컴포넌트
  */
 
-import { useState, useRef } from "react";
 import { ImagePlus } from "lucide-react";
-import type { GameSettings } from "../types";
+import { useRef, useState } from "react";
 import { backgroundApi } from "../../../lib/backgroundApi";
+import type { GameSettings } from "../types";
 
 interface SettingsStepProps {
   settings: GameSettings;
@@ -88,7 +88,7 @@ export function SettingsStep({
         <label className="squid-input-label">
           Initial Funding
           <span className="squid-input-hint">
-            상금 풀에 넣을 초기 토큰 수량
+            상금 풀에 넣을 초기 토큰 수량ㄴ
           </span>
         </label>
         <div className="squid-input-with-suffix">
@@ -217,7 +217,9 @@ export function SettingsStep({
         </label>
         <div className="squid-comment-card">
           <textarea
-            className={`squid-comment-textarea ${errors.firstComment ? "error" : ""}`}
+            className={`squid-comment-textarea ${
+              errors.firstComment ? "error" : ""
+            }`}
             value={settings.firstComment}
             onChange={(e) =>
               onChange({ ...settings, firstComment: e.target.value })

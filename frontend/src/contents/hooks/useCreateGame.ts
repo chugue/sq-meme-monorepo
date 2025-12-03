@@ -371,10 +371,12 @@ export function useCreateGame(): UseCreateGameReturn {
         setStatus("첫 댓글 작성 중... (3/3)");
 
         // addComment(gameId, message) - V2 시그니처
+        // 가스를 명시적으로 설정 (펀더에게 분배하는 루프 때문에 가스 추정이 실패할 수 있음)
         const commentResult = await v2Client.write(
           {
             functionName: "addComment",
             args: [createdGameId, settings.firstComment],
+            gas: 500000n,
           },
           userAddress as Address
         );

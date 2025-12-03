@@ -20,6 +20,7 @@
         CHAIN_CHANGED: 'CHAIN_CHANGED',
         TOKEN_CONTRACT_CACHED: 'TOKEN_CONTRACT_CACHED',
         SPA_NAVIGATION: 'SPA_NAVIGATION',
+        LOGOUT_COMPLETE: 'LOGOUT_COMPLETE',
     };
 
     // 이미 주입되었는지 확인
@@ -360,6 +361,79 @@
                         source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
                         id: payload.id,
                         error: error?.message || 'Failed to read sessionStorage',
+                    },
+                    '*'
+                );
+            }
+        }
+
+        // LOGOUT 메서드 처리 (사이드 패널에서 로그아웃 시)
+        if (method === 'LOGOUT') {
+            try {
+                log.info('🚪 LOGOUT 요청 수신 - 토큰 및 캐시 초기화 시작');
+
+                // 1. 캐시된 인증 토큰 초기화
+                cachedAuthToken = null;
+
+                // 2. window에 저장된 토큰 삭제
+                try {
+                    delete window[TOKEN_STORAGE_KEY];
+                } catch (e) {
+                    // 삭제 실패는 무시
+                }
+
+                // 3. 토큰 컨트랙트 캐시 초기화
+                tokenContractCache.clear();
+
+                // 4. window에 저장된 토큰 컨트랙트 정보 삭제
+                try {
+                    delete window.__SQUID_MEME_TOKEN_CONTRACTS__;
+                } catch (e) {
+                    // 삭제 실패는 무시
+                }
+
+                // 5. localStorage의 Mock 토큰 삭제 (개발/테스트 환경)
+                try {
+                    localStorage.removeItem('__SQUID_MEME_MOCK_TOKEN__');
+                } catch (e) {
+                    // localStorage 접근 실패는 무시
+                }
+
+                // 6. sessionStorage의 gtm_user_identifier 삭제 (MEMEX 로그인 상태)
+                try {
+                    sessionStorage.removeItem('gtm_user_identifier');
+                    log.info('✅ gtm_user_identifier 삭제 완료');
+                } catch (e) {
+                    // sessionStorage 접근 실패는 무시
+                }
+
+                log.info('✅ LOGOUT 완료 - 모든 토큰 및 캐시 초기화됨');
+
+                // 로그아웃 완료 알림
+                window.postMessage(
+                    {
+                        source: MESSAGE_SOURCE.LOGOUT_COMPLETE,
+                        success: true,
+                    },
+                    '*'
+                );
+
+                // 요청에 대한 응답
+                window.postMessage(
+                    {
+                        source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
+                        id: payload.id,
+                        result: { success: true },
+                    },
+                    '*'
+                );
+            } catch (error) {
+                log.error('❌ LOGOUT 처리 실패', error);
+                window.postMessage(
+                    {
+                        source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
+                        id: payload.id,
+                        error: error?.message || 'Logout failed',
                     },
                     '*'
                 );

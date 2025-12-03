@@ -13,8 +13,8 @@ export interface CurrentPageInfo {
 // 현재 프로필 페이지 정보
 export const currentPageInfoAtom = atom<CurrentPageInfo | null>(null);
 
-// 페이지 정보 로딩 상태
-export const isPageInfoLoadingAtom = atom<boolean>(false);
+// 페이지 정보 로딩 상태 (초기값 true: 첫 렌더링 시 로딩 표시)
+export const isPageInfoLoadingAtom = atom<boolean>(true);
 
 // 페이지 정보 에러
 export const pageInfoErrorAtom = atom<string | null>(null);

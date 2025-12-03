@@ -813,6 +813,31 @@ export default defineContentScript({
             return true; // 비동기 응답
           }
 
+          // 로그아웃 시 inject script 토큰 캐시 초기화
+          if (message.type === "LOGOUT_INJECT_SCRIPT") {
+            console.log("🚪 [Content] LOGOUT_INJECT_SCRIPT 요청 수신");
+
+            import("@/contents/lib/injectedApi")
+              .then(async ({ sendLogoutToInjectedScript }) => {
+                try {
+                  await sendLogoutToInjectedScript();
+                  console.log("✅ [Content] Inject script 로그아웃 완료");
+                  sendResponse({ success: true });
+                } catch (error: any) {
+                  console.warn(
+                    "⚠️ [Content] Inject script 로그아웃 실패 (무시):",
+                    error.message
+                  );
+                  sendResponse({ success: true });
+                }
+              })
+              .catch((error) => {
+                console.error("❌ [Content] injectedApi import 실패:", error);
+                sendResponse({ success: true });
+              });
+            return true; // 비동기 응답
+          }
+
           return false;
         }
       );

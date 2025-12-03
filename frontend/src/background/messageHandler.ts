@@ -456,6 +456,7 @@ export function createMessageHandler() {
             try {
               const { browser } = await import("wxt/browser");
               const storage = browser?.storage || (globalThis as any).chrome?.storage;
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
 
               // session storage에서 gtm_user_identifier, squid_user 삭제
               await new Promise<void>((resolve, reject) => {
@@ -480,6 +481,21 @@ export function createMessageHandler() {
                   resolve();
                 });
               });
+
+              // Content Script에 로그아웃 메시지 전송 (inject script 토큰 캐시 초기화)
+              try {
+                const memexTabs = await tabs.query({
+                  url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                });
+
+                if (memexTabs.length > 0 && memexTabs[0]?.id) {
+                  await tabs.sendMessage(memexTabs[0].id, { type: "LOGOUT_INJECT_SCRIPT" });
+                  console.log(`✅ Content Script에 로그아웃 메시지 전송 완료`);
+                }
+              } catch (tabError) {
+                // Content Script 메시지 전송 실패는 무시 (탭이 없을 수 있음)
+                console.warn("⚠️ Content Script 로그아웃 메시지 전송 실패 (무시):", tabError);
+              }
 
               console.log(`✅ LOGOUT 완료: gtm_user_identifier 및 지갑 정보 삭제`);
               result = { success: true, data: { success: true } };
