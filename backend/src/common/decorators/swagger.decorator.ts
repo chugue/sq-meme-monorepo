@@ -55,6 +55,19 @@ export const ApiRegisterGame = (summary = '블록체인 게임 등록') =>
         }),
     );
 
+export const ApiCreateGameByTx = (summary = 'txHash로 게임 생성') =>
+    applyDecorators(
+        ApiOperation({ summary }),
+        ApiResponse({
+            status: 201,
+            description: '게임 생성 완료',
+        }),
+        ApiResponse({
+            status: 400,
+            description: '트랜잭션 영수증을 찾을 수 없거나 GameCreated 이벤트가 없음',
+        }),
+    );
+
 // ============================================================
 // Winner API Decorators
 // ============================================================

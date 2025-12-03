@@ -332,37 +332,21 @@ export function useCreateGame(): UseCreateGameReturn {
           logsCount: createGameReceipt.logs.length,
         });
 
-        // getActiveGameId로 생성된 게임 ID 조회 후 getGameInfo로 전체 정보 가져오기
-        const activeGameIdResult = await v2Client.read<bigint>({
-          functionName: "getActiveGameId",
-          args: [actualTokenAddress],
-        });
+        // DB에 게임 정보 등록 (백엔드에서 txHash로 이벤트 파싱)
+        // TODO: tokenImageUrl은 실제 토큰 이미지 URL로 변경 필요
+        const createGameResult = await backgroundApi.createGameByTx(result.hash);
 
-        const createdGameId = activeGameIdResult.data;
-
-        if (!createdGameId || createdGameId === 0n) {
-          throw new Error("게임 ID를 조회할 수 없습니다.");
+        if (!createGameResult?.gameId) {
+          throw new Error("게임 생성에 실패했습니다.");
         }
 
-        // 게임 정보 조회
-        const gameInfoResult = await v2Client.read<GameInfo>({
-          functionName: "getGameInfo",
-          args: [createdGameId],
-        });
+        const createdGameId = createGameResult.gameId;
 
-        const gameInfo = gameInfoResult.data;
-
-        setGameId(createdGameId.toString());
+        setGameId(createdGameId);
         // TODO: address말고 setActiveGameInfo로 변경
         setGameAddress(v2ContractAddress);
 
-        logger.info("게임 생성 완료", { gameId: createdGameId.toString() });
-
-        // DB에 게임 정보 등록
-        await backgroundApi.registerGame(gameInfo);
-        logger.info("게임 정보 DB 등록 완료", {
-          gameId: createdGameId.toString(),
-        });
+        logger.info("게임 생성 완료", { gameId: createdGameId });
 
         // ============================================
         // Step 3: First Comment - 첫 댓글 작성 (V2)

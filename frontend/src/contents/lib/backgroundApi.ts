@@ -56,6 +56,7 @@ export type BackgroundMessage =
   | { type: "LOGOUT" }
   | { type: "WALLET_DISCONNECT" }
   | { type: "REGISTER_GAME"; data: SerializedGameInfo }
+  | { type: "CREATE_GAME_BY_TX"; txHash: string; tokenImageUrl?: string }
   | { type: "UPLOAD_IMAGE"; fileData: string; fileName: string; mimeType: string }
   | { type: "REFRESH_MEMEX_TAB" };
 
@@ -338,6 +339,15 @@ export const backgroundApi = {
     return sendToBackground<{ gameId: string }>({
       type: "REGISTER_GAME",
       data: serializedData,
+    });
+  },
+
+  // txHash로 게임 생성 (백엔드에서 이벤트 파싱)
+  createGameByTx: async (txHash: string, tokenImageUrl?: string) => {
+    return sendToBackground<{ gameId: string }>({
+      type: "CREATE_GAME_BY_TX",
+      txHash,
+      tokenImageUrl,
     });
   },
 

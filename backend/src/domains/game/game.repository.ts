@@ -182,6 +182,68 @@ export class GameRepository {
     }
 
     /**
+     * @description txHash와 이벤트 데이터로 게임 생성 (V2)
+     * @returns 생성된 게임 ID 또는 null (중복/실패 시)
+     */
+    async createFromTx(data: {
+        txHash: string;
+        gameId: string;
+        initiator: string;
+        gameToken: string;
+        cost: string;
+        gameTime: string;
+        tokenSymbol: string;
+        endTime: string;
+        lastCommentor: string;
+        totalFunding: string;
+        tokenImageUrl?: string;
+    }): Promise<{ gameId: string } | null> {
+        // 중복 체크 (txHash)
+        const existingByTx = await this.findByTxHash(data.txHash);
+        if (existingByTx) {
+            this.logger.warn(`중복 게임 생성 요청: txHash ${data.txHash}`);
+            return { gameId: data.gameId };
+        }
+
+        // 중복 체크 (gameId)
+        const existingByGameId = await this.findByGameId(data.gameId);
+        if (existingByGameId) {
+            this.logger.warn(`중복 게임 등록 요청: gameId ${data.gameId}`);
+            return existingByGameId;
+        }
+
+        try {
+            const [game] = await this.db
+                .insert(schema.games)
+                .values({
+                    txHash: data.txHash,
+                    gameId: data.gameId,
+                    gameAddress: data.gameId, // V2에서는 gameId를 gameAddress로 사용
+                    gameToken: data.gameToken.toLowerCase(),
+                    tokenSymbol: data.tokenSymbol,
+                    tokenImageUrl: data.tokenImageUrl,
+                    initiator: data.initiator.toLowerCase(),
+                    gameTime: data.gameTime,
+                    endTime: new Date(Number(data.endTime) * 1000),
+                    cost: data.cost,
+                    prizePool: data.totalFunding, // 초기 prizePool = totalFunding
+                    lastCommentor: data.lastCommentor.toLowerCase(),
+                    isClaimed: false,
+                    isEnded: false,
+                    totalFunding: data.totalFunding,
+                    funderCount: '1', // 생성자가 첫 펀더
+                })
+                .returning({ gameId: schema.games.gameId });
+
+            this.logger.log(`✅ 게임 생성 완료 (txHash): ${game.gameId}`);
+            return { gameId: game.gameId };
+        } catch (error) {
+            this.logger.error(`❌ 게임 생성 실패: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
      * @description 블록체인에서 조회한 게임 데이터를 검증하고 저장 (txHash 없음)
      * @returns 생성된 게임 ID 또는 null (중복/실패 시)
      */

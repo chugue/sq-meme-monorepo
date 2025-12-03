@@ -11,12 +11,14 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import {
     ApiCreateGame,
+    ApiCreateGameByTx,
     ApiGetGameByToken,
     ApiGetGamesInPlaying,
     ApiRegisterClaimPrize,
     ApiRegisterGame,
     WalletAddress,
 } from 'src/common/decorators';
+import { CreateGameByTxDtoSchema } from 'src/common/validator/game.validator';
 import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
 
@@ -87,6 +89,21 @@ export class GameController {
     @ApiRegisterGame('블록체인에서 조회한 게임 등록')
     async registerGame(@Body() body: unknown) {
         return this.gameService.registerGame(body);
+    }
+
+    @Post('create-by-tx')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiCreateGameByTx('txHash로 게임 생성 (이벤트 파싱)')
+    async createGameByTx(@Body() body: unknown) {
+        const parsed = CreateGameByTxDtoSchema.safeParse(body);
+        if (!parsed.success) {
+            throw new NotFoundException(parsed.error.message);
+        }
+
+        return this.gameService.createGameByTx(
+            parsed.data.txHash,
+            parsed.data.tokenImageUrl,
+        );
     }
 
     @Get('in-playing')

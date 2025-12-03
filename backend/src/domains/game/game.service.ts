@@ -11,10 +11,14 @@ import { GameRepository } from './game.repository';
 const PRIZE_CLAIMED_EVENT =
     'event PrizeClaimed(uint256 indexed gameId, address indexed winner, uint256 prizeAmount, uint256 timestamp)';
 
+const GAME_CREATED_EVENT =
+    'event GameCreated(uint256 indexed gameId, address indexed initiator, address indexed gameToken, uint256 cost, uint256 gameTime, string tokenSymbol, uint256 endTime, address lastCommentor, uint256 totalFunding)';
+
 @Injectable()
 export class GameService {
     private readonly logger = new Logger(GameService.name);
     private prizeClaimedIface: ethers.Interface;
+    private gameCreatedIface: ethers.Interface;
     private readonly contractAddress: string;
 
     constructor(
@@ -25,6 +29,7 @@ export class GameService {
         private readonly commentRepository: CommentRepository,
     ) {
         this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
+        this.gameCreatedIface = new ethers.Interface([GAME_CREATED_EVENT]);
         this.contractAddress =
             this.configService.get<string>('COMMENT_GAME_V2_ADDRESS') || '';
     }
@@ -130,6 +135,97 @@ export class GameService {
                 error.stack,
             );
             return false;
+        }
+    }
+
+    /**
+     * @description txHash로 GameCreated 이벤트를 파싱하여 게임 생성
+     * @param txHash 트랜잭션 해시
+     * @param tokenImageUrl 토큰 이미지 URL (선택, 이벤트에 없는 정보)
+     */
+    async createGameByTx(
+        txHash: string,
+        tokenImageUrl?: string,
+    ): Promise<Result<{ gameId: string }>> {
+        try {
+            const receipt =
+                await this.ethereumProvider.getTransactionReceipt(txHash);
+
+            if (!receipt) {
+                this.logger.warn(`트랜잭션 영수증 없음: ${txHash}`);
+                return Result.fail('트랜잭션 영수증을 찾을 수 없습니다.');
+            }
+
+            if (receipt.status === 0) {
+                this.logger.warn(`트랜잭션 실패 (revert): ${txHash}`);
+                return Result.fail('트랜잭션이 실패했습니다.');
+            }
+
+            // GameCreated 이벤트 찾기
+            const gameCreatedTopic =
+                this.gameCreatedIface.getEvent('GameCreated')?.topicHash;
+
+            const gameCreatedLog = receipt.logs.find(
+                (log) =>
+                    log.topics[0] === gameCreatedTopic &&
+                    log.address.toLowerCase() ===
+                        this.contractAddress.toLowerCase(),
+            );
+
+            if (!gameCreatedLog) {
+                this.logger.warn(`GameCreated 이벤트 없음: ${txHash}`);
+                return Result.fail('GameCreated 이벤트를 찾을 수 없습니다.');
+            }
+
+            // 이벤트 디코딩
+            const decoded = this.gameCreatedIface.decodeEventLog(
+                'GameCreated',
+                gameCreatedLog.data,
+                gameCreatedLog.topics,
+            );
+
+            const rawEvent = decoded.toObject();
+
+            const gameId = rawEvent.gameId.toString();
+            const initiator = rawEvent.initiator as string;
+            const gameToken = rawEvent.gameToken as string;
+            const cost = rawEvent.cost.toString();
+            const gameTime = rawEvent.gameTime.toString();
+            const tokenSymbol = rawEvent.tokenSymbol as string;
+            const endTime = rawEvent.endTime.toString();
+            const lastCommentor = rawEvent.lastCommentor as string;
+            const totalFunding = rawEvent.totalFunding.toString();
+
+            this.logger.log(
+                `🎮 GameCreated 확인: gameId=${gameId}, token=${tokenSymbol}, initiator=${initiator}`,
+            );
+
+            // DB에 게임 저장
+            const result = await this.gameRepository.createFromTx({
+                txHash,
+                gameId,
+                initiator,
+                gameToken,
+                cost,
+                gameTime,
+                tokenSymbol,
+                endTime,
+                lastCommentor,
+                totalFunding,
+                tokenImageUrl,
+            });
+
+            if (!result) {
+                return Result.fail('게임 저장에 실패했습니다.');
+            }
+
+            return Result.ok(result);
+        } catch (error) {
+            this.logger.error(
+                `createGameByTx 실패: ${error.message}`,
+                error.stack,
+            );
+            return Result.fail('게임 생성에 실패했습니다.');
         }
     }
 

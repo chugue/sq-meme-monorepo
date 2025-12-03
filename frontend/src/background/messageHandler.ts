@@ -314,6 +314,33 @@ export function createMessageHandler() {
             break;
           }
 
+          case "CREATE_GAME_BY_TX": {
+            const { txHash, tokenImageUrl } = message as {
+              type: string;
+              txHash: string;
+              tokenImageUrl?: string;
+            };
+            console.log("🎮 CREATE_GAME_BY_TX 요청:", txHash);
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { gameId: string };
+              }>("/v1/games/create-by-tx", {
+                method: "POST",
+                body: JSON.stringify({ txHash, tokenImageUrl }),
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 게임 생성 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "게임 생성 실패",
+              };
+            }
+            break;
+          }
+
           case "REGISTER_CLAIM_PRIZE": {
             console.log(
               "🏆 REGISTER_CLAIM_PRIZE 요청:",
