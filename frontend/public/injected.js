@@ -711,17 +711,17 @@
                 const content = Array.isArray(item) ? item[1] : (typeof item === 'string' ? item : '');
                 if (typeof content !== 'string') continue;
 
-                // tokenAddress 추출
+                // tokenAddress 추출 (escaped quotes 지원: \" 또는 ")
                 if (!tokenAddr && content.includes('tokenAddress')) {
-                    const match = content.match(/"tokenAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/);
+                    const match = content.match(/["\\]tokenAddress["\\]\s*:\s*["\\](0x[a-fA-F0-9]{40})["\\]/);
                     if (match) {
                         tokenAddr = match[1];
                     }
                 }
 
-                // tokenSymbol 추출
+                // tokenSymbol 추출 (escaped quotes 지원: \" 또는 ")
                 if (!tokenSymbol && content.includes('tokenSymbol')) {
-                    const match = content.match(/"tokenSymbol"\s*:\s*"([^"]+)"/);
+                    const match = content.match(/["\\]tokenSymbol["\\]\s*:\s*["\\]([^"\\]+)["\\]/);
                     if (match) {
                         tokenSymbol = match[1];
                     }

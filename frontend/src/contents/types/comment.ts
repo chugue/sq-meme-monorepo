@@ -8,6 +8,7 @@ export interface Comment {
   endTime?: string;
   currentPrizePool?: string;
   isWinnerComment?: boolean;
+  imageUrl?: string;
 }
 
 export interface CreateCommentInput {

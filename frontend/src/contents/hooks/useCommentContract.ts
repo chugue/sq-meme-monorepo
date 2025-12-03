@@ -47,10 +47,12 @@ export interface GameInfo {
  * CommentGame 컨트랙트 훅
  * @param gameAddress CommentGame 컨트랙트 주소
  * @param userAddress 사용자 지갑 주소
+ * @param gameId 게임 ID (백엔드 API용, V2 필수)
  */
 export function useCommentContract(
     gameAddress: Address | null,
-    userAddress: Address | null
+    userAddress: Address | null,
+    gameId?: string
 ): UseCommentContractReturn {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
@@ -146,8 +148,14 @@ export function useCommentContract(
                 });
 
                 // 4. 백엔드 API 호출
+                if (!gameId) {
+                    logger.warn('gameId가 없어 백엔드 저장 건너뜀');
+                    return result.hash;
+                }
+
                 const apiRequest: CreateCommentRequest = {
                     txHash: result.hash,
+                    gameId,
                     gameAddress: gameAddress,
                     commentor: eventData.commentor,
                     message: eventData.message,

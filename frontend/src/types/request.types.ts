@@ -1,7 +1,8 @@
 // 댓글 생성 요청 DTO
 export interface CreateCommentRequest {
   txHash: string;
-  gameAddress: string;
+  gameId: string; // 컨트랙트상의 게임 ID (필수)
+  gameAddress?: string; // deprecated: gameId로 대체
   commentor: string;
   message: string;
   imageUrl?: string; // 댓글 이미지 URL (선택)

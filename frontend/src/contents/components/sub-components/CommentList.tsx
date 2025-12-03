@@ -20,6 +20,15 @@ export function CommentList({ comments, isLoading }: CommentListProps) {
             {comments.map((comment) => (
                 <div key={comment.id} className="squid-comment-item">
                     <div className="squid-comment-content">{comment.message}</div>
+                    {comment.imageUrl && (
+                        <div className="squid-comment-image-wrapper">
+                            <img
+                                src={comment.imageUrl}
+                                alt="Comment image"
+                                className="squid-comment-image-preview"
+                            />
+                        </div>
+                    )}
                     <div className="squid-comment-meta">
                         <span className="squid-comment-address">
                             {formatAddress(comment.commentor)}

@@ -397,6 +397,73 @@ export default defineContentScript({
     ui.mount();
     currentPath = window.location.pathname;
 
+    // MutationObserver로 컨테이너가 DOM에서 제거되었는지 감지하고 재마운트
+    const setupContainerWatcher = () => {
+      let remountTimeout: ReturnType<typeof setTimeout> | null = null;
+      let isRemounting = false;
+
+      const observer = new MutationObserver(() => {
+        // 프로필 페이지가 아니면 무시
+        if (!isProfilePage(window.location.href)) {
+          return;
+        }
+
+        // 이미 재마운트 중이면 무시
+        if (isRemounting) {
+          return;
+        }
+
+        // 컨테이너가 DOM에서 제거되었는지 확인
+        const container = document.querySelector("#squid-meme-comment-root");
+        if (!container) {
+          // 이미 타이머가 설정되어 있으면 무시 (debounce)
+          if (remountTimeout) {
+            return;
+          }
+
+          console.log("🦑 컨테이너가 DOM에서 제거됨 감지 - 재마운트 예약");
+
+          // 약간의 딜레이 후 재마운트 (DOM이 안정화될 때까지 대기)
+          remountTimeout = setTimeout(() => {
+            remountTimeout = null;
+
+            // 여전히 컨테이너가 없고 프로필 페이지인 경우에만 재마운트
+            if (
+              !document.querySelector("#squid-meme-comment-root") &&
+              isProfilePage(window.location.href)
+            ) {
+              console.log("🦑 UI 재마운트 실행");
+              isRemounting = true;
+
+              // ui.remove()를 먼저 호출하여 기존 root 정리
+              ui.remove();
+
+              // 새 타겟 요소 찾기
+              findTargetElementWithRetry(5, 200, 2000).then((newTarget) => {
+                if (newTarget) {
+                  // anchor 업데이트 후 마운트
+                  // @ts-ignore
+                  ui.options.anchor = newTarget;
+                }
+                ui.mount();
+                isRemounting = false;
+              });
+            }
+          }, 300);
+        }
+      });
+
+      // body 전체를 감시 (subtree, childList)
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      return observer;
+    };
+
+    const containerWatcher = setupContainerWatcher();
+
     // SPA 네비게이션 감지를 위한 URL 변경 리스너
     const handleUrlChange = async () => {
       const newPath = window.location.pathname;
@@ -847,6 +914,7 @@ export default defineContentScript({
     // 클린업 함수 등록
     ctx.onInvalidated(() => {
       window.removeEventListener("message", spaNavigationListener);
+      containerWatcher.disconnect();
       console.log("🦑 Content script 클린업 완료");
     });
   },

@@ -405,6 +405,7 @@ export function useCreateGame(): UseCreateGameReturn {
 
         const commentApiRequest: CreateCommentRequest = {
           txHash: commentResult.hash,
+          gameId: createdGameId.toString(),
           gameAddress: v2ContractAddress,
           commentor: userAddress,
           message: settings.firstComment,
