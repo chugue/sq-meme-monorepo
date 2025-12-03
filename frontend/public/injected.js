@@ -567,38 +567,50 @@
         }, 10000);
     }
 
-    // 준비 완료 알림 + 현재 URL의 캐시된 토큰 정보 전송
-    const sendReadyWithCachedToken = () => {
+    // 준비 완료 알림 + __next_f에서 토큰 정보 추출하여 전송
+    const sendReadyWithToken = () => {
         // 현재 URL에서 프로필 정보 확인
         const currentUrl = window.location.href;
         const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-        let cachedToken = null;
-        if (profileMatch) {
-            const [, username, userTag] = profileMatch;
-            const cacheKey = `${username}#${userTag}`;
-            cachedToken = tokenContractCache.get(cacheKey) || null;
-
-            // window 캐시에서도 확인
-            if (!cachedToken && window.__SQUID_MEME_TOKEN_CONTRACTS__) {
-                cachedToken = window.__SQUID_MEME_TOKEN_CONTRACTS__[cacheKey] || null;
-            }
-        }
-
+        // 먼저 준비 완료 메시지 전송 (토큰 정보 없이)
         window.postMessage(
             {
                 source: MESSAGE_SOURCE.INJECTED_SCRIPT_READY,
-                cachedToken: cachedToken,
+                cachedToken: null,
             },
             '*'
         );
 
-        if (cachedToken) {
-            log.info('준비 완료 + 캐시된 토큰 정보 전송', cachedToken);
+        // 프로필 페이지면 __next_f에서 토큰 정보 추출 시도
+        if (profileMatch) {
+            const tryExtractToken = (attempt = 1) => {
+                const tokenInfo = extractTokenFromNextF();
+
+                if (tokenInfo) {
+                    log.info(`초기 로드: __next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
+                    window.postMessage(
+                        {
+                            source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
+                            data: tokenInfo,
+                        },
+                        '*'
+                    );
+                } else if (attempt < 10) {
+                    // 최대 10회 재시도 (100ms, 200ms, 300ms, ...)
+                    log.info(`초기 로드: 토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
+                    setTimeout(() => tryExtractToken(attempt + 1), 100 * attempt);
+                } else {
+                    log.warn('초기 로드: 토큰 정보 추출 실패 (최대 재시도 초과)');
+                }
+            };
+
+            // 첫 시도는 약간의 딜레이 후 (DOM 렌더링 대기)
+            setTimeout(() => tryExtractToken(1), 200);
         }
     };
 
-    sendReadyWithCachedToken();
+    sendReadyWithToken();
 
     /**
      * __next_f에서 토큰 정보 추출 (캐시 사용 안함)

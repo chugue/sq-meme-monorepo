@@ -19,13 +19,13 @@ export class CommentRepository {
     ) {}
 
     /**
-     * @description 게임 주소로 댓글 목록 조회
+     * @description 게임 ID로 댓글 목록 조회
      */
-    async findByGameAddress(gameAddress: string) {
+    async findByGameId(gameId: string) {
         return await this.db
             .select()
             .from(schema.comments)
-            .where(eq(schema.comments.gameAddress, gameAddress.toLowerCase()))
+            .where(eq(schema.comments.gameId, gameId))
             .orderBy(desc(schema.comments.createdAt));
     }
 
@@ -188,6 +188,7 @@ export class CommentRepository {
                     .insert(schema.comments)
                     .values({
                         txHash: dto.txHash,
+                        gameId: dto.gameId,
                         gameAddress: dto.gameAddress,
                         commentor: dto.commentor,
                         message: dto.message,
@@ -200,7 +201,7 @@ export class CommentRepository {
                     })
                     .returning({ id: schema.comments.id });
 
-                // 2. 게임 상태 업데이트
+                // 2. 게임 상태 업데이트 (gameId로 조회)
                 await tx
                     .update(schema.games)
                     .set({
@@ -208,12 +209,12 @@ export class CommentRepository {
                         prizePool: dto.prizePool,
                         lastCommentor: dto.commentor,
                     })
-                    .where(eq(schema.games.gameAddress, dto.gameAddress));
+                    .where(eq(schema.games.gameId, dto.gameId));
 
                 return inserted;
             });
 
-            this.logger.log(`댓글 저장 완료: 게임 ${dto.gameAddress}`);
+            this.logger.log(`댓글 저장 완료: 게임 ID ${dto.gameId}`);
             return { id: comment.id };
         } catch (error) {
             this.logger.error(`댓글 저장 실패: ${error.message}`);

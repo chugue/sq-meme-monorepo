@@ -8,7 +8,7 @@
  */
 
 import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { backgroundApi } from '../../contents/lib/backgroundApi';
 import {
     sessionAtom,
@@ -38,6 +38,9 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
 
     const { isWalletConnected: isConnected, walletAddress: address, isLoading, error } = session;
 
+    // 초기 상태 확인 중복 방지
+    const initialCheckDone = useRef(false);
+
     // 지갑 상태 확인 함수
     const checkAccount = useCallback(async () => {
         try {
@@ -56,10 +59,15 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
         }
     }, [setWalletConnected, setLoading, setError]);
 
-    // 초기 상태 확인
+    // 초기 상태 확인 (마운트 시 한 번만)
     useEffect(() => {
+        if (initialCheckDone.current) {
+            return;
+        }
+        initialCheckDone.current = true;
         checkAccount();
-    }, [checkAccount]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleConnect = useCallback(async () => {
         console.log('🔐 [SidePanel] handleConnect 시작');

@@ -31,6 +31,7 @@ export function CommentSection() {
     error: walletError,
   } = useWallet();
   const [newComment, setNewComment] = useState("");
+  const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
   const [isSigning, setIsSigning] = useState(false);
 
   const handleSubmit = useCallback(async () => {
@@ -72,6 +73,7 @@ export function CommentSection() {
       });
 
       setNewComment("");
+      setCommentImageUrl(undefined);
     } catch (error) {
       logger.error("댓글 작성 오류", error);
 
@@ -117,6 +119,8 @@ export function CommentSection() {
       <CommentForm
         value={newComment}
         onChange={setNewComment}
+        imageUrl={commentImageUrl}
+        onImageChange={setCommentImageUrl}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         isSigning={isSigning}

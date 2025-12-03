@@ -252,21 +252,23 @@ export function SettingsStep({
             </div>
           ) : null}
 
-          {/* 하단 액션 바 */}
-          <div className="squid-comment-actions">
-            <button
-              type="button"
-              className="squid-comment-add-image"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <span className="squid-upload-spinner" />
-              ) : (
-                <ImagePlus size={20} />
-              )}
-            </button>
-          </div>
+          {/* 하단 액션 바 - 이미지가 없을 때만 표시 */}
+          {!settings.firstCommentImage && (
+            <div className="squid-comment-actions">
+              <button
+                type="button"
+                className="squid-comment-add-image"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <span className="squid-upload-spinner" />
+                ) : (
+                  <ImagePlus size={20} />
+                )}
+              </button>
+            </div>
+          )}
         </div>
         {errors.firstComment && (
           <span className="squid-input-error">{errors.firstComment}</span>

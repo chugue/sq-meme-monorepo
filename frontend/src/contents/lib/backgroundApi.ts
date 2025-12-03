@@ -29,7 +29,7 @@ export interface SerializedGameInfo {
 
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
-  | { type: "GET_COMMENTS"; gameAddress: string }
+  | { type: "GET_COMMENTS"; gameId: string }
   | {
       type: "CREATE_COMMENT";
       challengeId: string;
@@ -124,10 +124,10 @@ export async function sendToBackground<T>(
 // API 클라이언트 (Background Script와 통신)
 export const backgroundApi = {
   // 댓글 목록
-  getComments: async (gameAddress: string) => {
+  getComments: async (gameId: string) => {
     return sendToBackground<Array<any>>({
       type: "GET_COMMENTS",
-      gameAddress,
+      gameId,
     });
   },
 

@@ -20,7 +20,7 @@ import { injectedApi } from '../lib/injectedApi';
 
 export interface UseCommentContractReturn {
     // 댓글 작성
-    addComment: (message: string) => Promise<string>;
+    addComment: (message: string, imageUrl?: string) => Promise<string>;
     // 게임 정보 조회
     getGameInfo: () => Promise<GameInfo>;
     // ERC20 관련
@@ -81,10 +81,11 @@ export function useCommentContract(
      * 댓글 작성 (컨트랙트 addComment 호출)
      * - 트랜잭션 전송 → 확정 대기 → 이벤트 파싱 → 백엔드 API 호출
      * @param message 댓글 내용
+     * @param imageUrl 이미지 URL (선택)
      * @returns 트랜잭션 해시
      */
     const addComment = useCallback(
-        async (message: string): Promise<string> => {
+        async (message: string, imageUrl?: string): Promise<string> => {
             if (!contractClient || !gameAddress) {
                 throw new Error('게임 주소가 설정되지 않았습니다.');
             }
@@ -150,6 +151,7 @@ export function useCommentContract(
                     gameAddress: gameAddress,
                     commentor: eventData.commentor,
                     message: eventData.message,
+                    imageUrl,
                     newEndTime: eventData.newEndTime.toString(),
                     prizePool: eventData.prizePool.toString(),
                     timestamp: eventData.timestamp.toString(),

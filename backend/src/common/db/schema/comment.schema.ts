@@ -20,7 +20,8 @@ export const comments = squidSchema.table(
         txHash: varchar('tx_hash', { length: 66 }).unique(),
 
         // 어떤 게임의 댓글인지
-        gameAddress: varchar('game_address', { length: 42 }).notNull(),
+        gameId: text('game_id').notNull(), // 컨트랙트상의 게임 ID (uint256)
+        gameAddress: varchar('game_address', { length: 42 }),
 
         // 댓글 내용
         commentor: varchar('commentor', { length: 42 }).notNull(),
@@ -39,9 +40,9 @@ export const comments = squidSchema.table(
     },
     (table) => {
         return {
-            gameIdx: index('game_idx').on(table.gameAddress),
+            gameIdIdx: index('game_id_idx').on(table.gameId),
             lastCommentIdx: index('last_comment_idx').on(
-                table.gameAddress,
+                table.gameId,
                 table.isWinnerComment,
             ),
         };

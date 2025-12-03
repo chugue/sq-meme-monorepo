@@ -26,9 +26,9 @@ export class CommentController {
         return this.commentService.createComment(body);
     }
 
-    @Get('game/:gameAddress')
-    async getCommentsByGame(@Param('gameAddress') gameAddress: string) {
-        return this.commentService.getCommentsByGame(gameAddress);
+    @Get('game/:gameId')
+    async getCommentsByGameId(@Param('gameId') gameId: string) {
+        return this.commentService.getCommentsByGameId(gameId);
     }
 
     @Post(':id/like')

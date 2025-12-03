@@ -20,11 +20,11 @@ export function createMessageHandler() {
 
         switch (message.type) {
           case "GET_COMMENTS": {
-            console.log("📥 GET_COMMENTS 요청:", message.gameAddress);
+            console.log("📥 GET_COMMENTS 요청:", message.gameId);
             const response = await apiCall<{
               success: boolean;
               data: { comments: any[] };
-            }>(`/v1/comments/game/${encodeURIComponent(message.gameAddress)}`);
+            }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`);
             // Result wrapper에서 comments 추출
             result = { success: true, data: response.data?.comments || [] };
             break;
@@ -533,95 +533,158 @@ export function createMessageHandler() {
             break;
           }
 
-          case "MEMEX_LOGIN":
           case "WALLET_CONNECT":
           case "WALLET_GET_ACCOUNT":
           case "WALLET_DISCONNECT": {
-            console.log(`🔐 ${message.type} 요청`);
+            console.log(`🔐 ${message.type} 요청 (scripting API 사용)`);
             try {
               const { browser } = await import("wxt/browser");
               const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+              const scripting = (globalThis as any).chrome?.scripting;
 
-              // MEMEX 페이지 탭 찾기 (활성 탭이 아니어도 됨)
+              // MEMEX 페이지 탭 찾기
               let memexTabs = await tabs.query({
                 url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
               });
 
               console.log(`🔐 MEMEX 탭 찾기 결과:`, memexTabs.length, "개");
 
-              // MEMEX 탭이 없으면 새로 열기
+              // MEMEX 탭이 없는 경우
               if (memexTabs.length === 0) {
+                if (message.type === "WALLET_GET_ACCOUNT") {
+                  result = { success: true, data: { isConnected: false, address: null } };
+                  break;
+                }
+                if (message.type === "WALLET_DISCONNECT") {
+                  result = { success: true, data: { success: true } };
+                  break;
+                }
+
+                // WALLET_CONNECT: 새 탭 열고 대기
                 console.log(`🔐 MEMEX 탭 없음, 새 탭 열기`);
                 const newTab = await tabs.create({
                   url: "https://app.memex.xyz",
                   active: true,
                 });
 
-                // 탭이 완전히 로드될 때까지 대기
                 await new Promise<void>((resolve) => {
-                  const listener = (
-                    tabId: number,
-                    changeInfo: { status?: string }
-                  ) => {
+                  const listener = (tabId: number, changeInfo: { status?: string }) => {
                     if (tabId === newTab.id && changeInfo.status === "complete") {
                       tabs.onUpdated.removeListener(listener);
-                      // content script 초기화 시간 추가 대기
-                      setTimeout(resolve, 1000);
+                      setTimeout(resolve, 1500); // 페이지 로딩 대기
                     }
                   };
                   tabs.onUpdated.addListener(listener);
-                  // 타임아웃 (10초)
                   setTimeout(() => {
                     tabs.onUpdated.removeListener(listener);
                     resolve();
                   }, 10000);
                 });
 
-                // 다시 조회
                 memexTabs = await tabs.query({
                   url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
                 });
 
                 if (memexTabs.length === 0) {
-                  result = {
-                    success: false,
-                    error: "MEMEX 페이지 로딩 중입니다. 잠시 후 다시 시도해주세요.",
-                  };
+                  result = { success: false, error: "MEMEX 페이지 로딩 실패" };
                   break;
                 }
               }
 
-              // 첫 번째 MEMEX 탭 사용
               const targetTab = memexTabs[0];
-              console.log(`🔐 타겟 탭:`, targetTab.id, targetTab.url);
-
               if (!targetTab?.id) {
-                result = {
-                  success: false,
-                  error: "MEMEX 탭 ID를 찾을 수 없습니다.",
-                };
+                result = { success: false, error: "MEMEX 탭 ID를 찾을 수 없습니다." };
                 break;
               }
 
-              // Content script로 메시지 전달 (MEMEX_LOGIN의 경우 triggerLogin 포함)
-              const messageToSend: { type: string; triggerLogin?: boolean } = {
-                type: message.type,
-              };
-              if (message.type === 'MEMEX_LOGIN') {
-                messageToSend.triggerLogin = (message as any).triggerLogin ?? false;
-              }
-              const response = await tabs.sendMessage(targetTab.id, messageToSend);
+              console.log(`🔐 타겟 탭에서 스크립트 실행:`, targetTab.id);
 
-              result = { success: true, data: response };
+              // chrome.scripting.executeScript로 직접 실행
+              const injectionResults = await scripting.executeScript({
+                target: { tabId: targetTab.id },
+                world: "MAIN", // 페이지 컨텍스트에서 실행 (window.ethereum 접근 가능)
+                func: async (action: string) => {
+                  const ethereum = (window as any).ethereum;
+                  if (!ethereum) {
+                    return { error: "MetaMask가 설치되어 있지 않습니다." };
+                  }
+
+                  try {
+                    if (action === "WALLET_CONNECT") {
+                      const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+                      return { isConnected: true, address: accounts[0] || null };
+                    } else if (action === "WALLET_GET_ACCOUNT") {
+                      const accounts = await ethereum.request({ method: "eth_accounts" });
+                      return { isConnected: accounts.length > 0, address: accounts[0] || null };
+                    } else if (action === "WALLET_DISCONNECT") {
+                      // MetaMask는 프로그래밍적 연결 해제를 지원하지 않음
+                      return { success: true };
+                    }
+                    return { error: "Unknown action" };
+                  } catch (err: any) {
+                    return { error: err.message || "지갑 연결 실패" };
+                  }
+                },
+                args: [message.type],
+              });
+
+              const scriptResult = injectionResults?.[0]?.result;
+              console.log(`🔐 스크립트 실행 결과:`, scriptResult);
+
+              if (scriptResult?.error) {
+                result = { success: false, error: scriptResult.error };
+              } else {
+                result = { success: true, data: scriptResult };
+              }
             } catch (error: any) {
               console.error(`❌ ${message.type} 오류:`, error);
-              result = {
-                success: false,
-                error:
-                  error instanceof Error
-                    ? error.message
-                    : "지갑 연결 실패. MEMEX 페이지가 열려있는지 확인하세요.",
+
+              if (message.type === "WALLET_GET_ACCOUNT") {
+                result = { success: true, data: { isConnected: false, address: null } };
+              } else if (message.type === "WALLET_DISCONNECT") {
+                result = { success: true, data: { success: true } };
+              } else {
+                result = {
+                  success: false,
+                  error: error instanceof Error ? error.message : "지갑 연결 실패",
+                };
+              }
+            }
+            break;
+          }
+
+          case "MEMEX_LOGIN": {
+            console.log(`🔐 MEMEX_LOGIN 요청`);
+            try {
+              const { browser } = await import("wxt/browser");
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+
+              // MEMEX 페이지 탭 찾기
+              const memexTabs = await tabs.query({
+                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+              });
+
+              if (memexTabs.length === 0) {
+                result = { success: true, data: { isLoggedIn: false } };
+                break;
+              }
+
+              const targetTab = memexTabs[0];
+              if (!targetTab?.id) {
+                result = { success: true, data: { isLoggedIn: false } };
+                break;
+              }
+
+              // Content script로 메시지 전달 (MEMEX 로그인 상태 확인)
+              const messageToSend = {
+                type: "MEMEX_LOGIN",
+                triggerLogin: (message as any).triggerLogin ?? false,
               };
+              const response = await tabs.sendMessage(targetTab.id, messageToSend);
+              result = { success: true, data: response };
+            } catch (error: any) {
+              console.error(`❌ MEMEX_LOGIN 오류:`, error);
+              result = { success: true, data: { isLoggedIn: false } };
             }
             break;
           }

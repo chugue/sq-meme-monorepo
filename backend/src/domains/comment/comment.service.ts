@@ -14,11 +14,11 @@ export class CommentService {
     constructor(private readonly commentRepository: CommentRepository) {}
 
     /**
-     * @description 게임 주소로 댓글 목록 조회
+     * @description 게임 ID로 댓글 목록 조회
      */
-    async getCommentsByGame(gameAddress: string) {
+    async getCommentsByGameId(gameId: string) {
         try {
-            const comments = await this.commentRepository.findByGameAddress(gameAddress);
+            const comments = await this.commentRepository.findByGameId(gameId);
             return Result.ok({ comments });
         } catch (error) {
             this.logger.error(`Get comments by game failed: ${error.message}`);

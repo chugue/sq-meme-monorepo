@@ -22,7 +22,8 @@ const numericStringSchema = z.string().regex(/^\d+$/, '숫자 문자열이어야
  */
 export const CreateCommentDtoSchema = z.object({
     txHash: txHashSchema,
-    gameAddress: ethereumAddressSchema,
+    gameId: numericStringSchema, // 컨트랙트상의 게임 ID
+    gameAddress: ethereumAddressSchema.optional(), // deprecated: gameId로 대체
     commentor: ethereumAddressSchema,
     message: z.string().min(1, '메시지는 필수입니다'),
     imageUrl: z.string().url().optional(), // 댓글 이미지 URL (선택)

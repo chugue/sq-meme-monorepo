@@ -813,3 +813,121 @@
     animation: none;
     opacity: 0.7;
 }
+
+/* ============================
+   댓글 폼 이미지 업로드 스타일
+   ============================ */
+
+.squid-comment-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.squid-comment-card:focus-within {
+    border-color: #4a9eff;
+}
+
+.squid-comment-card .squid-comment-input {
+    border: none;
+    background: transparent;
+    margin-bottom: 0;
+    box-shadow: none;
+}
+
+.squid-comment-card .squid-comment-input:focus {
+    box-shadow: none;
+}
+
+/* 이미지 컨테이너 */
+.squid-comment-image-container {
+    position: relative;
+    margin: 0 12px 12px;
+}
+
+.squid-comment-image {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+}
+
+.squid-comment-image-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.squid-comment-image-remove:hover:not(:disabled) {
+    background: #ff4444;
+    transform: scale(1.1);
+}
+
+.squid-comment-image-remove:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 하단 액션 바 */
+.squid-comment-actions {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 8px;
+}
+
+.squid-comment-add-image {
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 2px solid #4a9eff;
+    border-radius: 8px;
+    color: #4a9eff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.squid-comment-add-image:hover:not(:disabled) {
+    background: rgba(74, 158, 255, 0.15);
+    color: #7bb8ff;
+    border-color: #7bb8ff;
+}
+
+.squid-comment-add-image:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 업로드 스피너 */
+.squid-upload-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(74, 158, 255, 0.3);
+    border-top-color: #4a9eff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.squid-comment-actions .squid-comment-submit {
+    flex: 1;
+}

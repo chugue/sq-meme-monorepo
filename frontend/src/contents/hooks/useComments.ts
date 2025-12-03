@@ -1,27 +1,40 @@
 import { Comment } from '@/contents/types/comment';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAtomValue } from 'jotai';
-import { currentChallengeIdAtom } from '../atoms/commentAtoms';
+import { activeGameInfoAtom } from '../atoms/commentAtoms';
 import { backgroundApi } from '../lib/backgroundApi';
+import { logger } from '../lib/injected/logger';
 
 export function useComments() {
     const queryClient = useQueryClient();
-    const challengeId = useAtomValue(currentChallengeIdAtom);
+    const activeGameInfo = useAtomValue(activeGameInfoAtom);
+    const gameId = activeGameInfo?.id ?? null;
 
-    // 댓글 조회 (challengeId가 없으면 비활성화)
+    logger.debug('useComments 호출', {
+        gameId,
+        hasActiveGameInfo: !!activeGameInfo,
+        activeGameInfo: activeGameInfo ? { id: activeGameInfo.id, tokenSymbol: activeGameInfo.tokenSymbol } : null
+    });
+
+    // 댓글 조회 (gameId가 없으면 비활성화)
     const { data: comments = [], isLoading, refetch } = useQuery({
-        queryKey: ['comments', challengeId],
+        queryKey: ['comments', gameId],
         queryFn: async () => {
-            if (!challengeId) return [];
+            if (!gameId) {
+                logger.warn('useComments: gameId가 없음');
+                return [];
+            }
             try {
-                const data = await backgroundApi.getComments(challengeId);
+                logger.info('댓글 조회 시작', { gameId });
+                const data = await backgroundApi.getComments(gameId);
+                logger.info('댓글 조회 완료', { gameId, count: data?.length || 0 });
                 return data as Comment[];
             } catch (error) {
                 console.error('댓글 조회 실패:', error);
                 throw error;
             }
         },
-        enabled: !!challengeId,
+        enabled: !!gameId,
         retry: 1,
     });
 
@@ -35,7 +48,7 @@ export function useComments() {
         }) => {
             try {
                 return (await backgroundApi.createComment({
-                    challengeId: challengeId || '',
+                    challengeId: gameId || '',
                     playerAddress: input.player_address,
                     content: input.content,
                 })) as Comment;
@@ -45,7 +58,7 @@ export function useComments() {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
+            queryClient.invalidateQueries({ queryKey: ['comments', gameId] });
         },
     });
 
@@ -60,7 +73,7 @@ export function useComments() {
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['comments', challengeId] });
+            queryClient.invalidateQueries({ queryKey: ['comments', gameId] });
         },
     });
 
