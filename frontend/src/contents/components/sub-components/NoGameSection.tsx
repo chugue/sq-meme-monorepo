@@ -8,7 +8,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import type { Address } from "viem";
 import { endedGameInfoAtom } from "../../atoms/commentAtoms";
-import { tokenContractAtom } from "../../atoms/tokenContractAtoms";
+import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
 import { useWallet } from "../../hooks/useWallet";
 import { formatAddress } from "../../utils/messageFormatter";
 import { ClaimPrizeSection } from "./ClaimPrizeSection";
@@ -20,7 +20,7 @@ interface NoGameSectionProps {
 }
 
 export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
-  const tokenContract = useAtomValue(tokenContractAtom);
+  const currentPageInfo = useAtomValue(currentPageInfoAtom);
   const endedGameInfo = useAtomValue(endedGameInfoAtom);
   const setEndedGameInfo = useSetAtom(endedGameInfoAtom);
   const { address } = useWallet();
@@ -41,8 +41,8 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     }
   };
 
-  // 토큰이 없으면 로딩 표시
-  if (!tokenContract) {
+  // 페이지 정보가 없으면 로딩 표시
+  if (!currentPageInfo) {
     return (
       <div
         className="squid-comment-section"
@@ -58,8 +58,8 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     );
   }
 
-  const tokenSymbol = tokenContract.symbol
-    ? `$${tokenContract.symbol.toUpperCase()}`
+  const tokenSymbol = currentPageInfo.symbol
+    ? `$${currentPageInfo.symbol.toUpperCase()}`
     : "TOKEN";
 
   return (
@@ -77,11 +77,11 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             TOKEN ADDRESS
           </div>
           <div style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-            {formatAddress(tokenContract.contractAddress)}
+            {formatAddress(currentPageInfo.contractAddress)}
           </div>
-          {tokenContract.username && (
+          {currentPageInfo.username && (
             <div style={{ marginTop: "8px", fontSize: "11px" }}>
-              @{tokenContract.username}#{tokenContract.userTag}
+              @{currentPageInfo.username}#{currentPageInfo.userTag}
             </div>
           )}
         </div>
@@ -93,7 +93,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
         {/* 게임 생성 섹션 */}
         <CreateGameSection
-          tokenAddress={tokenContract.contractAddress as Address}
+          tokenAddress={currentPageInfo.contractAddress as Address}
           tokenSymbol={tokenSymbol}
           onGameCreated={onGameCreated}
         />

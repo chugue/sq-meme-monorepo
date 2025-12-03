@@ -12,6 +12,8 @@ export default defineConfig({
     },
     // Vite 설정 커스터마이징
     vite: () => ({
+        // 부모 디렉토리의 .env 파일 사용
+        envDir: path.resolve(__dirname, '..'),
         resolve: {
             alias: {
                 '@/sidepanel': path.resolve(__dirname, './src/sidepanel'),

@@ -298,7 +298,7 @@ export const backgroundApi = {
   },
 };
 
-// 게임 정보 타입
+// 게임 정보 타입 (ABI GameInfo 구조체 기준 + DB 필드)
 export interface GameInfo {
   id: number;
   gameId: string;
@@ -311,6 +311,9 @@ export interface GameInfo {
   endTime: string;
   cost: string;
   prizePool: string;
+  isClaimed: boolean;
   isEnded: boolean;
   lastCommentor: string;
+  totalFunding: string | null;
+  funderCount: string | null;
 }

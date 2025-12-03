@@ -18,11 +18,11 @@ import {
   isGameEndedAtom,
 } from "../atoms/commentAtoms";
 import {
-  isTokenContractLoadingAtom,
-  tokenContractAtom,
-  tokenContractErrorAtom,
-  TokenContractInfo,
-} from "../atoms/tokenContractAtoms";
+  CurrentPageInfo,
+  currentPageInfoAtom,
+  isPageInfoLoadingAtom,
+  pageInfoErrorAtom,
+} from "../atoms/currentPageInfoAtoms";
 import { backgroundApi, GameInfo } from "../lib/backgroundApi";
 import {
   COMMENT_GAME_V2_ADDRESS,
@@ -37,12 +37,13 @@ const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS ||
 
 const MESSAGE_SOURCE = {
   TOKEN_CONTRACT_CACHED: "TOKEN_CONTRACT_CACHED",
+  SPA_NAVIGATION: "SPA_NAVIGATION",
 };
 
 export function useTokenContract() {
-  const [tokenContract, setTokenContract] = useAtom(tokenContractAtom);
-  const [isLoading, setIsLoading] = useAtom(isTokenContractLoadingAtom);
-  const [error, setError] = useAtom(tokenContractErrorAtom);
+  const [currentPageInfo, setCurrentPageInfo] = useAtom(currentPageInfoAtom);
+  const [isLoading, setIsLoading] = useAtom(isPageInfoLoadingAtom);
+  const [error, setError] = useAtom(pageInfoErrorAtom);
   const [, setActiveGameInfo] = useAtom(activeGameInfoAtom);
   const [, setIsGameEnded] = useAtom(isGameEndedAtom);
   const [, setEndedGameInfo] = useAtom(endedGameInfoAtom);
@@ -223,7 +224,6 @@ export function useTokenContract() {
           }
 
           // 백엔드 GameInfo → ActiveGameInfo 변환하여 저장
-          // 백엔드에는 totalFunding, funderCount, isClaimed이 없으므로 기본값 사용
           const activeGameInfo: ActiveGameInfo = {
             id: game.gameId,
             initiator: game.initiator,
@@ -234,11 +234,12 @@ export function useTokenContract() {
             endTime: game.endTime,
             lastCommentor: game.lastCommentor,
             prizePool: game.prizePool,
-            isClaimed: false, // 백엔드에 없음, 기본값
+            isClaimed: game.isClaimed,
             isEnded: game.isEnded,
-            totalFunding: "0", // 백엔드에 없음, 기본값
-            funderCount: "0", // 백엔드에 없음, 기본값
+            totalFunding: game.totalFunding || "0",
+            funderCount: game.funderCount || "0",
           };
+
           setActiveGameInfo(activeGameInfo);
 
           return game;
@@ -315,6 +316,8 @@ export function useTokenContract() {
           err instanceof Error ? err.message : "게임 조회 실패";
         logger.error("게임 조회 실패", err);
         setError(errorMessage);
+        // 에러 발생 시에도 activeGameInfo를 null로 설정하여 NoGameSection 표시
+        setActiveGameInfo(null);
         return null;
       } finally {
         setIsLoading(false);
@@ -335,15 +338,15 @@ export function useTokenContract() {
    * 토큰 컨트랙트 정보 저장 및 게임 조회
    */
   const handleTokenContractCached = useCallback(
-    async (data: TokenContractInfo) => {
+    async (data: CurrentPageInfo) => {
       logger.info("토큰 컨트랙트 정보 수신", { ...data });
 
-      setTokenContract(data);
+      setCurrentPageInfo(data);
 
       // 토큰 주소로 게임 정보 조회
       await fetchGameByToken(data.contractAddress);
     },
-    [setTokenContract, fetchGameByToken]
+    [setCurrentPageInfo, fetchGameByToken]
   );
 
   /**
@@ -375,16 +378,41 @@ export function useTokenContract() {
     }
   }, [handleTokenContractCached]);
 
+  /**
+   * SPA 네비게이션 시 상태 초기화
+   */
+  const resetState = useCallback(() => {
+    logger.info("SPA 네비게이션 감지 - 상태 초기화");
+    setCurrentPageInfo(null);
+    setActiveGameInfo(null);
+    setIsGameEnded(null);
+    setEndedGameInfo(null);
+    setError(null);
+    lastTokenAddressRef.current = null;
+  }, [setCurrentPageInfo, setActiveGameInfo, setIsGameEnded, setEndedGameInfo, setError]);
+
   useEffect(() => {
     // 메시지 리스너 등록
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
       if (!event.data || typeof event.data !== "object") return;
-      if (event.data.source !== MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED) return;
 
-      const { data } = event.data;
-      if (data?.contractAddress) {
-        handleTokenContractCached(data);
+      // SPA 네비게이션 감지 시 상태 초기화
+      if (event.data.source === MESSAGE_SOURCE.SPA_NAVIGATION) {
+        resetState();
+        // 새 페이지의 토큰 정보 확인 (약간의 딜레이 후)
+        setTimeout(() => {
+          checkInitialTokenInfo();
+        }, 500);
+        return;
+      }
+
+      // 토큰 컨트랙트 캐시 메시지 처리
+      if (event.data.source === MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED) {
+        const { data } = event.data;
+        if (data?.contractAddress) {
+          handleTokenContractCached(data);
+        }
       }
     };
 
@@ -399,10 +427,10 @@ export function useTokenContract() {
       window.removeEventListener("message", handleMessage);
       clearTimeout(timeoutId);
     };
-  }, [handleTokenContractCached, checkInitialTokenInfo]);
+  }, [handleTokenContractCached, checkInitialTokenInfo, resetState]);
 
   return {
-    tokenContract,
+    currentPageInfo,
     isLoading,
     error,
     fetchGameByToken,

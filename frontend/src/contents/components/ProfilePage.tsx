@@ -1,5 +1,5 @@
 import { useAtomValue } from "jotai";
-import { currentChallengeIdAtom } from "../atoms/commentAtoms";
+import { activeGameInfoAtom } from "../atoms/commentAtoms";
 import { useTokenContract } from "../hooks/useTokenContract";
 import { useUserInfo } from "../hooks/useUserInfo";
 import { CommentSection } from "./sub-components/CommentSection";
@@ -12,9 +12,9 @@ export function ProfilePage() {
   // 사용자 정보 로드 (전역 상태로 저장)
   useUserInfo();
 
-  // 토큰 컨트랙트 감지 및 게임 주소 조회
+  // 토큰 컨트랙트 감지 및 게임 정보 조회
   const { isLoading: isTokenLoading } = useTokenContract();
-  const gameAddress = useAtomValue(currentChallengeIdAtom);
+  const activeGameInfo = useAtomValue(activeGameInfoAtom);
 
   if (isTokenLoading) {
     return (
@@ -24,5 +24,5 @@ export function ProfilePage() {
     );
   }
 
-  return gameAddress ? <CommentSection /> : <NoGameSection />;
+  return activeGameInfo ? <CommentSection /> : <NoGameSection />;
 }
