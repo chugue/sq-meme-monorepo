@@ -7,10 +7,23 @@ import {
   ConnectButton,
   NeonBar,
   TermsModal,
+  Snackbar,
 } from "./components";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { backgroundApi } from "../contents/lib/backgroundApi";
+
+// Content script 연결 오류인지 확인
+function isContentScriptError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes("receiving end does not exist") ||
+      message.includes("could not establish connection")
+    );
+  }
+  return false;
+}
 
 interface ComingSoonProps {
   onMemexLoginComplete?: () => void;
@@ -20,12 +33,45 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
   const { isConnected, address, isLoading, error, connect, refetch } = useSidepanelWallet();
   const { setLoggingIn } = useMemexLogin();
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    isVisible: boolean;
+    message: string;
+    type: "error" | "warning" | "info" | "success";
+  }>({
+    isVisible: false,
+    message: "",
+    type: "error",
+  });
+
+  const showRefreshSnackbar = () => {
+    setSnackbar({
+      isVisible: true,
+      message: "MEMEX 페이지에서 활성화됩니다",
+      type: "warning",
+    });
+  };
+
+  const closeSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, isVisible: false }));
+  };
+
+  const handleRefreshMemexTab = async () => {
+    try {
+      await backgroundApi.refreshMemexTab();
+      closeSnackbar();
+    } catch (err) {
+      console.error("Failed to refresh MEMEX tab:", err);
+    }
+  };
 
   const handleConnectWallet = async () => {
     try {
       await connect();
     } catch (err) {
       console.error("Wallet connection failed:", err);
+      if (isContentScriptError(err)) {
+        showRefreshSnackbar();
+      }
     }
   };
 
@@ -137,6 +183,15 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
         isOpen={isTermsModalOpen}
         onClose={handleCloseTermsModal}
         onAgree={handleAgreeTerms}
+      />
+      <Snackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        isVisible={snackbar.isVisible}
+        onClose={closeSnackbar}
+        duration={0}
+        actionLabel="이동"
+        onAction={handleRefreshMemexTab}
       />
     </div>
   );

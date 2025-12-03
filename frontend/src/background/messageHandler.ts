@@ -1,8 +1,9 @@
 import {
   BackgroundMessage,
   BackgroundResponse,
+  SerializedGameInfo,
 } from "../contents/lib/backgroundApi";
-import type { BlockchainGameInfo, JoinRequest } from "../types/request.types";
+import type { JoinRequest } from "../types/request.types";
 import { apiCall, apiUpload } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -250,25 +251,24 @@ export function createMessageHandler() {
           }
 
           case "REGISTER_GAME": {
-            const { data } = message as { type: string; data: BlockchainGameInfo };
-            const gameId = data.id.toString();
-            console.log("🎮 REGISTER_GAME 요청 (블록체인 조회 게임 등록):", gameId);
+            const { data } = message as { type: string; data: SerializedGameInfo };
+            console.log("🎮 REGISTER_GAME 요청 (블록체인 조회 게임 등록):", data.id);
             try {
-              // BlockchainGameInfo (bigint) → 백엔드 API 형식 (string) 매핑
+              // SerializedGameInfo는 이미 string으로 변환되어 있음
               const payload = {
-                gameId,
+                gameId: data.id,
                 initiator: data.initiator,
                 gameToken: data.gameToken,
-                cost: data.cost.toString(),
-                gameTime: data.gameTime.toString(),
+                cost: data.cost,
+                gameTime: data.gameTime,
                 tokenSymbol: data.tokenSymbol,
-                endTime: data.endTime.toString(),
+                endTime: data.endTime,
                 lastCommentor: data.lastCommentor,
-                prizePool: data.prizePool.toString(),
+                prizePool: data.prizePool,
                 isClaimed: data.isClaimed,
                 isEnded: data.isEnded,
-                totalFunding: data.totalFunding.toString(),
-                funderCount: data.funderCount.toString(),
+                totalFunding: data.totalFunding,
+                funderCount: data.funderCount,
               };
               const response = await apiCall<{
                 success: boolean;
@@ -621,6 +621,47 @@ export function createMessageHandler() {
                   error instanceof Error
                     ? error.message
                     : "지갑 연결 실패. MEMEX 페이지가 열려있는지 확인하세요.",
+              };
+            }
+            break;
+          }
+
+          case "REFRESH_MEMEX_TAB": {
+            console.log("🔄 REFRESH_MEMEX_TAB 요청");
+            try {
+              const { browser } = await import("wxt/browser");
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+
+              // MEMEX 페이지 탭 찾기
+              const memexTabs = await tabs.query({
+                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+              });
+
+              if (memexTabs.length === 0) {
+                // MEMEX 탭이 없으면 새로 열기
+                console.log("🔄 MEMEX 탭 없음, 새 탭 열기");
+                await tabs.create({
+                  url: "https://app.memex.xyz",
+                  active: true,
+                });
+                result = { success: true, data: { opened: true, refreshed: false } };
+              } else {
+                // MEMEX 탭이 있으면 새로고침 및 활성화
+                const targetTab = memexTabs[0];
+                console.log("🔄 MEMEX 탭 새로고침:", targetTab.id, targetTab.url);
+
+                if (targetTab.id) {
+                  await tabs.reload(targetTab.id);
+                  await tabs.update(targetTab.id, { active: true });
+                }
+
+                result = { success: true, data: { opened: false, refreshed: true } };
+              }
+            } catch (error: any) {
+              console.error("❌ REFRESH_MEMEX_TAB 오류:", error);
+              result = {
+                success: false,
+                error: error instanceof Error ? error.message : "MEMEX 탭 새로고침 실패",
               };
             }
             break;

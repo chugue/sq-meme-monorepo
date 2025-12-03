@@ -3,6 +3,7 @@
  */
 
 import { useState, useRef } from "react";
+import { ImagePlus } from "lucide-react";
 import type { GameSettings } from "../types";
 import { backgroundApi } from "../../../lib/backgroundApi";
 
@@ -206,7 +207,7 @@ export function SettingsStep({
         )}
       </div>
 
-      {/* 첫 댓글 */}
+      {/* 첫 댓글 - MEMEX 스타일 카드 */}
       <div className="squid-input-group">
         <label className="squid-input-label">
           First Comment
@@ -214,21 +215,18 @@ export function SettingsStep({
             게임 생성과 함께 작성할 첫 댓글
           </span>
         </label>
-        <textarea
-          className={`squid-textarea ${errors.firstComment ? "error" : ""}`}
-          value={settings.firstComment}
-          onChange={(e) =>
-            onChange({ ...settings, firstComment: e.target.value })
-          }
-          placeholder="게임을 시작합니다! 마지막 댓글 작성자가 상금을 가져갑니다."
-          rows={3}
-        />
-        {errors.firstComment && (
-          <span className="squid-input-error">{errors.firstComment}</span>
-        )}
+        <div className="squid-comment-card">
+          <textarea
+            className={`squid-comment-textarea ${errors.firstComment ? "error" : ""}`}
+            value={settings.firstComment}
+            onChange={(e) =>
+              onChange({ ...settings, firstComment: e.target.value })
+            }
+            placeholder="게임을 시작합니다! 마지막 댓글 작성자가 상금을 가져갑니다."
+            rows={2}
+          />
 
-        {/* 이미지 업로드 */}
-        <div className="squid-image-upload">
+          {/* 이미지 미리보기 (MEMEX 스타일) */}
           <input
             ref={fileInputRef}
             type="file"
@@ -237,28 +235,42 @@ export function SettingsStep({
             style={{ display: "none" }}
           />
           {settings.firstCommentImage ? (
-            <div className="squid-image-preview">
-              <img src={settings.firstCommentImage} alt="Preview" />
+            <div className="squid-comment-image-container">
+              <img
+                src={settings.firstCommentImage}
+                alt="Preview"
+                className="squid-comment-image"
+              />
               <button
                 type="button"
-                className="squid-image-remove"
+                className="squid-comment-image-remove"
                 onClick={handleRemoveImage}
                 disabled={isUploading}
               >
                 ✕
               </button>
             </div>
-          ) : (
+          ) : null}
+
+          {/* 하단 액션 바 */}
+          <div className="squid-comment-actions">
             <button
               type="button"
-              className="squid-image-upload-btn"
+              className="squid-comment-add-image"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
             >
-              {isUploading ? "Uploading..." : "📷 Add Image"}
+              {isUploading ? (
+                <span className="squid-upload-spinner" />
+              ) : (
+                <ImagePlus size={20} />
+              )}
             </button>
-          )}
+          </div>
         </div>
+        {errors.firstComment && (
+          <span className="squid-input-error">{errors.firstComment}</span>
+        )}
       </div>
 
       <div className="squid-button-group">

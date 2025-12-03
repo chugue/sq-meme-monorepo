@@ -191,6 +191,7 @@ export class CommentRepository {
                         gameAddress: dto.gameAddress,
                         commentor: dto.commentor,
                         message: dto.message,
+                        imageUrl: dto.imageUrl,
                         likeCount: 0,
                         endTime: new Date(Number(dto.newEndTime) * 1000),
                         currentPrizePool: dto.prizePool,

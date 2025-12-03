@@ -427,7 +427,6 @@ export default defineContentScript({
       if (!isProfilePage(window.location.href)) {
         console.log("🦑 프로필 페이지 아님");
       }
-
     };
 
     // Injected Script로부터 SPA 네비게이션 메시지 수신
@@ -758,12 +757,6 @@ export default defineContentScript({
                   }
                 }
 
-                console.log("🖼️ [Content] 최종 프로필 정보:", {
-                  profileImageUrl,
-                  tokenAddr,
-                  tokenSymbol,
-                  memexWalletAddress,
-                });
                 sendResponse({
                   profileImageUrl,
                   tokenAddr,

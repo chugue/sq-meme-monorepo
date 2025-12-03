@@ -4,6 +4,7 @@ export interface CreateCommentRequest {
   gameAddress: string;
   commentor: string;
   message: string;
+  imageUrl?: string; // 댓글 이미지 URL (선택)
   newEndTime: string;
   prizePool: string;
   timestamp: string;

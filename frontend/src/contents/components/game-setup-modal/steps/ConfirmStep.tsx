@@ -51,6 +51,7 @@ export function ConfirmStep({
             cost: costInWei,
             time: Number(settings.time) * 60,
             firstComment: settings.firstComment,
+            firstCommentImage: settings.firstCommentImage,
         });
 
         // 게임 ID가 반환되면 완료 콜백 호출

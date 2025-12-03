@@ -70,6 +70,7 @@ export interface GameSettings {
   cost: bigint; // 댓글 비용 (wei 단위)
   time: number; // 타이머 (초)
   firstComment: string; // 첫 댓글 내용 (필수)
+  firstCommentImage?: string; // 첫 댓글 이미지 URL (선택)
 }
 
 export interface ExistingGameInfo {
@@ -352,19 +353,16 @@ export function useCreateGame(): UseCreateGameReturn {
         const gameInfo = gameInfoResult.data;
 
         setGameId(createdGameId.toString());
+        // TODO: address말고 setActiveGameInfo로 변경
         setGameAddress(v2ContractAddress);
 
         logger.info("게임 생성 완료", { gameId: createdGameId.toString() });
 
         // DB에 게임 정보 등록
-        try {
-          await backgroundApi.registerGame(gameInfo);
-          logger.info("게임 정보 DB 등록 완료", {
-            gameId: createdGameId.toString(),
-          });
-        } catch (dbError) {
-          logger.warn("게임 정보 DB 등록 실패", { error: dbError });
-        }
+        await backgroundApi.registerGame(gameInfo);
+        logger.info("게임 정보 DB 등록 완료", {
+          gameId: createdGameId.toString(),
+        });
 
         // ============================================
         // Step 3: First Comment - 첫 댓글 작성 (V2)
@@ -395,35 +393,29 @@ export function useCreateGame(): UseCreateGameReturn {
           logsCount: commentReceipt.logs.length,
         });
 
-        // 백엔드에 댓글 저장 시도
-        try {
-          // 게임 정보 조회하여 newEndTime 등 가져오기
-          const gameInfoResult = await v2Client.read<GameInfo>({
-            functionName: "getGameInfo",
-            args: [createdGameId],
-          });
+        // 트랜잭션 확정 후 즉시 게임 정보 조회하여 백엔드에 댓글 저장
+        const updatedGameInfoResult = await v2Client.read<GameInfo>({
+          functionName: "getGameInfo",
+          args: [createdGameId],
+        });
 
-          const gameInfo = gameInfoResult.data;
+        const updatedGameInfo = updatedGameInfoResult.data;
 
-          const commentApiRequest: CreateCommentRequest = {
-            txHash: commentResult.hash,
-            gameAddress: v2ContractAddress,
-            commentor: userAddress,
-            message: settings.firstComment,
-            newEndTime: gameInfo.endTime.toString(),
-            prizePool: gameInfo.prizePool.toString(),
-            timestamp: Math.floor(Date.now() / 1000).toString(),
-          };
+        const commentApiRequest: CreateCommentRequest = {
+          txHash: commentResult.hash,
+          gameAddress: v2ContractAddress,
+          commentor: userAddress,
+          message: settings.firstComment,
+          imageUrl: settings.firstCommentImage,
+          newEndTime: updatedGameInfo.endTime.toString(),
+          prizePool: updatedGameInfo.prizePool.toString(),
+          timestamp: Math.floor(Date.now() / 1000).toString(),
+        };
 
-          const savedComment = await backgroundApi.saveComment(
-            commentApiRequest
-          );
-          logger.info("백엔드에 첫 댓글 저장 완료", {
-            commentId: savedComment?.id,
-          });
-        } catch (apiError) {
-          logger.warn("백엔드 첫 댓글 저장 실패", { error: apiError });
-        }
+        const savedComment = await backgroundApi.saveComment(commentApiRequest);
+        logger.info("백엔드에 첫 댓글 저장 완료", {
+          commentId: savedComment?.id,
+        });
 
         // ============================================
         // Complete

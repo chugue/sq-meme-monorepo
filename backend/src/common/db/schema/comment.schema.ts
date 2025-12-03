@@ -25,6 +25,7 @@ export const comments = squidSchema.table(
         // 댓글 내용
         commentor: varchar('commentor', { length: 42 }).notNull(),
         message: text('message').notNull(),
+        imageUrl: text('image_url'), // 댓글 이미지 URL (선택)
         likeCount: integer('like_count').default(0).notNull(),
 
         // 당시 게임 상태 스냅샷

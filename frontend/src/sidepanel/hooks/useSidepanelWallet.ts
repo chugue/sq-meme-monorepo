@@ -79,6 +79,7 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
             console.error('❌ [SidePanel] Wallet connection error:', err);
             setLoading(false);
             setError(errorMessage);
+            throw err; // 호출자가 에러를 처리할 수 있도록 다시 throw
         }
     }, [setWalletConnected, setLoading, setError]);
 

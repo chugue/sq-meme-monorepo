@@ -453,54 +453,69 @@
     to { transform: rotate(360deg); }
 }
 
-/* 이미지 업로드 */
-.squid-image-upload {
-    margin-top: 12px;
-}
+/* ===================================
+   MEMEX 스타일 댓글 카드
+   =================================== */
 
-.squid-image-upload-btn {
-    width: 100%;
-    padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    color: #aaa;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.squid-image-upload-btn:hover:not(:disabled) {
-    background: rgba(255, 0, 110, 0.1);
-    border-color: #ff006e;
-    color: #fff;
-}
-
-.squid-image-upload-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.squid-image-preview {
-    position: relative;
-    display: inline-block;
-    max-width: 100%;
-}
-
-.squid-image-preview img {
-    max-width: 100%;
-    max-height: 150px;
-    border-radius: 8px;
+.squid-comment-card {
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
 }
 
-.squid-image-remove {
+.squid-comment-card:focus-within {
+    border-color: #ff006e;
+}
+
+.squid-comment-textarea {
+    width: 100%;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    resize: none;
+    min-height: 60px;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.squid-comment-textarea:focus {
+    outline: none;
+}
+
+.squid-comment-textarea::placeholder {
+    color: #666;
+}
+
+.squid-comment-textarea.error {
+    background: rgba(255, 68, 68, 0.05);
+}
+
+/* 이미지 컨테이너 (MEMEX 스타일) */
+.squid-comment-image-container {
+    position: relative;
+    margin: 0 12px 12px;
+}
+
+.squid-comment-image {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+}
+
+.squid-comment-image-remove {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 24px;
-    height: 24px;
-    background: #ff4444;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
     border: none;
     border-radius: 50%;
     color: #fff;
@@ -509,16 +524,59 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
+    transition: all 0.2s;
 }
 
-.squid-image-remove:hover:not(:disabled) {
+.squid-comment-image-remove:hover:not(:disabled) {
+    background: #ff4444;
     transform: scale(1.1);
 }
 
-.squid-image-remove:disabled {
+.squid-comment-image-remove:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* 하단 액션 바 */
+.squid-comment-actions {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+.squid-comment-add-image {
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: #888;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.squid-comment-add-image:hover:not(:disabled) {
+    background: rgba(255, 0, 110, 0.15);
+    color: #ff006e;
+}
+
+.squid-comment-add-image:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 업로드 스피너 */
+.squid-upload-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 0, 110, 0.3);
+    border-top-color: #ff006e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 /* 확인 단계 이미지 미리보기 */

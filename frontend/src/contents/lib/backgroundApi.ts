@@ -10,6 +10,23 @@ import type { JoinResponse } from "../../types/response.types";
 // Re-export types for convenience
 export type { CreateCommentRequest, CreateGameRequest, JoinRequest, JoinResponse };
 
+// BlockchainGameInfo의 직렬화된 버전 (bigint → string)
+export interface SerializedGameInfo {
+  id: string;
+  initiator: string;
+  gameToken: string;
+  cost: string;
+  gameTime: string;
+  tokenSymbol: string;
+  endTime: string;
+  lastCommentor: string;
+  prizePool: string;
+  isClaimed: boolean;
+  isEnded: boolean;
+  totalFunding: string;
+  funderCount: string;
+}
+
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
   | { type: "GET_COMMENTS"; gameAddress: string }
@@ -37,8 +54,9 @@ export type BackgroundMessage =
   | { type: "JOIN"; data: JoinRequest }
   | { type: "LOGOUT" }
   | { type: "WALLET_DISCONNECT" }
-  | { type: "REGISTER_GAME"; data: BlockchainGameInfo }
-  | { type: "UPLOAD_IMAGE"; fileData: string; fileName: string; mimeType: string };
+  | { type: "REGISTER_GAME"; data: SerializedGameInfo }
+  | { type: "UPLOAD_IMAGE"; fileData: string; fileName: string; mimeType: string }
+  | { type: "REFRESH_MEMEX_TAB" };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -291,10 +309,26 @@ export const backgroundApi = {
   },
 
   // 블록체인에서 조회한 게임 등록 (txHash 없이)
+  // bigint는 JSON 직렬화 불가하므로 string으로 변환하여 전송
   registerGame: async (data: BlockchainGameInfo) => {
+    const serializedData = {
+      id: data.id.toString(),
+      initiator: data.initiator,
+      gameToken: data.gameToken,
+      cost: data.cost.toString(),
+      gameTime: data.gameTime.toString(),
+      tokenSymbol: data.tokenSymbol,
+      endTime: data.endTime.toString(),
+      lastCommentor: data.lastCommentor,
+      prizePool: data.prizePool.toString(),
+      isClaimed: data.isClaimed,
+      isEnded: data.isEnded,
+      totalFunding: data.totalFunding.toString(),
+      funderCount: data.funderCount.toString(),
+    };
     return sendToBackground<{ gameId: string }>({
       type: "REGISTER_GAME",
-      data,
+      data: serializedData,
     });
   },
 
@@ -318,6 +352,13 @@ export const backgroundApi = {
       fileData,
       fileName: file.name,
       mimeType: file.type,
+    });
+  },
+
+  // MEMEX 탭 새로고침 (content script 재연결용)
+  refreshMemexTab: async () => {
+    return sendToBackground<{ success: boolean }>({
+      type: "REFRESH_MEMEX_TAB",
     });
   },
 };

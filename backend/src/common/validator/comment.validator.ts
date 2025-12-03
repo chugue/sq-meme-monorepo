@@ -25,6 +25,7 @@ export const CreateCommentDtoSchema = z.object({
     gameAddress: ethereumAddressSchema,
     commentor: ethereumAddressSchema,
     message: z.string().min(1, '메시지는 필수입니다'),
+    imageUrl: z.string().url().optional(), // 댓글 이미지 URL (선택)
     newEndTime: numericStringSchema,
     prizePool: numericStringSchema,
     timestamp: numericStringSchema,
