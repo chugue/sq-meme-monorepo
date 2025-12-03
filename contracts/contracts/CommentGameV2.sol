@@ -17,6 +17,18 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
     // 게임별 댓글 ID 카운터
     mapping(uint256 => uint256) public commentIdCounter;
 
+    // 댓글 구조체
+    struct Comment {
+        uint256 id;
+        address commentor;
+        string message;
+        uint256 timestamp;
+        uint256 endTime;  // 이 댓글로 인해 갱신된 종료 시간
+    }
+
+    // 게임 ID -> 댓글 배열 맵핑
+    mapping(uint256 => Comment[]) public gameComments;
+
     // 게임 데이터 구조체
     struct GameData {
         uint256 id;
@@ -264,6 +276,15 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         game.lastCommentor = msg.sender;
         game.endTime = block.timestamp + game.gameTime;
 
+        // 댓글 저장
+        gameComments[_gameId].push(Comment({
+            id: commentId,
+            commentor: msg.sender,
+            message: _message,
+            timestamp: block.timestamp,
+            endTime: game.endTime
+        }));
+
         emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, block.timestamp);
     }
 
@@ -384,6 +405,16 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         }
         
         return allGames;
+    }
+
+    /**
+     * @notice 특정 게임의 모든 댓글을 반환합니다.
+     * @param _gameId 게임 ID
+     * @return 댓글 배열
+     */
+    function getCommentsByGameId(uint256 _gameId) external view returns (Comment[] memory) {
+        require(games[_gameId].id > 0, "Game does not exist");
+        return gameComments[_gameId];
     }
 
     /**

@@ -15,7 +15,10 @@ import { useWallet } from "../hooks/useWallet";
 import { formatAddress } from "../utils/messageFormatter";
 
 import { backgroundApi } from "../lib/backgroundApi";
-import { commentGameV2ABI, COMMENT_GAME_V2_ADDRESS } from "../lib/contract/abis/commentGameV2";
+import {
+  COMMENT_GAME_V2_ADDRESS,
+  commentGameV2ABI,
+} from "../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../lib/injectedApi";
 import { GameSetupModal } from "./game-setup-modal/GameSetupModal";
 import "./sub-components/CommentSection.css";
@@ -85,10 +88,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
       // 트랜잭션 확정 후 백엔드에 txHash 등록 (Background Script를 통해 CORS 우회)
       try {
-        await backgroundApi.registerClaimPrizeTx(
-          endedGameInfo.id,
-          txHash
-        );
+        await backgroundApi.registerClaimPrizeTx(endedGameInfo.id, txHash);
         console.log("백엔드에 claimPrize 등록 완료");
       } catch (apiError) {
         console.warn("백엔드 claimPrize 등록 실패", apiError);
@@ -136,8 +136,10 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
   const handleGameCreated = (gameAddress: string) => {
     setIsModalOpen(false);
     onGameCreated?.(gameAddress);
-    // 페이지 새로고침하여 게임 UI 표시
-    window.location.reload();
+    // memex 포스팅 페이지로 리다이렉트
+    window.location.href =
+      "https://app.memex.xyz/posting?un=codingcat&ut=fE9Dd8";
+    console.log("게임 생성 완료");
   };
 
   // 페이지 정보가 없으면 표시하지 않음
