@@ -28,9 +28,18 @@ describe('UsersController (e2e)', () => {
         updatedAt: new Date(),
     };
 
+    const mockProfileData = {
+        username: 'testuser',
+        connectedWallet: '0x1234567890abcdef1234567890abcdef12345678',
+        memexWallet: '0xabcdef1234567890abcdef1234567890abcdef12',
+        commentCounts: 5,
+        streakDays: 3,
+    };
+
     const mockUsersService = {
         join: jest.fn(),
         getUserByWalletAddress: jest.fn(),
+        getProfilePageData: jest.fn(),
     };
 
     beforeAll(async () => {
@@ -192,6 +201,91 @@ describe('UsersController (e2e)', () => {
             expect(response.body).toEqual({
                 success: false,
                 errorMessage: '사용자 조회에 실패했습니다.',
+            });
+        });
+    });
+
+    describe('GET /v1/users/profile', () => {
+        const userAddress = '0x1234567890abcdef1234567890abcdef12345678';
+
+        it('should return profile page data successfully', async () => {
+            mockUsersService.getProfilePageData.mockResolvedValue(
+                Result.ok(mockProfileData),
+            );
+
+            const response = await request(app.getHttpServer())
+                .get('/v1/users/profile')
+                .set('x-wallet-address', userAddress)
+                .expect(200);
+
+            expect(response.body).toEqual({
+                success: true,
+                data: mockProfileData,
+            });
+            expect(mockUsersService.getProfilePageData).toHaveBeenCalledWith(
+                userAddress,
+            );
+        });
+
+        it('should return profile with zero counts for new user', async () => {
+            const newUserProfile = {
+                username: null,
+                connectedWallet: userAddress,
+                memexWallet: null,
+                commentCounts: 0,
+                streakDays: 1,
+            };
+
+            mockUsersService.getProfilePageData.mockResolvedValue(
+                Result.ok(newUserProfile),
+            );
+
+            const response = await request(app.getHttpServer())
+                .get('/v1/users/profile')
+                .set('x-wallet-address', userAddress)
+                .expect(200);
+
+            expect(response.body).toEqual({
+                success: true,
+                data: newUserProfile,
+            });
+        });
+
+        it('should return 400 when wallet address header is missing', async () => {
+            await request(app.getHttpServer())
+                .get('/v1/users/profile')
+                .expect(400);
+        });
+
+        it('should return fail result when user not found', async () => {
+            mockUsersService.getProfilePageData.mockResolvedValue(
+                Result.fail('사용자를 찾을 수 없습니다.'),
+            );
+
+            const response = await request(app.getHttpServer())
+                .get('/v1/users/profile')
+                .set('x-wallet-address', userAddress)
+                .expect(200);
+
+            expect(response.body).toEqual({
+                success: false,
+                errorMessage: '사용자를 찾을 수 없습니다.',
+            });
+        });
+
+        it('should return fail result on error', async () => {
+            mockUsersService.getProfilePageData.mockResolvedValue(
+                Result.fail('프로필 데이터 조회에 실패했습니다.'),
+            );
+
+            const response = await request(app.getHttpServer())
+                .get('/v1/users/profile')
+                .set('x-wallet-address', userAddress)
+                .expect(200);
+
+            expect(response.body).toEqual({
+                success: false,
+                errorMessage: '프로필 데이터 조회에 실패했습니다.',
             });
         });
     });

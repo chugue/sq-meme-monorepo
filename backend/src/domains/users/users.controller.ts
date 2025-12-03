@@ -32,4 +32,12 @@ export class UsersController {
     async getMe(@WalletAddress() walletAddress: string) {
         return this.usersService.getUserByWalletAddress(walletAddress);
     }
+
+    /**
+     * 프로필 페이지 데이터 조회
+     */
+    @Get('profile')
+    async getProfilePageData(@WalletAddress() walletAddress: string) {
+        return this.usersService.getProfilePageData(walletAddress);
+    }
 }

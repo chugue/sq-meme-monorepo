@@ -3,12 +3,24 @@ import { Result } from 'src/common/types';
 import { UsersRepository } from './users.repository';
 import { User, CheckInRecord } from 'src/common/db/schema/user.schema';
 import { JoinDto } from './dto/join.dto';
+import { CommentRepository } from '../comment/comment.repository';
+
+export interface ProfilePageData {
+    username: string | null;
+    connectedWallet: string;
+    memexWallet: string | null;
+    commentCounts: number;
+    streakDays: number;
+}
 
 @Injectable()
 export class UsersService {
     private readonly logger = new Logger(UsersService.name);
 
-    constructor(private readonly usersRepository: UsersRepository) {}
+    constructor(
+        private readonly usersRepository: UsersRepository,
+        private readonly commentRepository: CommentRepository,
+    ) {}
 
     /**
      * @description 회원가입 (없으면 생성, 있으면 체크인 업데이트 후 반환)
@@ -101,6 +113,40 @@ export class UsersService {
         } catch (error) {
             this.logger.error(`Get user failed: ${error.message}`);
             return Result.fail('사용자 조회에 실패했습니다.');
+        }
+    }
+
+    /**
+     * @description 프로필 페이지 데이터 조회
+     */
+    async getProfilePageData(
+        walletAddress: string,
+    ): Promise<Result<ProfilePageData>> {
+        try {
+            const user =
+                await this.usersRepository.findByWalletAddress(walletAddress);
+
+            if (!user) {
+                return Result.fail('사용자를 찾을 수 없습니다.');
+            }
+
+            const commentCounts =
+                await this.commentRepository.countByWalletAddress(walletAddress);
+
+            const history: CheckInRecord[] = user.checkInHistory ?? [];
+            const lastCheckIn = history[history.length - 1];
+            const streakDays = lastCheckIn?.currentStreak ?? 0;
+
+            return Result.ok({
+                username: user.userName,
+                connectedWallet: user.walletAddress,
+                memexWallet: user.memexWalletAddress,
+                commentCounts,
+                streakDays,
+            });
+        } catch (error) {
+            this.logger.error(`Get profile page data failed: ${error.message}`);
+            return Result.fail('프로필 데이터 조회에 실패했습니다.');
         }
     }
 }

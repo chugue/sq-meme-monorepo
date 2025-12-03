@@ -54,3 +54,30 @@ export const ApiRegisterGame = (summary = '블록체인 게임 등록') =>
             description: '게임 등록 완료',
         }),
     );
+
+// ============================================================
+// Winner API Decorators
+// ============================================================
+
+export const ApiGetTopWinners = (summary = '상위 우승자 조회') =>
+    applyDecorators(
+        ApiOperation({ summary }),
+        ApiResponse({
+            status: 200,
+            description: '상위 우승자 목록',
+        }),
+    );
+
+export const ApiGetWinnersByWallet = (summary = '지갑 주소로 우승 기록 조회') =>
+    applyDecorators(
+        ApiOperation({ summary }),
+        ApiParam({
+            name: 'walletAddress',
+            description: '사용자 지갑 주소 (0x...)',
+            example: '0x1234567890123456789012345678901234567890',
+        }),
+        ApiResponse({
+            status: 200,
+            description: '해당 지갑의 우승 기록 목록',
+        }),
+    );

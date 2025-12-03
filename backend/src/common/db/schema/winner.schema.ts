@@ -1,23 +1,19 @@
 import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import { index, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { squidSchema } from './common';
-import { games } from './game.schema';
 import { users } from './user.schema';
+import { games } from './game.schema';
 
 export const winners = squidSchema.table(
     'winners',
     {
         id: serial('id').primaryKey(),
 
-        // User relation (linked by walletAddress)
-        walletAddress: varchar('wallet_address', { length: 42 })
-            .notNull()
-            .references(() => users.walletAddress, { onDelete: 'cascade' }),
+        // User wallet address
+        walletAddress: varchar('wallet_address', { length: 42 }).notNull(),
 
-        // Game relation (linked by gameId)
-        gameId: text('game_id')
-            .notNull()
-            .references(() => games.gameId, { onDelete: 'cascade' }),
+        // Game ID
+        gameId: text('game_id').notNull(),
 
         // Prize info
         prize: text('prize').notNull(), // Winner's prize amount (BigInt -> Text)

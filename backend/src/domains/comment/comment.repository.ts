@@ -234,4 +234,16 @@ export class CommentRepository {
 
         return comment ?? null;
     }
+
+    /**
+     * @description 지갑 주소로 댓글 수 조회
+     */
+    async countByWalletAddress(walletAddress: string): Promise<number> {
+        const [result] = await this.db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(schema.comments)
+            .where(eq(schema.comments.commentor, walletAddress.toLowerCase()));
+
+        return result?.count ?? 0;
+    }
 }
