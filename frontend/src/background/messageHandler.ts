@@ -699,6 +699,7 @@ export function createMessageHandler() {
             try {
               const { browser } = await import("wxt/browser");
               const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+              const scripting = (globalThis as any).chrome?.scripting;
 
               // MEMEX 페이지 탭 찾기
               const memexTabs = await tabs.query({
@@ -716,16 +717,84 @@ export function createMessageHandler() {
                 break;
               }
 
-              // Content script로 메시지 전달 (MEMEX 로그인 상태 확인)
+              const triggerLogin = (message as any).triggerLogin ?? false;
+
+              // Content script로 메시지 전달 시도
               const messageToSend = {
                 type: "MEMEX_LOGIN",
-                triggerLogin: (message as any).triggerLogin ?? false,
+                triggerLogin,
               };
-              const response = await tabs.sendMessage(targetTab.id, messageToSend);
-              result = { success: true, data: response };
+
+              try {
+                const response = await tabs.sendMessage(targetTab.id, messageToSend);
+                result = { success: true, data: response };
+              } catch (sendError: any) {
+                // Content script가 없는 경우 - scripting API로 직접 실행
+                console.log("🔐 Content script 없음, scripting API로 직접 실행");
+
+                const injectionResults = await scripting.executeScript({
+                  target: { tabId: targetTab.id },
+                  world: "MAIN",
+                  func: (shouldTriggerLogin: boolean) => {
+                    // sessionStorage에서 로그인 상태 확인
+                    try {
+                      const data = window.sessionStorage.getItem("gtm_user_identifier");
+                      if (data) {
+                        const parsed = JSON.parse(data);
+                        if (parsed.username && parsed.user_tag) {
+                          return {
+                            success: true,
+                            isLoggedIn: true,
+                            username: parsed.username,
+                            userTag: parsed.user_tag,
+                          };
+                        }
+                      }
+                    } catch (e) {
+                      console.error("gtm_user_identifier 파싱 오류:", e);
+                    }
+
+                    // 로그인 안됨 - triggerLogin이 true면 Google 버튼 클릭
+                    if (shouldTriggerLogin) {
+                      const googleButton = (
+                        document.querySelector('button[class*="googleButton"]') ||
+                        document.querySelector('button:has(img[alt="Sign in with Google"])') ||
+                        document.querySelector('button.page_googleButton__XByPk')
+                      ) as HTMLButtonElement;
+
+                      if (googleButton) {
+                        console.log("✅ Google 로그인 버튼 발견, 클릭");
+                        googleButton.click();
+                        return {
+                          success: true,
+                          isLoggedIn: false,
+                          loginStarted: true,
+                        };
+                      } else {
+                        console.log("🔐 Google 버튼 없음");
+                        return {
+                          success: true,
+                          isLoggedIn: false,
+                          loginStarted: false,
+                        };
+                      }
+                    }
+
+                    return {
+                      success: true,
+                      isLoggedIn: false,
+                      loginStarted: false,
+                    };
+                  },
+                  args: [triggerLogin],
+                });
+
+                const scriptResult = injectionResults?.[0]?.result;
+                result = { success: true, data: scriptResult || { isLoggedIn: false } };
+              }
             } catch (error: any) {
               console.error(`❌ MEMEX_LOGIN 오류:`, error);
-              result = { success: true, data: { isLoggedIn: false } };
+              result = { success: true, data: { isLoggedIn: false, error: error.message } };
             }
             break;
           }
