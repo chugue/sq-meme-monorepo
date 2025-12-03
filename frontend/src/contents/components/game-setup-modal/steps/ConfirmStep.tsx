@@ -116,6 +116,14 @@ export function ConfirmStep({
                             : settings.firstComment}
                     </span>
                 </div>
+                {settings.firstCommentImage && (
+                    <div className="squid-confirm-item">
+                        <span className="squid-confirm-label">Image</span>
+                        <div className="squid-confirm-image">
+                            <img src={settings.firstCommentImage} alt="Comment" />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {showProcessing && (

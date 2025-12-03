@@ -13,6 +13,7 @@ export interface GameSettings {
     cost: string;           // 댓글 비용 (토큰 단위)
     time: string;           // 타이머 (분)
     firstComment: string;   // 첫 댓글 내용
+    firstCommentImage?: string; // 첫 댓글 이미지 URL (선택)
 }
 
 // 모달 Props

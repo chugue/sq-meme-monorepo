@@ -2,8 +2,9 @@
  * 2단계: 게임 설정 입력 컴포넌트
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { GameSettings } from "../types";
+import { backgroundApi } from "../../../lib/backgroundApi";
 
 interface SettingsStepProps {
   settings: GameSettings;
@@ -21,6 +22,31 @@ export function SettingsStep({
   onBack,
 }: SettingsStepProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const { url } = await backgroundApi.uploadImage(file);
+      onChange({ ...settings, firstCommentImage: url });
+    } catch (error) {
+      console.error("이미지 업로드 실패:", error);
+      setErrors((prev) => ({ ...prev, image: "이미지 업로드에 실패했습니다" }));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveImage = () => {
+    onChange({ ...settings, firstCommentImage: undefined });
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -200,6 +226,39 @@ export function SettingsStep({
         {errors.firstComment && (
           <span className="squid-input-error">{errors.firstComment}</span>
         )}
+
+        {/* 이미지 업로드 */}
+        <div className="squid-image-upload">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={handleImageUpload}
+            style={{ display: "none" }}
+          />
+          {settings.firstCommentImage ? (
+            <div className="squid-image-preview">
+              <img src={settings.firstCommentImage} alt="Preview" />
+              <button
+                type="button"
+                className="squid-image-remove"
+                onClick={handleRemoveImage}
+                disabled={isUploading}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="squid-image-upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? "Uploading..." : "📷 Add Image"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="squid-button-group">
