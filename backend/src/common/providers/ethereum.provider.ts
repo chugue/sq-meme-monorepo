@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ethers, JsonRpcProvider, Network } from 'ethers';
+import { JsonRpcProvider, Network } from 'ethers';
 
 // Insectarium Testnet 설정
 const INSECTARIUM_NETWORK = Network.from({
@@ -34,30 +34,9 @@ export class EthereumProvider {
     }
 
     /**
-     * @description JsonRpcProvider 인스턴스 반환
-     */
-    getProvider(): JsonRpcProvider {
-        return this.provider;
-    }
-
-    /**
      * @description 트랜잭션 영수증 조회
      */
     async getTransactionReceipt(txHash: string) {
         return this.provider.getTransactionReceipt(txHash);
-    }
-
-    /**
-     * @description 이벤트 토픽 해시 생성 헬퍼
-     */
-    getEventTopic(eventSignature: string): string {
-        return ethers.id(eventSignature);
-    }
-
-    /**
-     * @description Interface 생성 헬퍼
-     */
-    createInterface(abi: string[]): ethers.Interface {
-        return new ethers.Interface(abi);
     }
 }
