@@ -1,18 +1,18 @@
 import { useState } from "react";
+import { backgroundApi } from "../contents/lib/backgroundApi";
+import { getMemexUserInfo } from "../contents/lib/chromeStorage";
 import "./ComingSoon.css";
 import {
-  Particles,
-  SquidCharacter,
   AnimatedTitle,
   ConnectButton,
   NeonBar,
-  TermsModal,
+  Particles,
   Snackbar,
+  SquidCharacter,
+  TermsModal,
 } from "./components";
-import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { useMemexLogin } from "./hooks/useMemexLogin";
-import { backgroundApi } from "../contents/lib/backgroundApi";
-import { getMemexUserInfo } from "../contents/lib/chromeStorage";
+import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 
 // Content script 연결 오류인지 확인
 function isContentScriptError(error: unknown): boolean {
@@ -31,7 +31,8 @@ interface ComingSoonProps {
 }
 
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
-  const { isConnected, address, isLoading, error, connect, refetch } = useSidepanelWallet();
+  const { isConnected, address, isLoading, error, connect, refetch } =
+    useSidepanelWallet();
   const { setLoggingIn } = useMemexLogin();
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -47,7 +48,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
   const showRefreshSnackbar = () => {
     setSnackbar({
       isVisible: true,
-      message: "MEMEX 페이지에서 활성화됩니다",
+      message: "MEMEX에서 실행해주세요",
       type: "warning",
     });
   };
@@ -103,10 +104,10 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
           await backgroundApi.navigateToUrl(memeXLink);
 
           // 페이지 로딩 대기 후 프로필 정보 가져오기
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
           // 프로필 정보 가져오기 시도 후 로그인 완료 처리
-          const checkResult = await backgroundApi.memexLogin() as {
+          const checkResult = (await backgroundApi.memexLogin()) as {
             success: boolean;
             isLoggedIn?: boolean;
             username?: string;
@@ -137,7 +138,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
       }
 
       // 2. GTM 키가 없거나, 있어도 프로필에서 로그인 확인 실패 시 Google 로그인 시도
-      const result = await backgroundApi.memexLogin(true) as {
+      const result = (await backgroundApi.memexLogin(true)) as {
         success: boolean;
         isLoggedIn?: boolean;
         loginStarted?: boolean;
@@ -148,10 +149,11 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
       console.log("🔐 MEMEX login result:", result);
 
       // Content script 연결 오류 체크 (응답에 error 필드가 있는 경우)
-      if (result?.error && (
-        result.error.toLowerCase().includes("receiving end does not exist") ||
-        result.error.toLowerCase().includes("could not establish connection")
-      )) {
+      if (
+        result?.error &&
+        (result.error.toLowerCase().includes("receiving end does not exist") ||
+          result.error.toLowerCase().includes("could not establish connection"))
+      ) {
         console.log("⚠️ Content script 연결 오류, 스낵바 표시");
         showRefreshSnackbar();
         return;
@@ -182,12 +184,17 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
           }
 
           try {
-            const checkResult = await backgroundApi.memexLogin() as {
+            const checkResult = (await backgroundApi.memexLogin()) as {
               success: boolean;
               isLoggedIn?: boolean;
               username?: string;
             };
-            console.log("🔐 로그인 상태 확인:", checkResult, Math.floor(elapsed / 1000), "초 경과");
+            console.log(
+              "🔐 로그인 상태 확인:",
+              checkResult,
+              Math.floor(elapsed / 1000),
+              "초 경과"
+            );
 
             if (checkResult?.isLoggedIn && onMemexLoginComplete) {
               console.log("✅ MEMEX 로그인 완료:", checkResult.username);

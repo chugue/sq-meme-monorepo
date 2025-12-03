@@ -397,72 +397,23 @@ export default defineContentScript({
     ui.mount();
     currentPath = window.location.pathname;
 
-    // MutationObserver로 컨테이너가 DOM에서 제거되었는지 감지하고 재마운트
-    const setupContainerWatcher = () => {
-      let remountTimeout: ReturnType<typeof setTimeout> | null = null;
-      let isRemounting = false;
-
-      const observer = new MutationObserver(() => {
-        // 프로필 페이지가 아니면 무시
-        if (!isProfilePage(window.location.href)) {
-          return;
-        }
-
-        // 이미 재마운트 중이면 무시
-        if (isRemounting) {
-          return;
-        }
-
-        // 컨테이너가 DOM에서 제거되었는지 확인
-        const container = document.querySelector("#squid-meme-comment-root");
-        if (!container) {
-          // 이미 타이머가 설정되어 있으면 무시 (debounce)
-          if (remountTimeout) {
-            return;
-          }
-
-          console.log("🦑 컨테이너가 DOM에서 제거됨 감지 - 재마운트 예약");
-
-          // 약간의 딜레이 후 재마운트 (DOM이 안정화될 때까지 대기)
-          remountTimeout = setTimeout(() => {
-            remountTimeout = null;
-
-            // 여전히 컨테이너가 없고 프로필 페이지인 경우에만 재마운트
-            if (
-              !document.querySelector("#squid-meme-comment-root") &&
-              isProfilePage(window.location.href)
-            ) {
-              console.log("🦑 UI 재마운트 실행");
-              isRemounting = true;
-
-              // ui.remove()를 먼저 호출하여 기존 root 정리
-              ui.remove();
-
-              // 새 타겟 요소 찾기
-              findTargetElementWithRetry(5, 200, 2000).then((newTarget) => {
-                if (newTarget) {
-                  // anchor 업데이트 후 마운트
-                  // @ts-ignore
-                  ui.options.anchor = newTarget;
-                }
-                ui.mount();
-                isRemounting = false;
-              });
-            }
-          }, 300);
-        }
-      });
-
-      // body 전체를 감시 (subtree, childList)
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
-
-      return observer;
+    // UI 표시/숨김 함수 (unmount 대신 CSS로 처리하여 React 상태 유지)
+    const setUIVisibility = (visible: boolean) => {
+      const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
+      if (container) {
+        container.style.display = visible ? "block" : "none";
+        console.log(`🦑 UI ${visible ? "표시" : "숨김"}`);
+      }
     };
 
-    const containerWatcher = setupContainerWatcher();
+    // 프로필 페이지 여부에 따라 UI 표시/숨김 처리
+    const updateUIVisibility = () => {
+      const isProfile = isProfilePage(window.location.href);
+      setUIVisibility(isProfile);
+    };
+
+    // 초기 visibility 설정
+    updateUIVisibility();
 
     // SPA 네비게이션 감지를 위한 URL 변경 리스너
     const handleUrlChange = async () => {
@@ -478,22 +429,14 @@ export default defineContentScript({
         isProfilePage: isProfilePage(window.location.href),
       });
 
-      // 같은 토큰의 프로필 페이지면 무시
-      if (newToken === oldToken) {
-        return;
-      }
-
       currentPath = newPath;
+
+      // 프로필 페이지 여부에 따라 UI 표시/숨김 (unmount 대신 CSS로 처리)
+      updateUIVisibility();
 
       // SPA 네비게이션 시 UI를 재마운트하지 않음
       // React 내부에서 SPA_NAVIGATION 메시지를 받아 상태를 업데이트함
-      // 이렇게 하면 메시지 리스너가 unmount되지 않아 cachedToken을 받을 수 있음
       console.log("🦑 SPA 네비게이션 감지 - React 내부에서 상태 업데이트 처리");
-
-      // 프로필 페이지가 아니면 로그만 출력 (UI는 React에서 처리)
-      if (!isProfilePage(window.location.href)) {
-        console.log("🦑 프로필 페이지 아님");
-      }
     };
 
     // Injected Script로부터 SPA 네비게이션 메시지 수신
@@ -917,7 +860,6 @@ export default defineContentScript({
     // 클린업 함수 등록
     ctx.onInvalidated(() => {
       window.removeEventListener("message", spaNavigationListener);
-      containerWatcher.disconnect();
       console.log("🦑 Content script 클린업 완료");
     });
   },

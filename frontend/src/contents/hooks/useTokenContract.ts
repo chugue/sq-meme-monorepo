@@ -237,20 +237,35 @@ export function useTokenContract() {
             funderCount: game.funderCount || "0",
           };
 
-          // 블록체인에서 게임 종료 여부 확인 (V2: gameId로 확인)
-          const isEnded = await checkGameEnded(game.gameId);
-          setIsGameEnded(isEnded);
-
-          if (isEnded) {
-            logger.info("게임이 종료됨 (블록체인 타임스탬프 기준)", {
+          // 먼저 백엔드 데이터 기준으로 UI 표시 (블록체인 호출 실패해도 UI 표시됨)
+          if (game.isEnded) {
+            logger.info("게임이 종료됨 (백엔드 데이터 기준)", {
               gameId: game.gameId,
             });
-            // checkGameEnded에서 이미 endedGameInfo 설정됨
+            setIsGameEnded(true);
+            setEndedGameInfo(gameInfo);
             setActiveGameInfo(null);
             return null;
           }
 
+          // 게임이 진행 중이면 activeGameInfo 설정
           setActiveGameInfo(gameInfo);
+          setIsGameEnded(false);
+
+          // 블록체인에서 최신 종료 여부 확인 (백그라운드로, 실패해도 무시)
+          checkGameEnded(game.gameId).then((isEnded) => {
+            if (isEnded) {
+              logger.info("게임이 종료됨 (블록체인 타임스탬프 기준)", {
+                gameId: game.gameId,
+              });
+              setIsGameEnded(true);
+              setActiveGameInfo(null);
+              // checkGameEnded에서 이미 endedGameInfo 설정됨
+            }
+          }).catch((err) => {
+            logger.warn("블록체인 종료 여부 확인 실패 (무시)", err);
+          });
+
           return game;
         }
 
