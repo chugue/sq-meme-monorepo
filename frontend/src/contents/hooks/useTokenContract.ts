@@ -13,7 +13,6 @@ import type { BlockchainGameInfo } from "../../types/request.types";
 import {
   ActiveGameInfo,
   activeGameInfoAtom,
-  EndedGameInfo,
   endedGameInfoAtom,
   isGameEndedAtom,
 } from "../atoms/commentAtoms";
@@ -52,98 +51,87 @@ export function useTokenContract() {
   // 중복 조회 방지
   const lastTokenAddressRef = useRef<string | null>(null);
 
+  // V2 컨트랙트 클라이언트 생성 헬퍼
+  const getV2Client = useCallback(() => {
+    return createContractClient({
+      address: COMMENT_GAME_V2_ADDRESS as Address,
+      abi: commentGameV2ABI,
+    });
+  }, []);
+
+  // 블록체인 GameInfo → ActiveGameInfo 변환 헬퍼
+  const toActiveGameInfo = useCallback(
+    (gameInfo: BlockchainGameInfo): ActiveGameInfo => ({
+      id: gameInfo.id.toString(),
+      initiator: gameInfo.initiator,
+      gameToken: gameInfo.gameToken,
+      cost: gameInfo.cost.toString(),
+      gameTime: gameInfo.gameTime.toString(),
+      tokenSymbol: gameInfo.tokenSymbol,
+      endTime: gameInfo.endTime.toString(),
+      lastCommentor: gameInfo.lastCommentor,
+      prizePool: gameInfo.prizePool.toString(),
+      isClaimed: gameInfo.isClaimed,
+      isEnded: gameInfo.isEnded,
+      totalFunding: gameInfo.totalFunding.toString(),
+      funderCount: gameInfo.funderCount.toString(),
+    }),
+    []
+  );
+
+  // 게임 상태 설정 헬퍼
+  const setGameState = useCallback(
+    (gameInfo: ActiveGameInfo | null, isEnded: boolean) => {
+      setIsGameEnded(isEnded);
+      if (isEnded) {
+        setEndedGameInfo(gameInfo);
+        setActiveGameInfo(null);
+      } else {
+        setEndedGameInfo(null);
+        setActiveGameInfo(gameInfo);
+      }
+    },
+    [setIsGameEnded, setEndedGameInfo, setActiveGameInfo]
+  );
+
   /**
-   * 블록체인에서 게임 종료 여부 확인 (V2: gameId로 조회)
-   * getGameInfo(gameId)로 종료 여부 및 상세 정보 한번에 조회
+   * 블록체인에서 gameId로 게임 정보 조회
    */
-  const checkGameEnded = useCallback(
-    async (gameId: string): Promise<boolean> => {
+  const fetchGameById = useCallback(
+    async (gameId: string): Promise<BlockchainGameInfo | null> => {
       try {
-        logger.info("게임 종료 여부 확인 시작 (V2)", { gameId });
+        logger.info("블록체인에서 게임 조회 (gameId)", { gameId });
 
-        const v2Client = createContractClient({
-          address: COMMENT_GAME_V2_ADDRESS as Address,
-          abi: commentGameV2ABI,
-        });
-
-        // getGameInfo로 게임 정보 조회 (isEnded 포함)
-        const gameInfoResult = await v2Client.read<{
-          id: bigint;
-          initiator: Address;
-          gameToken: Address;
-          cost: bigint;
-          gameTime: bigint;
-          tokenSymbol: string;
-          endTime: bigint;
-          lastCommentor: Address;
-          prizePool: bigint;
-          isClaimed: boolean;
-          isEnded: boolean;
-          totalFunding: bigint;
-          funderCount: bigint;
-        }>({
+        const result = await getV2Client().read<BlockchainGameInfo>({
           functionName: "getGameInfo",
           args: [BigInt(gameId)],
         });
 
-        const gameInfo = gameInfoResult.data;
-        const isEnded = gameInfo.isEnded;
-
-        logger.info("게임 종료 여부 확인 완료 (V2)", {
+        logger.info("게임 정보 조회 완료", {
           gameId,
-          endTime: gameInfo.endTime.toString(),
-          isEnded,
+          isEnded: result.data.isEnded,
         });
 
-        // 게임이 종료된 경우 종료 정보 저장
-        if (isEnded) {
-          const endedInfo: EndedGameInfo = {
-            id: gameId,
-            initiator: gameInfo.initiator,
-            gameToken: gameInfo.gameToken,
-            cost: gameInfo.cost.toString(),
-            gameTime: gameInfo.gameTime.toString(),
-            tokenSymbol: gameInfo.tokenSymbol,
-            endTime: gameInfo.endTime.toString(),
-            lastCommentor: gameInfo.lastCommentor,
-            prizePool: gameInfo.prizePool.toString(),
-            isClaimed: gameInfo.isClaimed,
-            isEnded: gameInfo.isEnded,
-            totalFunding: gameInfo.totalFunding.toString(),
-            funderCount: gameInfo.funderCount.toString(),
-          };
-
-          logger.info("종료된 게임 정보", { ...endedInfo });
-          setEndedGameInfo(endedInfo);
-        } else {
-          // 게임이 진행 중이면 종료 정보 초기화
-          setEndedGameInfo(null);
-        }
-
-        return isEnded;
+        return result.data;
       } catch (err) {
-        logger.error("게임 종료 여부 확인 실패", err);
-        // 에러 시 false 반환 (게임 진행 중으로 가정)
-        return false;
+        logger.error("게임 정보 조회 실패", err);
+        return null;
       }
     },
-    [setEndedGameInfo]
+    [getV2Client]
   );
 
   /**
-   * 블록체인에서 직접 게임 정보 조회 (V2: 전체 GameInfo 반환)
+   * 블록체인에서 토큰 주소로 활성 게임 조회
    */
-  const fetchGameFromBlockchain = useCallback(
+  const fetchActiveGameByToken = useCallback(
     async (tokenAddress: string): Promise<BlockchainGameInfo | null> => {
       try {
-        logger.info("블록체인에서 게임 조회 시작 (V2)", {
+        logger.info("블록체인에서 활성 게임 조회 (tokenAddress)", {
           tokenAddress,
         });
 
-        const v2Client = createContractClient({
-          address: COMMENT_GAME_V2_ADDRESS as Address,
-          abi: commentGameV2ABI,
-        });
+        const v2Client = getV2Client();
 
         // getActiveGameId로 활성 게임 ID 조회
         const gameIdResult = await v2Client.read<bigint>({
@@ -152,47 +140,33 @@ export function useTokenContract() {
         });
 
         const gameId = gameIdResult.data;
-
-        // 게임이 없는 경우 (gameId가 0)
         if (!gameId || gameId === 0n) {
           logger.info("블록체인에 활성 게임 없음");
           return null;
         }
 
-        // getGameInfo로 전체 게임 정보 조회
-        const gameInfoResult = await v2Client.read<BlockchainGameInfo>({
-          functionName: "getGameInfo",
-          args: [gameId],
-        });
-
-        const gameInfo = gameInfoResult.data;
-
-        logger.info("블록체인에서 활성 게임 발견", {
-          gameId: gameInfo.id.toString(),
-          tokenSymbol: gameInfo.tokenSymbol,
-          isEnded: gameInfo.isEnded,
-        });
-
-        return gameInfo;
+        // gameId로 게임 정보 조회
+        return await fetchGameById(gameId.toString());
       } catch (err) {
-        logger.error("블록체인 게임 조회 실패", err);
+        logger.error("활성 게임 조회 실패", err);
         return null;
       }
     },
-    []
+    [getV2Client, fetchGameById]
   );
 
   /**
    * 토큰 주소로 게임 정보 조회
-   * 1. 먼저 백엔드 API 조회
-   * 2. 백엔드에 없으면 블록체인에서 직접 조회
+   * 1. 백엔드 API에서 gameId 조회
+   * 2. 블록체인에서 최신 상태 확인 (isEnded 등)
+   * 3. 백엔드에 없으면 블록체인에서 직접 조회
    */
   const fetchGameByToken = useCallback(
     async (
       tokenAddress: string,
       forceRefresh = false
     ): Promise<GameInfo | null> => {
-      // 중복 조회 방지 (forceRefresh가 아닌 경우에만)
+      // 중복 조회 방지
       if (!forceRefresh && lastTokenAddressRef.current === tokenAddress) {
         logger.debug("이미 조회한 토큰 주소", { tokenAddress });
         return null;
@@ -203,135 +177,92 @@ export function useTokenContract() {
       setError(null);
 
       try {
-        // 현재는 MockToken 주소를 사용하여 조회
-        // TODO: 밈코어 메인넷에 올라갈 땐 프로필 URL에서 토큰 주소를 사용하여 조회
         const queryTokenAddress = MOCK_ERC20_ADDRESS;
         logger.info("토큰 주소로 게임 조회 시작", {
           tokenAddress,
           queryTokenAddress,
         });
 
-        // 1. 백엔드 API에서 게임 조회 (MockToken 주소 사용)
-        const game = await backgroundApi.getGameByToken(queryTokenAddress);
+        // 1. 백엔드 API에서 게임 조회
+        const backendGame = await backgroundApi.getGameByToken(
+          queryTokenAddress
+        );
 
-        if (game) {
+        if (backendGame) {
           logger.info("백엔드에서 게임 정보 조회 성공", {
-            gameId: game.gameId,
-            tokenSymbol: game.tokenSymbol,
+            gameId: backendGame.gameId,
+            tokenSymbol: backendGame.tokenSymbol,
           });
 
-          // 백엔드 GameInfo → ActiveGameInfo/EndedGameInfo 변환
-          const gameInfo: ActiveGameInfo = {
-            id: game.gameId,
-            initiator: game.initiator,
-            gameToken: game.gameToken,
-            cost: game.cost,
-            gameTime: game.gameTime,
-            tokenSymbol: game.tokenSymbol || "",
-            endTime: game.endTime,
-            lastCommentor: game.lastCommentor,
-            prizePool: game.prizePool,
-            isClaimed: game.isClaimed,
-            isEnded: game.isEnded,
-            totalFunding: game.totalFunding || "0",
-            funderCount: game.funderCount || "0",
-          };
+          // 2. 블록체인에서 최신 상태 확인
+          const blockchainGame = await fetchGameById(backendGame.gameId);
 
-          // 먼저 백엔드 데이터 기준으로 UI 표시 (블록체인 호출 실패해도 UI 표시됨)
-          if (game.isEnded) {
-            logger.info("게임이 종료됨 (백엔드 데이터 기준)", {
-              gameId: game.gameId,
+          if (blockchainGame) {
+            const gameInfo = toActiveGameInfo(blockchainGame);
+            const isEnded = blockchainGame.isEnded;
+
+            logger.info(isEnded ? "게임이 종료됨" : "게임이 진행 중", {
+              gameId: backendGame.gameId,
             });
-            setIsGameEnded(true);
-            setEndedGameInfo(gameInfo);
-            setActiveGameInfo(null);
-            return null;
+
+            setGameState(gameInfo, isEnded);
+            return isEnded ? null : backendGame;
           }
 
-          // 게임이 진행 중이면 activeGameInfo 설정
-          setActiveGameInfo(gameInfo);
-          setIsGameEnded(false);
+          // 블록체인 조회 실패 시 백엔드 데이터 사용
+          const gameInfo: ActiveGameInfo = {
+            id: backendGame.gameId,
+            initiator: backendGame.initiator,
+            gameToken: backendGame.gameToken,
+            cost: backendGame.cost,
+            gameTime: backendGame.gameTime,
+            tokenSymbol: backendGame.tokenSymbol || "",
+            endTime: backendGame.endTime,
+            lastCommentor: backendGame.lastCommentor,
+            prizePool: backendGame.prizePool,
+            isClaimed: backendGame.isClaimed,
+            isEnded: backendGame.isEnded,
+            totalFunding: backendGame.totalFunding || "0",
+            funderCount: backendGame.funderCount || "0",
+          };
 
-          // 블록체인에서 최신 종료 여부 확인 (백그라운드로, 실패해도 무시)
-          checkGameEnded(game.gameId).then((isEnded) => {
-            if (isEnded) {
-              logger.info("게임이 종료됨 (블록체인 타임스탬프 기준)", {
-                gameId: game.gameId,
-              });
-              setIsGameEnded(true);
-              setActiveGameInfo(null);
-              // checkGameEnded에서 이미 endedGameInfo 설정됨
-            }
-          }).catch((err) => {
-            logger.warn("블록체인 종료 여부 확인 실패 (무시)", err);
-          });
-
-          return game;
+          setGameState(gameInfo, backendGame.isEnded);
+          return backendGame.isEnded ? null : backendGame;
         }
 
-        // 2. 백엔드에 없으면 블록체인에서 직접 조회 (V2: 전체 GameInfo 반환)
+        // 3. 백엔드에 없으면 블록체인에서 직접 조회
         logger.info("백엔드에 게임 없음, 블록체인 조회 시도");
-        const blockchainGame = await fetchGameFromBlockchain(queryTokenAddress);
+        const blockchainGame = await fetchActiveGameByToken(queryTokenAddress);
 
         if (blockchainGame) {
-          const gameId = blockchainGame.id.toString();
+          const gameInfo = toActiveGameInfo(blockchainGame);
+          const isEnded = blockchainGame.isEnded;
 
-          logger.info("블록체인에서 기존 게임 발견", {
-            gameId,
-            tokenSymbol: blockchainGame.tokenSymbol,
+          logger.info(isEnded ? "게임이 종료됨" : "블록체인에서 게임 발견", {
+            gameId: gameInfo.id,
           });
 
-          // 블록체인 GameInfo → ActiveGameInfo/EndedGameInfo 변환
-          const gameInfo: ActiveGameInfo = {
-            id: gameId,
-            initiator: blockchainGame.initiator,
-            gameToken: blockchainGame.gameToken,
-            cost: blockchainGame.cost.toString(),
-            gameTime: blockchainGame.gameTime.toString(),
-            tokenSymbol: blockchainGame.tokenSymbol,
-            endTime: blockchainGame.endTime.toString(),
-            lastCommentor: blockchainGame.lastCommentor,
-            prizePool: blockchainGame.prizePool.toString(),
-            isClaimed: blockchainGame.isClaimed,
-            isEnded: blockchainGame.isEnded,
-            totalFunding: blockchainGame.totalFunding.toString(),
-            funderCount: blockchainGame.funderCount.toString(),
-          };
+          setGameState(gameInfo, isEnded);
 
-          // 게임 종료 여부 확인 (블록체인 GameInfo에서 직접 확인)
-          const isEnded = blockchainGame.isEnded;
-          setIsGameEnded(isEnded);
-
-          if (isEnded) {
-            logger.info("게임이 종료됨", { gameId });
-            setEndedGameInfo(gameInfo);
-            setActiveGameInfo(null);
-            return null;
+          // 진행 중인 게임은 백엔드에 등록
+          if (!isEnded) {
+            backgroundApi.registerGame(blockchainGame).catch((err) => {
+              logger.error("백엔드 게임 등록 실패 (무시)", err);
+            });
           }
 
-          // 게임이 진행 중이면 백엔드에 등록
-          try {
-            logger.info("백엔드에 게임 등록 시도", { gameId });
-            await backgroundApi.registerGame(blockchainGame);
-            logger.info("백엔드에 게임 등록 완료", { gameId });
-          } catch (registerErr) {
-            logger.error("백엔드 게임 등록 실패 (계속 진행)", registerErr);
-          }
-
-          setActiveGameInfo(gameInfo);
           return null;
         }
 
         logger.info("게임 없음 (백엔드 및 블록체인 모두)", { tokenAddress });
-        setActiveGameInfo(null);
+        setGameState(null, false);
         return null;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "게임 조회 실패";
         logger.error("게임 조회 실패", err);
         setError(errorMessage);
-        // 에러 발생 시에도 activeGameInfo를 null로 설정하여 NoGameSection 표시
-        setActiveGameInfo(null);
+        setGameState(null, false);
         return null;
       } finally {
         setIsLoading(false);
@@ -340,11 +271,10 @@ export function useTokenContract() {
     [
       setIsLoading,
       setError,
-      setActiveGameInfo,
-      setIsGameEnded,
-      setEndedGameInfo,
-      fetchGameFromBlockchain,
-      checkGameEnded,
+      setGameState,
+      fetchGameById,
+      fetchActiveGameByToken,
+      toActiveGameInfo,
     ]
   );
 
@@ -391,7 +321,9 @@ export function useTokenContract() {
           lastTokenAddressRef.current = null;
           handleTokenContractCached(tokenInfo);
         } else {
-          logger.info("캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기");
+          logger.info(
+            "캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기"
+          );
         }
       }
     } catch (err) {
@@ -410,7 +342,13 @@ export function useTokenContract() {
     setEndedGameInfo(null);
     setError(null);
     lastTokenAddressRef.current = null;
-  }, [setCurrentPageInfo, setActiveGameInfo, setIsGameEnded, setEndedGameInfo, setError]);
+  }, [
+    setCurrentPageInfo,
+    setActiveGameInfo,
+    setIsGameEnded,
+    setEndedGameInfo,
+    setError,
+  ]);
 
   useEffect(() => {
     // 메시지 리스너 등록

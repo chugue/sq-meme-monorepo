@@ -10,8 +10,9 @@
     box-shadow:
         4px 4px 0px #0a0a15,
         inset 2px 2px 0px rgba(255, 255, 255, 0.1);
-    margin: 20px;
-    max-width: 600px;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;

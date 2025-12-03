@@ -13,7 +13,8 @@ import { logger } from '../lib/injected/logger';
  */
 function blockchainCommentToComment(event: CommentAddedV2Event): Comment {
     return {
-        id: 0, // 블록체인에서 온 댓글은 DB id가 없음, txHash로 구분
+        id: 0, // 블록체인에서 온 댓글은 DB id가 없음
+        commentId: Number(event.commentId),
         gameAddress: COMMENT_GAME_V2_ADDRESS,
         commentor: event.commentor,
         message: event.message,
@@ -76,32 +77,24 @@ export function useComments() {
                     return;
                 }
 
-                // 현재 DB 댓글과 비교
-                const currentComments = queryClient.getQueryData<Comment[]>(['comments', gameId]) || [];
+                // 현재 DB 댓글 (기준)
+                const dbComments = queryClient.getQueryData<Comment[]>(['comments', gameId]) || [];
+                const dbCommentIds = new Set(dbComments.map((c) => c.commentId));
 
-                // DB에 없는 블록체인 댓글 찾기 (message + commentor + timestamp로 비교)
-                const newComments: Comment[] = [];
-
+                // DB에 없는 블록체인 댓글만 보충
+                const missingComments: Comment[] = [];
                 for (const bcComment of blockchainComments) {
-                    const bcTimestamp = new Date(Number(bcComment.timestamp) * 1000).toISOString();
-                    const exists = currentComments.some(
-                        (dbComment) =>
-                            dbComment.commentor.toLowerCase() === bcComment.commentor.toLowerCase() &&
-                            dbComment.message === bcComment.message &&
-                            // timestamp가 1초 이내면 같은 댓글로 판단
-                            Math.abs(new Date(dbComment.createdAt).getTime() - new Date(bcTimestamp).getTime()) < 1000
-                    );
-
-                    if (!exists) {
-                        newComments.push(blockchainCommentToComment(bcComment));
+                    const bcCommentId = Number(bcComment.commentId);
+                    if (!dbCommentIds.has(bcCommentId)) {
+                        missingComments.push(blockchainCommentToComment(bcComment));
                     }
                 }
 
-                if (newComments.length > 0) {
-                    logger.info('블록체인에만 있는 댓글 발견', { count: newComments.length });
+                if (missingComments.length > 0) {
+                    logger.info('블록체인에만 있는 댓글 보충', { count: missingComments.length });
 
-                    // 캐시 업데이트 (기존 댓글 + 새 댓글, 최신순 정렬)
-                    const mergedComments = [...currentComments, ...newComments].sort(
+                    // DB 댓글 우선, 블록체인 댓글은 보충용 (최신순 정렬)
+                    const mergedComments = [...dbComments, ...missingComments].sort(
                         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                     );
 

@@ -8,19 +8,19 @@
 import { useState } from "react";
 import type { Address } from "viem";
 import { backgroundApi } from "../../lib/backgroundApi";
-import { commentGameABI } from "../../lib/contract/abis/commentGame";
+import { commentGameV2ABI, COMMENT_GAME_V2_ADDRESS } from "../../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../../lib/injectedApi";
 import { TransactionSuccessModal } from "./TransactionSuccessModal";
 
 interface ClaimPrizeSectionProps {
-  gameAddress: string;
+  gameId: string;
   prizePool: string;
   tokenSymbol: string;
   onClaimed?: () => void;
 }
 
 export function ClaimPrizeSection({
-  gameAddress,
+  gameId,
   prizePool,
   tokenSymbol,
   onClaimed,
@@ -36,11 +36,12 @@ export function ClaimPrizeSection({
     setClaimTxHash(null);
 
     try {
+      // V2: 단일 컨트랙트에 gameId 전달
       const txHash = await injectedApi.writeContract({
-        address: gameAddress as Address,
-        abi: commentGameABI,
+        address: COMMENT_GAME_V2_ADDRESS as Address,
+        abi: commentGameV2ABI,
         functionName: "claimPrize",
-        args: [],
+        args: [BigInt(gameId)],
       });
 
       setClaimTxHash(txHash);
@@ -48,17 +49,14 @@ export function ClaimPrizeSection({
       await injectedApi.waitForTransaction(txHash);
 
       try {
-        await backgroundApi.registerClaimPrizeTx(
-          gameAddress.toLowerCase(),
-          txHash
-        );
+        await backgroundApi.registerClaimPrizeTx(gameId, txHash);
         console.log("백엔드에 claimPrize 등록 완료");
       } catch (apiError) {
         console.warn("백엔드 claimPrize 등록 실패", apiError);
       }
 
       setIsSuccessModalOpen(true);
-      onClaimed?.();
+      // onClaimed는 모달 닫힐 때 호출 (컴포넌트 언마운트 방지)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Claim 실패";
       setClaimError(errorMessage);
@@ -109,7 +107,10 @@ export function ClaimPrizeSection({
       {claimTxHash && (
         <TransactionSuccessModal
           isOpen={isSuccessModalOpen}
-          onClose={() => setIsSuccessModalOpen(false)}
+          onClose={() => {
+            setIsSuccessModalOpen(false);
+            onClaimed?.();
+          }}
           txHash={claimTxHash}
           title="Prize Claimed!"
           description="Your prize has been successfully transferred to your wallet."

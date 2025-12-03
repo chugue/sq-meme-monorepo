@@ -101,7 +101,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
         {/* 우승자 Claim 안내 */}
         {isWinner && endedGameInfo && (
           <ClaimPrizeSection
-            gameAddress={endedGameInfo.id}
+            gameId={endedGameInfo.id}
             prizePool={endedGameInfo.prizePool}
             tokenSymbol={tokenSymbol}
             onClaimed={handleClaimed}

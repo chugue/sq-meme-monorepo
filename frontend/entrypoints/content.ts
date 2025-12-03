@@ -19,6 +19,25 @@ function extractTokenFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Search bar 요소 찾기 함수
+function findSearchBar(): HTMLElement | null {
+  // Search_ 클래스를 가진 요소 찾기
+  const searchElement = document.querySelector('[class*="Search_container"]') as HTMLElement;
+  if (searchElement) {
+    console.log("🦑 Search_container 클래스로 Search bar 찾음");
+    return searchElement;
+  }
+
+  // 폴백: Search_ 클래스 전체 검색
+  const searchFallback = document.querySelector('[class*="Search_"]') as HTMLElement;
+  if (searchFallback) {
+    console.log("🦑 Search_ 클래스로 Search bar 찾음");
+    return searchFallback;
+  }
+
+  return null;
+}
+
 // 타겟 요소 찾기 함수 - 오른쪽 사이드바 (RightPanel) 타겟
 function findTargetElement(): HTMLElement | null {
   let targetElement: HTMLElement | null = null;
@@ -76,6 +95,21 @@ function findTargetElement(): HTMLElement | null {
 
   console.log("🦑 오른쪽 패널을 찾지 못함, body 사용");
   return document.body;
+}
+
+// Search bar 아래에 UI 컨테이너 삽입
+function insertAfterSearchBar(container: HTMLElement, targetElement: HTMLElement): boolean {
+  const searchBar = findSearchBar();
+  if (searchBar && searchBar.parentElement) {
+    // Search bar 다음에 삽입
+    searchBar.parentElement.insertBefore(container, searchBar.nextSibling);
+    console.log("🦑 Search bar 아래에 UI 컨테이너 삽입 완료");
+    return true;
+  }
+  // Search bar를 못 찾으면 타겟 요소의 맨 앞에 삽입
+  targetElement.insertBefore(container, targetElement.firstChild);
+  console.log("🦑 Search bar 없음, 타겟 요소 맨 앞에 삽입");
+  return false;
 }
 
 // 타겟 요소 찾기 (리트라이 로직 포함)
@@ -397,6 +431,14 @@ export default defineContentScript({
     ui.mount();
     currentPath = window.location.pathname;
 
+    // 마운트 후 Search bar 아래로 위치 조정 (약간의 딜레이 후)
+    setTimeout(() => {
+      const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
+      if (container && targetElement) {
+        insertAfterSearchBar(container, targetElement);
+      }
+    }, 100);
+
     // UI 표시/숨김 함수 (unmount 대신 CSS로 처리하여 React 상태 유지)
     const setUIVisibility = (visible: boolean) => {
       const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
@@ -414,6 +456,69 @@ export default defineContentScript({
 
     // 초기 visibility 설정
     updateUIVisibility();
+
+    // UI 컨테이너 참조 저장 (React 상태 유지를 위해)
+    let uiContainer: HTMLElement | null = document.querySelector("#squid-meme-comment-root") as HTMLElement;
+
+    // 컨테이너가 DOM에서 제거되면 다시 삽입하는 watcher
+    const setupContainerWatcher = () => {
+      let reinsertTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      const observer = new MutationObserver(() => {
+        // 프로필 페이지가 아니면 무시
+        if (!isProfilePage(window.location.href)) {
+          return;
+        }
+
+        // 컨테이너가 DOM에서 제거되었는지 확인
+        const container = document.querySelector("#squid-meme-comment-root");
+        if (!container && uiContainer) {
+          // 이미 타이머가 설정되어 있으면 무시 (debounce)
+          if (reinsertTimeout) {
+            return;
+          }
+
+          console.log("🦑 컨테이너가 DOM에서 제거됨 - 재삽입 예약");
+
+          // 약간의 딜레이 후 재삽입 (DOM이 안정화될 때까지 대기)
+          reinsertTimeout = setTimeout(() => {
+            reinsertTimeout = null;
+
+            // 여전히 컨테이너가 없고 프로필 페이지인 경우에만 재삽입
+            if (
+              !document.querySelector("#squid-meme-comment-root") &&
+              isProfilePage(window.location.href) &&
+              uiContainer
+            ) {
+              console.log("🦑 UI 컨테이너 재삽입 시도");
+
+              // 타겟 요소 찾기
+              findTargetElementWithRetry(5, 200, 2000).then((newTarget) => {
+                if (newTarget && uiContainer) {
+                  // Search bar 아래에 삽입 (React 상태 유지)
+                  insertAfterSearchBar(uiContainer, newTarget);
+                  console.log("🦑 UI 컨테이너 재삽입 완료 (React 상태 유지)");
+                  updateUIVisibility();
+                }
+              });
+            }
+          }, 300);
+        } else if (container && !uiContainer) {
+          // 컨테이너 참조 저장
+          uiContainer = container as HTMLElement;
+        }
+      });
+
+      // body 전체를 감시 (subtree, childList)
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      return observer;
+    };
+
+    const containerWatcher = setupContainerWatcher();
 
     // SPA 네비게이션 감지를 위한 URL 변경 리스너
     const handleUrlChange = async () => {
@@ -860,6 +965,7 @@ export default defineContentScript({
     // 클린업 함수 등록
     ctx.onInvalidated(() => {
       window.removeEventListener("message", spaNavigationListener);
+      containerWatcher.disconnect();
       console.log("🦑 Content script 클린업 완료");
     });
   },

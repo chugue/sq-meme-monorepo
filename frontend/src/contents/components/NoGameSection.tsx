@@ -10,16 +10,16 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import type { Address } from "viem";
 import { endedGameInfoAtom } from "../atoms/commentAtoms";
-import { tokenContractAtom } from "../atoms/tokenContractAtoms";
+import { currentPageInfoAtom } from "../atoms/currentPageInfoAtoms";
 import { useWallet } from "../hooks/useWallet";
 import { formatAddress } from "../utils/messageFormatter";
 
 import { backgroundApi } from "../lib/backgroundApi";
-import { commentGameABI } from "../lib/contract/abis/commentGame";
+import { commentGameV2ABI, COMMENT_GAME_V2_ADDRESS } from "../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../lib/injectedApi";
 import { GameSetupModal } from "./game-setup-modal/GameSetupModal";
 import "./sub-components/CommentSection.css";
-import { TransactionSuccessModal } from "./TransactionSuccessModal";
+import { TransactionSuccessModal } from "./sub-components/TransactionSuccessModal";
 
 interface NoGameSectionProps {
   onGameCreated?: (gameAddress: string) => void;
@@ -29,7 +29,7 @@ interface NoGameSectionProps {
  * 게임 없음 섹션 (게임 생성 CTA)
  */
 export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
-  const tokenContract = useAtomValue(tokenContractAtom);
+  const currentPageInfo = useAtomValue(currentPageInfoAtom);
   const endedGameInfo = useAtomValue(endedGameInfoAtom);
   const setEndedGameInfo = useSetAtom(endedGameInfoAtom);
   const {
@@ -70,12 +70,12 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     setClaimTxHash(null);
 
     try {
-      // claimPrize 함수 호출
+      // claimPrize 함수 호출 (V2: gameId 전달)
       const txHash = await injectedApi.writeContract({
-        address: endedGameInfo.gameAddress as Address,
-        abi: commentGameABI,
+        address: COMMENT_GAME_V2_ADDRESS as Address,
+        abi: commentGameV2ABI,
         functionName: "claimPrize",
-        args: [],
+        args: [BigInt(endedGameInfo.id)],
       });
 
       setClaimTxHash(txHash);
@@ -86,7 +86,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
       // 트랜잭션 확정 후 백엔드에 txHash 등록 (Background Script를 통해 CORS 우회)
       try {
         await backgroundApi.registerClaimPrizeTx(
-          endedGameInfo.gameAddress.toLowerCase(),
+          endedGameInfo.id,
           txHash
         );
         console.log("백엔드에 claimPrize 등록 완료");
@@ -140,8 +140,8 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     window.location.reload();
   };
 
-  // 토큰이 없으면 표시하지 않음
-  if (!tokenContract) {
+  // 페이지 정보가 없으면 표시하지 않음
+  if (!currentPageInfo) {
     return (
       <div
         className="squid-comment-section"
@@ -172,11 +172,11 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             TOKEN ADDRESS
           </div>
           <div style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-            {formatAddress(tokenContract.contractAddress)}
+            {formatAddress(currentPageInfo.contractAddress)}
           </div>
-          {tokenContract.username && (
+          {currentPageInfo.username && (
             <div style={{ marginTop: "8px", fontSize: "11px" }}>
-              @{tokenContract.username}#{tokenContract.userTag}
+              @{currentPageInfo.username}#{currentPageInfo.userTag}
             </div>
           )}
         </div>
@@ -234,7 +234,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 {(
                   BigInt(endedGameInfo.prizePool) / BigInt(10 ** 18)
                 ).toString()}{" "}
-                ${tokenContract?.symbol?.toUpperCase() || "TOKENS"}
+                ${currentPageInfo?.symbol?.toUpperCase() || "TOKENS"}
               </div>
               <button
                 type="button"
@@ -277,10 +277,10 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
       <GameSetupModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        tokenAddress={tokenContract.contractAddress as Address}
+        tokenAddress={currentPageInfo.contractAddress as Address}
         tokenSymbol={
-          tokenContract.symbol
-            ? `$${tokenContract.symbol.toUpperCase()}`
+          currentPageInfo.symbol
+            ? `$${currentPageInfo.symbol.toUpperCase()}`
             : "TOKEN"
         }
         onGameCreated={handleGameCreated}

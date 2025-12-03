@@ -1,5 +1,6 @@
 export interface Comment {
   id: number;
+  commentId: number; // 블록체인 commentId
   gameAddress: string;
   commentor: string;
   message: string;
