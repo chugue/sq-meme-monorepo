@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -231,6 +231,39 @@ export class GameRepository {
         } catch (error) {
             this.logger.error(`❌ 블록체인 게임 등록 실패: ${error.message}`);
             return null;
+        }
+    }
+
+    /**
+     * @description 게임 ID 목록으로 활성 게임 정보 조회 (isEnded = false, isClaimed = false)
+     */
+    async findActiveGamesByIds(gameIds: string[]) {
+        if (gameIds.length === 0) {
+            return [];
+        }
+
+        try {
+            return await this.db
+                .select({
+                    gameId: schema.games.gameId,
+                    tokenImageUrl: schema.games.tokenImageUrl,
+                    tokenSymbol: schema.games.tokenSymbol,
+                    prizePool: schema.games.prizePool,
+                    endTime: schema.games.endTime,
+                })
+                .from(schema.games)
+                .where(
+                    and(
+                        inArray(schema.games.gameId, gameIds),
+                        eq(schema.games.isEnded, false),
+                        eq(schema.games.isClaimed, false),
+                    ),
+                );
+        } catch (error) {
+            this.logger.error(
+                `❌ 활성 게임 목록 조회 실패: ${error.message}`,
+            );
+            return [];
         }
     }
 }

@@ -81,3 +81,12 @@ export const ApiGetWinnersByWallet = (summary = '지갑 주소로 우승 기록 
             description: '해당 지갑의 우승 기록 목록',
         }),
     );
+
+export const ApiGetGamesInPlaying = (summary = '참여 중인 게임 조회') =>
+    applyDecorators(
+        ApiOperation({ summary }),
+        ApiResponse({
+            status: 200,
+            description: '참여 중인 활성 게임 목록',
+        }),
+    );

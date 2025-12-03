@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
 import { Result } from 'src/common/types';
+import { CommentRepository } from '../comment/comment.repository';
 import { WinnersService } from '../winners/winners.service';
 import { GameRepository } from './game.repository';
 
@@ -21,6 +22,7 @@ export class GameService {
         private readonly ethereumProvider: EthereumProvider,
         private readonly gameRepository: GameRepository,
         private readonly winnersService: WinnersService,
+        private readonly commentRepository: CommentRepository,
     ) {
         this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
         this.contractAddress =
@@ -166,5 +168,32 @@ export class GameService {
             this.logger.error(`Register game failed: ${error.message}`);
             return Result.fail('게임 등록에 실패했습니다.');
         }
+    }
+
+    /**
+     * @description 사용자가 참여 중인 활성 게임 목록 조회
+     */
+    async getGamesInPlaying(walletAddress: string) {
+        // 1. 사용자가 댓글을 단 게임 ID 목록 조회
+        const gameIds =
+            await this.commentRepository.findGameIdsByWalletAddress(
+                walletAddress,
+            );
+
+        if (gameIds.length === 0) {
+            return [];
+        }
+
+        // 2. 해당 게임들 중 활성 상태인 게임 정보 조회
+        const games = await this.gameRepository.findActiveGamesByIds(gameIds);
+
+        // 3. 응답 형식에 맞게 변환
+        return games.map((game) => ({
+            gameId: game.gameId,
+            tokenImageUrl: game.tokenImageUrl,
+            tokenSymbol: game.tokenSymbol,
+            currentPrizePool: game.prizePool,
+            endTime: game.endTime,
+        }));
     }
 }

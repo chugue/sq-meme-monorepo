@@ -222,4 +222,28 @@ export class CommentRepository {
 
         return comment ?? null;
     }
+
+    /**
+     * @description 지갑 주소로 댓글 수 조회
+     */
+    async countByWalletAddress(walletAddress: string): Promise<number> {
+        const [result] = await this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(schema.comments)
+            .where(eq(schema.comments.commentor, walletAddress.toLowerCase()));
+
+        return Number(result?.count ?? 0);
+    }
+
+    /**
+     * @description 지갑 주소로 참여한 게임 ID 목록 조회 (중복 제거)
+     */
+    async findGameIdsByWalletAddress(walletAddress: string): Promise<string[]> {
+        const results = await this.db
+            .selectDistinct({ gameId: schema.comments.gameId })
+            .from(schema.comments)
+            .where(eq(schema.comments.commentor, walletAddress.toLowerCase()));
+
+        return results.map((r) => r.gameId);
+    }
 }

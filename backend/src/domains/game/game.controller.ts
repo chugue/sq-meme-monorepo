@@ -12,8 +12,10 @@ import { ApiTags } from '@nestjs/swagger';
 import {
     ApiCreateGame,
     ApiGetGameByToken,
+    ApiGetGamesInPlaying,
     ApiRegisterClaimPrize,
     ApiRegisterGame,
+    WalletAddress,
 } from 'src/common/decorators';
 import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
@@ -85,5 +87,11 @@ export class GameController {
     @ApiRegisterGame('블록체인에서 조회한 게임 등록')
     async registerGame(@Body() body: unknown) {
         return this.gameService.registerGame(body);
+    }
+
+    @Get('in-playing')
+    @ApiGetGamesInPlaying('내가 참여 중인 게임 조회')
+    async getGamesInPlaying(@WalletAddress() walletAddress: string) {
+        return this.gameService.getGamesInPlaying(walletAddress);
     }
 }

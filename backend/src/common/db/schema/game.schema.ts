@@ -24,6 +24,7 @@ export const games = squidSchema.table(
         gameToken: varchar('game_token', { length: 42 }).notNull(),
         tokenSymbol: varchar('token_symbol', { length: 32 }), // 토큰 심볼 (예: MTK)
         tokenName: varchar('token_name', { length: 128 }), // 토큰 이름 (예: MockToken)
+        tokenImageUrl: text('token_image_url'), // 토큰 이미지 URL
         initiator: varchar('initiator', { length: 42 }).notNull(),
 
         // 2. 시간 관련

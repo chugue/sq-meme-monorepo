@@ -134,6 +134,13 @@
       "when": 1764777792066,
       "tag": "0018_public_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1764782285025,
+      "tag": "0019_goofy_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }
