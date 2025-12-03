@@ -3,3 +3,4 @@ export * from './comment-like.schema';
 export * from './common';
 export * from './game.schema';
 export * from './user.schema';
+export * from './winner.schema';

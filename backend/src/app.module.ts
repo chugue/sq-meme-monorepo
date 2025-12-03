@@ -8,6 +8,7 @@ import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
 import { UsersModule } from './domains/users/users.module';
 import { UploadModule } from './domains/upload/upload.module';
+import { WinnersModule } from './domains/winners/winners.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -29,6 +30,7 @@ import { AppController } from './app.controller';
         CommentModule,
         UsersModule,
         UploadModule,
+        WinnersModule,
     ],
     controllers: [AppController],
     providers: [],
