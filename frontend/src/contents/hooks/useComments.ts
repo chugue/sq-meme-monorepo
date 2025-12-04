@@ -19,7 +19,10 @@ function deduplicateComments(comments: Comment[]): Comment[] {
   return Array.from(seen.values());
 }
 
-export function useComments(gameId: string | null, walletAddress?: string | null) {
+export function useComments(
+  gameId: string | null,
+  walletAddress?: string | null
+) {
   const queryClient = useQueryClient();
   const prevGameIdRef = useRef<string | null>(null);
 
@@ -27,7 +30,9 @@ export function useComments(gameId: string | null, walletAddress?: string | null
   useEffect(() => {
     if (prevGameIdRef.current !== null && prevGameIdRef.current !== gameId) {
       // 이전 gameId의 캐시 제거
-      queryClient.removeQueries({ queryKey: ["comments", prevGameIdRef.current] });
+      queryClient.removeQueries({
+        queryKey: ["comments", prevGameIdRef.current],
+      });
       logger.debug("이전 gameId 캐시 제거", {
         prevGameId: prevGameIdRef.current,
         newGameId: gameId,
@@ -52,7 +57,10 @@ export function useComments(gameId: string | null, walletAddress?: string | null
       }
       try {
         logger.info("댓글 조회 시작 (DB)", { gameId });
-        const data = await backgroundApi.getComments(gameId, walletAddress || undefined);
+        const data = await backgroundApi.getComments(
+          gameId,
+          walletAddress || undefined
+        );
         logger.info("댓글 조회 완료 (DB)", {
           gameId,
           count: data?.length || 0,
@@ -96,7 +104,13 @@ export function useComments(gameId: string | null, walletAddress?: string | null
 
   // 좋아요 토글 (옵티미스틱 업데이트)
   const toggleLikeMutation = useMutation({
-    mutationFn: async ({ commentId, walletAddress }: { commentId: number; walletAddress: string }) => {
+    mutationFn: async ({
+      commentId,
+      walletAddress,
+    }: {
+      commentId: number;
+      walletAddress: string;
+    }) => {
       try {
         return await backgroundApi.toggleCommentLike(commentId, walletAddress);
       } catch (error) {
@@ -106,24 +120,35 @@ export function useComments(gameId: string | null, walletAddress?: string | null
     },
     onMutate: async ({ commentId }) => {
       // 진행 중인 refetch 취소
-      await queryClient.cancelQueries({ queryKey: ["comments", gameId, walletAddress] });
+      await queryClient.cancelQueries({
+        queryKey: ["comments", gameId, walletAddress],
+      });
 
       // 이전 상태 스냅샷
-      const previousComments = queryClient.getQueryData<Comment[]>(["comments", gameId, walletAddress]);
+      const previousComments = queryClient.getQueryData<Comment[]>([
+        "comments",
+        gameId,
+        walletAddress,
+      ]);
 
       // 옵티미스틱 업데이트
-      queryClient.setQueryData<Comment[]>(["comments", gameId, walletAddress], (oldComments) => {
-        if (!oldComments) return oldComments;
-        return oldComments.map((comment) =>
-          comment.id === commentId
-            ? {
-                ...comment,
-                isLiked: !comment.isLiked,
-                likeCount: comment.isLiked ? (comment.likeCount || 1) - 1 : (comment.likeCount || 0) + 1,
-              }
-            : comment
-        );
-      });
+      queryClient.setQueryData<Comment[]>(
+        ["comments", gameId, walletAddress],
+        (oldComments) => {
+          if (!oldComments) return oldComments;
+          return oldComments.map((comment) =>
+            comment.id === commentId
+              ? {
+                  ...comment,
+                  isLiked: !comment.isLiked,
+                  likeCount: comment.isLiked
+                    ? (comment.likeCount || 1) - 1
+                    : (comment.likeCount || 0) + 1,
+                }
+              : comment
+          );
+        }
+      );
 
       // 롤백을 위한 컨텍스트 반환
       return { previousComments };
@@ -131,12 +156,11 @@ export function useComments(gameId: string | null, walletAddress?: string | null
     onError: (_error, _variables, context) => {
       // 에러 발생 시 이전 상태로 롤백
       if (context?.previousComments) {
-        queryClient.setQueryData(["comments", gameId, walletAddress], context.previousComments);
+        queryClient.setQueryData(
+          ["comments", gameId, walletAddress],
+          context.previousComments
+        );
       }
-    },
-    onSettled: () => {
-      // 성공/실패 관계없이 서버와 동기화
-      queryClient.invalidateQueries({ queryKey: ["comments", gameId, walletAddress] });
     },
   });
 

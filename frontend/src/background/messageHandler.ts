@@ -1106,7 +1106,7 @@ export function createMessageHandler() {
             try {
               const response = await apiCall<{
                 success: boolean;
-                data: { id: number };
+                data: { id: number; totalFunding: string };
               }>("/v1/funders", {
                 method: "POST",
                 body: JSON.stringify(message.data),

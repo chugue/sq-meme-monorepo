@@ -410,7 +410,7 @@ export const backgroundApi = {
 
   // 펀딩 데이터를 백엔드에 저장 (txHash로 PrizePoolFunded 이벤트 파싱)
   saveFunding: async (data: { txHash: string }) => {
-    return sendToBackground<{ id: number }>({
+    return sendToBackground<{ id: number; totalFunding: string }>({
       type: "SAVE_FUNDING",
       data,
     });

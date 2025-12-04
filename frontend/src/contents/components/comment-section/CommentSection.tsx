@@ -3,7 +3,7 @@
  * V2 컨트랙트 사용 - 스마트 컨트랙트 직접 호출
  */
 
-import { useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import type { Address } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
@@ -43,11 +43,11 @@ export function CommentSection() {
     error: walletError,
   } = useWallet();
 
-  const activeGameInfo = useAtomValue(activeGameInfoAtom);
+  const [activeGameInfo, setActiveGameInfo] = useAtom(activeGameInfoAtom);
   // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
   const hasValidGame = !!(activeGameInfo?.id);
   const gameId = hasValidGame ? activeGameInfo.id : null;
-  const { comments, isLoading, refetch, toggleLike } = useComments(gameId, address);
+  const { comments, isLoading, refetch, toggleLike, isTogglingLike } = useComments(gameId, address);
   const [newComment, setNewComment] = useState("");
   const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,10 +166,29 @@ export function CommentSection() {
         blockNumber: receipt.blockNumber,
       });
 
-      // 백엔드에 펀딩 저장
+      // 백엔드에 펀딩 저장 및 totalFunding 업데이트
       try {
-        await backgroundApi.saveFunding({ txHash: fundResult.hash });
-        logger.info("백엔드에 펀딩 저장 완료");
+        const fundingResult = await backgroundApi.saveFunding({
+          txHash: fundResult.hash,
+        });
+        logger.info("백엔드에 펀딩 저장 완료", {
+          fundingResult,
+          totalFunding: fundingResult?.totalFunding,
+          activeGameInfoId: activeGameInfo?.id,
+        });
+
+        // activeGameInfo의 totalFunding 업데이트
+        if (fundingResult?.totalFunding && activeGameInfo) {
+          const updatedGameInfo = {
+            ...activeGameInfo,
+            totalFunding: fundingResult.totalFunding,
+          };
+          logger.info("activeGameInfo 업데이트", {
+            before: activeGameInfo.totalFunding,
+            after: updatedGameInfo.totalFunding,
+          });
+          setActiveGameInfo(updatedGameInfo);
+        }
       } catch (apiError) {
         logger.warn("백엔드 펀딩 저장 실패 (트랜잭션은 성공)", {
           error: apiError,
@@ -206,6 +225,7 @@ export function CommentSection() {
     connect,
     ensureNetwork,
     activeGameInfo,
+    setActiveGameInfo,
   ]);
 
   const handleSubmit = useCallback(async () => {
@@ -397,6 +417,7 @@ export function CommentSection() {
                   toggleLike({ commentId, walletAddress: address });
                 }
               }}
+              isTogglingLike={isTogglingLike}
             />
           </div>
         </>
