@@ -1,7 +1,7 @@
-import { ChevronLeft, Home } from "lucide-react";
 import { useAtomValue } from "jotai";
-import { useMemexLogin } from "./hooks/useMemexLogin";
+import { ChevronLeft, Home } from "lucide-react";
 import { currentStreakAtom, sessionAtom } from "./atoms/sessionAtoms";
+import { useMemexLogin } from "./hooks/useMemexLogin";
 import "./ProfilePage.css";
 
 // Mock data
@@ -116,7 +116,10 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
 
       {/* Action Buttons */}
       <section className="profile-actions">
-        <button className="action-btn check-assets-btn" onClick={handleCheckAssets}>
+        <button
+          className="action-btn check-assets-btn"
+          onClick={handleCheckAssets}
+        >
           Check My Assets
         </button>
         <button className="action-btn logout-btn" onClick={handleLogout}>

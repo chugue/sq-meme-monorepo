@@ -4,6 +4,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Param,
     Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -31,6 +32,17 @@ export class UsersController {
     @Get('me')
     async getMe(@WalletAddress() walletAddress: string) {
         return this.usersService.getUserByWalletAddress(walletAddress);
+    }
+
+    /**
+     * username과 userTag로 사용자 조회 (출석 체크 포함)
+     */
+    @Get('/:username/:userTag')
+    async getUser(
+        @Param('username') username: string,
+        @Param('userTag') userTag: string,
+    ) {
+        return this.usersService.getUserByUsernameAndUserTag(username, userTag);
     }
 
     /**

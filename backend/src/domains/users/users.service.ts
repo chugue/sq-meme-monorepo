@@ -123,6 +123,37 @@ export class UsersService {
     }
 
     /**
+     * @description username과 userTag로 사용자 조회 (출석 체크 포함)
+     */
+    async getUserByUsernameAndUserTag(
+        userName: string,
+        userTag: string,
+    ): Promise<Result<{ user: User | null }>> {
+        try {
+            const user = await this.usersRepository.findByUsernameAndUserTag(
+                userName,
+                userTag,
+            );
+
+            if (!user) {
+                return Result.ok({ user: null });
+            }
+
+            // 출석 체크 업데이트
+            const updatedUser = await this.updateCheckIn(user);
+            this.logger.log(`User check-in updated: ${userName}#${userTag}`);
+
+            return Result.ok({ user: updatedUser });
+        } catch (error) {
+            this.logger.error(`Get user by username failed: ${error.message}`);
+            return Result.fail(
+                '사용자 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
      * @description 프로필 페이지 데이터 조회
      */
     async getProfilePageData(

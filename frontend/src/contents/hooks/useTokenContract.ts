@@ -44,7 +44,7 @@ export function useTokenContract() {
   const [currentPageInfo, setCurrentPageInfo] = useAtom(currentPageInfoAtom);
   const [isLoading, setIsLoading] = useAtom(isPageInfoLoadingAtom);
   const [error, setError] = useAtom(pageInfoErrorAtom);
-  const [, setActiveGameInfo] = useAtom(activeGameInfoAtom);
+  const [activeGameInfo, setActiveGameInfo] = useAtom(activeGameInfoAtom);
   const [, setIsGameEnded] = useAtom(isGameEndedAtom);
   const [, setEndedGameInfo] = useAtom(endedGameInfoAtom);
 
@@ -166,9 +166,9 @@ export function useTokenContract() {
       tokenAddress: string,
       forceRefresh = false
     ): Promise<GameInfo | null> => {
-      // 중복 조회 방지
-      if (!forceRefresh && lastTokenAddressRef.current === tokenAddress) {
-        logger.debug("이미 조회한 토큰 주소", { tokenAddress });
+      // 중복 조회 방지 (단, activeGameInfo가 null이면 재조회 허용)
+      if (!forceRefresh && lastTokenAddressRef.current === tokenAddress && activeGameInfo) {
+        logger.debug("이미 조회한 토큰 주소 (게임 정보 있음)", { tokenAddress });
         return null;
       }
 
@@ -285,6 +285,7 @@ export function useTokenContract() {
       fetchActiveGameId,
       fetchGameInfoById,
       toActiveGameInfo,
+      activeGameInfo,
     ]
   );
 

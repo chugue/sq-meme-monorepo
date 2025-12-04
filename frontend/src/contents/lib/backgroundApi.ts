@@ -57,6 +57,7 @@ export type BackgroundMessage =
   | { type: "MEMEX_LOGIN"; triggerLogin?: boolean }
   | { type: "NAVIGATE_TO_URL"; url: string }
   | { type: "FETCH_MEMEX_PROFILE_INFO"; username: string; userTag: string }
+  | { type: "GET_USER_BY_USERNAME"; username: string; userTag: string }
   | {
       type: "PROFILE_URL_CHANGED";
       username: string;
@@ -404,6 +405,17 @@ export const backgroundApi = {
     return sendToBackground<{ id: number }>({
       type: "SAVE_FUNDING",
       data,
+    });
+  },
+
+  // username과 userTag로 사용자 조회 (출석 체크 포함)
+  getUserByUsername: async (username: string, userTag: string) => {
+    return sendToBackground<{
+      user: import("../../types/response.types").User | null;
+    }>({
+      type: "GET_USER_BY_USERNAME",
+      username,
+      userTag,
     });
   },
 };

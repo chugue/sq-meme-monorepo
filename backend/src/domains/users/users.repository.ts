@@ -60,6 +60,27 @@ export class UsersRepository {
     }
 
     /**
+     * @description username과 userTag로 사용자 조회
+     */
+    async findByUsernameAndUserTag(
+        userName: string,
+        userTag: string,
+    ): Promise<User | null> {
+        const [user] = await this.db
+            .select()
+            .from(schema.users)
+            .where(eq(schema.users.userName, userName))
+            .limit(1);
+
+        // userTag도 확인
+        if (user && user.userTag === userTag) {
+            return user;
+        }
+
+        return null;
+    }
+
+    /**
      * @description 사용자 조회 또는 생성 (있으면 조회, 없으면 초기 체크인과 함께 생성)
      */
     async findOrCreate(

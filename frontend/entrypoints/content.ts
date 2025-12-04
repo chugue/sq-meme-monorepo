@@ -785,39 +785,8 @@ export default defineContentScript({
                   await new Promise((resolve) => setTimeout(resolve, 1000));
                 }
 
-                // 방법 1: injectedApi를 통해 __next_f 데이터 가져오기
-                // Content script는 isolated world에서 실행되므로 웹 페이지의 self.__next_f에 직접 접근할 수 없음
-                // injected script는 웹 페이지 컨텍스트에서 실행되므로 self.__next_f에 접근 가능
-                try {
-                  console.log(
-                    "🔍 [Content] injectedApi.getNextFData() 호출 시도..."
-                  );
-                  const { injectedApi } = await import(
-                    "@/contents/lib/injectedApi"
-                  );
-                  const nextFData = await injectedApi.getNextFData();
-
-                  if (nextFData) {
-                    console.log(
-                      "✅ [Content] injectedApi.getNextFData() 결과:",
-                      nextFData
-                    );
-                    profileImageUrl =
-                      nextFData.profileImageUrl || profileImageUrl;
-                    tokenAddr = nextFData.tokenAddr || tokenAddr;
-                    tokenSymbol = nextFData.tokenSymbol || tokenSymbol;
-                    memexWalletAddress =
-                      nextFData.memexWalletAddress || memexWalletAddress;
-                  }
-                } catch (nextFErr) {
-                  console.warn(
-                    "⚠️ [Content] injectedApi.getNextFData() 실패:",
-                    nextFErr
-                  );
-                }
-
-                // 방법 2: __NEXT_DATA__에서 프로필 정보 추출 (폴백)
-                if (!tokenAddr || !tokenSymbol || !profileImageUrl) {
+                // 방법 1: __NEXT_DATA__에서 프로필 정보 추출
+                {
                   const nextDataScript =
                     document.getElementById("__NEXT_DATA__");
                   if (nextDataScript) {

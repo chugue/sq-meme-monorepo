@@ -917,6 +917,9 @@ export function createMessageHandler() {
             break;
           }
 
+          // FIXME: 이거 Connect Wallet시에 강제로 url이동시켜서 구글 버튼 클릭하게 해야되요.
+          // 안그러면 사용자가 직접 app.memex.xyz로 이동해서 이 메서드가 실행되어야 되는데, 그렇게는 실행 안할거 같아서요.
+          // 강제 이동후 구글로그인 버튼이 아니면, memex Login 버튼을 눌려도 아무 동작안하는 화면만 사용자가 보게되어요.
           case "MEMEX_LOGIN": {
             try {
               const { browser } = await import("wxt/browser");
@@ -1087,6 +1090,28 @@ export function createMessageHandler() {
                 success: false,
                 error:
                   error instanceof Error ? error.message : "펀딩 저장 실패",
+              };
+            }
+            break;
+          }
+
+          case "GET_USER_BY_USERNAME": {
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { user: any };
+              }>(
+                `/v1/users/${encodeURIComponent(
+                  message.username
+                )}/${encodeURIComponent(message.userTag)}`
+              );
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 사용자 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "사용자 조회 실패",
               };
             }
             break;
