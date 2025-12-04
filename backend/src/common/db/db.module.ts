@@ -23,17 +23,19 @@ export const PG_POOL = 'PG_POOL';
                 const pool = new Pool({
                     connectionString,
                     // Supabase Transaction mode pooler 호환 설정
-                    max: 10, // 최대 연결 수 제한
-                    idleTimeoutMillis: 30000, // 30초 유휴 타임아웃
+                    max: 5, // 최대 연결 수 제한 (Supabase 무료 티어 고려)
+                    min: 0, // 유휴 시 연결 유지 안함
+                    idleTimeoutMillis: 10000, // 10초 유휴 타임아웃 (빠르게 반환)
                     connectionTimeoutMillis: 10000, // 10초 연결 타임아웃
+                    allowExitOnIdle: true, // 유휴 시 연결 종료 허용
                 });
 
                 // Pool 에러 핸들러 등록 (unhandled error 방지)
                 pool.on('error', (err) => {
-                    logger.error(
-                        `❌ PostgreSQL Pool 에러: ${err.message}`,
+                    logger.warn(
+                        `⚠️ PostgreSQL Pool 연결 끊김 (자동 재연결됨): ${err.message}`,
                     );
-                    // 연결 에러는 로깅만 하고 프로세스 크래시 방지
+                    // Supabase pooler가 유휴 연결을 종료하는 것은 정상 동작
                 });
 
                 // 연결 테스트

@@ -14,8 +14,10 @@ import questIcon from "../../assets/quest.png";
 import tropyIcon from "../../assets/tropy.png";
 
 import { useAtomValue } from "jotai";
+import { useEffect } from "react";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
+import { getAllSessionStorage } from "./lib/sessionStorage";
 
 // Default data (세션 데이터가 없을 때 사용)
 const defaultUserData = {
@@ -59,14 +61,21 @@ export function Dashboard({
   const { user } = session;
 
   // 디버깅: 세션 데이터 변화 확인
-  console.log(
-    "🏠 [Dashboard] session user:",
-    user?.userName,
-    "profileImage:",
-    user?.profileImage,
-    "mTokenBalance:",
-    user?.mTokenBalance
-  );
+  useEffect(() => {
+    console.log("🏠 [Dashboard] session 전체:", JSON.stringify(session, null, 2));
+    console.log(
+      "🏠 [Dashboard] session user:",
+      user?.userName,
+      "profileImage:",
+      user?.profileImage,
+      "mTokenBalance:",
+      user?.mTokenBalance
+    );
+    // 전체 세션 스토리지 데이터 확인
+    getAllSessionStorage().then((data) => {
+      console.log("🏠 [Dashboard] 전체 세션 스토리지:", JSON.stringify(data, null, 2));
+    });
+  }, [user, session]);
 
   // 지갑 주소 우선순위: props > hook > null
   const walletAddress = walletAddressProp || walletAddressFromHook || null;

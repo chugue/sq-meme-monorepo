@@ -34,7 +34,7 @@ interface ComingSoonProps {
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
   const { isConnected, address, isLoading, error, connect, refetch } =
     useSidepanelWallet();
-  const { setLoggingIn } = useMemexLogin();
+  const { setLoggingIn, setUser } = useMemexLogin();
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     isVisible: boolean;
@@ -114,6 +114,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
           if (checkResult?.user?.profileImage && onMemexLoginComplete) {
             console.log("✅ MEMEX 로그인 완료:", checkResult.user.userName);
+            setUser(checkResult.user); // 세션에 user 저장
             setLoggingIn(false);
             await refetch();
             onMemexLoginComplete();
@@ -186,6 +187,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
               success: boolean;
               isLoggedIn?: boolean;
               username?: string;
+              userTag?: string;
             };
             console.log(
               "🔐 로그인 상태 확인:",
@@ -194,8 +196,23 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
               "초 경과"
             );
 
-            if (checkResult?.isLoggedIn && onMemexLoginComplete) {
+            if (checkResult?.isLoggedIn && checkResult.username && checkResult.userTag && onMemexLoginComplete) {
               console.log("✅ MEMEX 로그인 완료:", checkResult.username);
+
+              // 백엔드에서 user 정보 가져오기
+              try {
+                const userResult = await backgroundApi.getUserByUsername(
+                  checkResult.username,
+                  checkResult.userTag
+                );
+                if (userResult?.user) {
+                  setUser(userResult.user);
+                  console.log("✅ User 정보 저장 완료:", userResult.user.userName);
+                }
+              } catch (userErr) {
+                console.warn("⚠️ User 정보 조회 실패:", userErr);
+              }
+
               setLoggingIn(false);
               // 지갑 연결 상태 재확인 (jotai 전역 상태 업데이트)
               await refetch();

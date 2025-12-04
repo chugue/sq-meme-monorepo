@@ -110,3 +110,57 @@ export function createSessionStorage<Value>(): AsyncStorage<Value> {
     };
 }
 
+/**
+ * 모든 세션 스토리지 데이터 클리어 (디버깅용)
+ */
+export async function clearAllSessionStorage(): Promise<void> {
+    try {
+        const storage = getChromeStorage();
+        if (!storage?.session) {
+            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+        }
+
+        return new Promise<void>((resolve, reject) => {
+            storage.session.clear(() => {
+                const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                if (runtime?.lastError) {
+                    reject(new Error(runtime.lastError.message));
+                    return;
+                }
+                console.log('✅ [sessionStorage] 모든 세션 스토리지 클리어 완료');
+                resolve();
+            });
+        });
+    } catch (error) {
+        console.error('[sessionStorage] 클리어 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 모든 세션 스토리지 데이터 조회 (디버깅용)
+ */
+export async function getAllSessionStorage(): Promise<Record<string, any>> {
+    try {
+        const storage = getChromeStorage();
+        if (!storage?.session) {
+            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+        }
+
+        return new Promise<Record<string, any>>((resolve, reject) => {
+            storage.session.get(null, (result: any) => {
+                const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                if (runtime?.lastError) {
+                    reject(new Error(runtime.lastError.message));
+                    return;
+                }
+                console.log('📦 [sessionStorage] 전체 데이터:', result);
+                resolve(result || {});
+            });
+        });
+    } catch (error) {
+        console.error('[sessionStorage] 전체 조회 실패:', error);
+        return {};
+    }
+}
+

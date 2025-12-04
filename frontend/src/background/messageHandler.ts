@@ -416,12 +416,14 @@ export function createMessageHandler() {
                 });
               });
 
-              const loggedInUsername =
-                currentUsername || sessionState?.memexUsername;
-              const loggedInUserTag =
-                currentUserTag || sessionState?.memexUserTag;
+              // currentUsername과 currentUserTag가 둘 다 있어야만 내 프로필인지 확인
+              // 웹에서 로그아웃 상태면 (currentUsername = null) 절대 내 프로필로 처리하지 않음
+              // 이전 버그: sessionState에서 fallback하면 잘못된 사용자 정보가 저장될 수 있음
               const isMyProfile =
-                loggedInUsername === username && loggedInUserTag === userTag;
+                currentUsername &&
+                currentUserTag &&
+                currentUsername === username &&
+                currentUserTag === userTag;
 
               // 내 프로필인 경우에만 session storage 업데이트
               if (isMyProfile) {
@@ -597,7 +599,12 @@ export function createMessageHandler() {
 
               await new Promise<void>((resolve, reject) => {
                 storage.session.remove(
-                  ["gtm_user_identifier", "squid_user"],
+                  [
+                    "gtm_user_identifier",
+                    "squid_user",
+                    "squid_session_state",
+                    "squid_login_check_completed",
+                  ],
                   () => {
                     const runtime =
                       browser?.runtime || (globalThis as any).chrome?.runtime;

@@ -4,11 +4,12 @@
  * 앱 시작 시 sessionStorage.gtm_user_identifier를 확인하여 로그인 상태를 판단합니다.
  */
 
+import { User } from "@/types/response.types";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { backgroundApi } from "../../contents/lib/backgroundApi";
 import { getMemexUserInfo, saveMemexUserInfo } from "../lib/memexStorage";
-import { removeStorage } from "../lib/sessionStorage";
+import { clearAllSessionStorage, removeStorage } from "../lib/sessionStorage";
 
 // 모듈 레벨에서 중복 요청 방지 (Strict Mode에서도 유지됨)
 let joinRequestInProgress = false;
@@ -40,6 +41,7 @@ export interface UseMemexLoginReturn {
   logout: () => Promise<void>;
   setLoggedIn: (value: boolean) => void;
   setLoggingIn: (value: boolean) => void;
+  setUser: (user: User | null) => void;
 }
 
 export function useMemexLogin(): UseMemexLoginReturn {
@@ -255,13 +257,19 @@ export function useMemexLogin(): UseMemexLoginReturn {
         );
       }
 
-      // 3. 저장소에서 세션 상태 삭제 (atomWithStorage가 자동으로 처리하지만 명시적으로 삭제)
+      // 3. 모든 세션 스토리지 클리어 (확실한 초기화)
       try {
-        await removeStorage(SESSION_STATE_KEY);
-        await removeStorage(LOGIN_CHECK_COMPLETED_KEY);
-        console.log("✅ [useMemexLogin] 저장소에서 세션 상태 삭제 완료");
+        await clearAllSessionStorage();
+        console.log("✅ [useMemexLogin] 모든 세션 스토리지 클리어 완료");
       } catch (storageErr) {
-        console.warn("⚠️ [useMemexLogin] 저장소 삭제 실패 (무시):", storageErr);
+        // 클리어 실패 시 개별 삭제 시도
+        console.warn("⚠️ [useMemexLogin] 전체 클리어 실패, 개별 삭제 시도:", storageErr);
+        try {
+          await removeStorage(SESSION_STATE_KEY);
+          await removeStorage(LOGIN_CHECK_COMPLETED_KEY);
+        } catch (e) {
+          console.warn("⚠️ [useMemexLogin] 개별 삭제도 실패:", e);
+        }
       }
 
       // 4. 전체 세션 초기화 (atomWithStorage가 자동으로 저장소에 반영)
@@ -384,5 +392,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
     logout,
     setLoggedIn: handleSetLoggedIn,
     setLoggingIn,
+    setUser,
   };
 }
