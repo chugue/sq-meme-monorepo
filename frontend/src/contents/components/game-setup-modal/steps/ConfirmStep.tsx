@@ -15,6 +15,7 @@ interface ConfirmStepProps {
     onConfirm: () => void;
     onBack: () => void;
     onComplete: (gameId: string) => void;
+    onError: () => void;
 }
 
 export function ConfirmStep({
@@ -26,6 +27,7 @@ export function ConfirmStep({
     onConfirm,
     onBack,
     onComplete,
+    onError,
 }: ConfirmStepProps) {
     const {
         step: txStep,
@@ -57,6 +59,8 @@ export function ConfirmStep({
         // 게임 ID가 반환되면 완료 콜백 호출
         if (createdGameId) {
             onComplete(createdGameId);
+        } else {
+            onError();
         }
     };
 

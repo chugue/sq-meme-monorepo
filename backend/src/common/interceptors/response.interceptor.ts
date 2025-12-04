@@ -21,6 +21,11 @@ export class ResponseInterceptor<T> implements NestInterceptor {
                 const response = ctx.getResponse();
                 const request = ctx.getRequest();
 
+                // Result 객체가 아닌 경우 그대로 반환
+                if (data === null || data === undefined || typeof data.success !== 'boolean') {
+                    return data;
+                }
+
                 if (!data.success) {
                     // Result.fail인 경우 - statusCode 사용
                     response.status(data.statusCode);

@@ -2,7 +2,7 @@ import {
     Body,
     Controller,
     Get,
-    NotFoundException,
+    HttpStatus,
     Param,
     Post,
 } from '@nestjs/common';
@@ -17,6 +17,7 @@ import {
     Transactional,
     WalletAddress,
 } from 'src/common/decorators';
+import { Result } from 'src/common/types';
 import { CreateGameByTxDtoSchema } from 'src/common/validator/game.validator';
 import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
@@ -42,15 +43,10 @@ export class GameController {
         @Param('gameId') gameId: string,
         @Body() body: { txHash: string },
     ) {
-        const success = await this.gameService.processPrizeClaimedTransaction(
+        return this.gameService.processPrizeClaimedTransaction(
             body.txHash,
             gameId,
         );
-
-        return {
-            success,
-            message: success ? '상금 수령 처리 완료' : '상금 수령 처리 실패',
-        };
     }
 
     @Get('by-token/:tokenAddress')
@@ -59,12 +55,13 @@ export class GameController {
         const game = await this.gameRepository.findByTokenAddress(tokenAddress);
 
         if (!game) {
-            throw new NotFoundException(
+            return Result.fail(
                 `No game found for token address: ${tokenAddress}`,
+                HttpStatus.NOT_FOUND,
             );
         }
 
-        return game;
+        return Result.ok(game);
     }
 
     @Get('active/by-token/:tokenAddress')
@@ -74,12 +71,13 @@ export class GameController {
             await this.gameRepository.findActiveByTokenAddress(tokenAddress);
 
         if (!game) {
-            throw new NotFoundException(
+            return Result.fail(
                 `No active game found for token address: ${tokenAddress}`,
+                HttpStatus.NOT_FOUND,
             );
         }
 
-        return game;
+        return Result.ok(game);
     }
 
     @Post('register')
@@ -93,7 +91,7 @@ export class GameController {
     async createGameByTx(@Body() body: unknown) {
         const parsed = CreateGameByTxDtoSchema.safeParse(body);
         if (!parsed.success) {
-            throw new NotFoundException(parsed.error.message);
+            return Result.fail(parsed.error.message, HttpStatus.BAD_REQUEST);
         }
 
         return this.gameService.createGameByTx(

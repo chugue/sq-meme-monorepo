@@ -295,14 +295,23 @@ export class GameRepository {
 
     /**
      * @description 게임 ID 목록으로 활성 게임 정보 조회 (isEnded = false, isClaimed = false)
+     * @returns API 응답 형식에 맞게 매핑된 게임 목록
      */
-    async findActiveGamesByIds(gameIds: string[]) {
+    async findActiveGamesByIds(gameIds: string[]): Promise<
+        {
+            gameId: string;
+            tokenImageUrl: string | null;
+            tokenSymbol: string | null;
+            currentPrizePool: string | null;
+            endTime: Date | null;
+        }[]
+    > {
         if (gameIds.length === 0) {
             return [];
         }
 
         try {
-            return await this.db
+            const games = await this.db
                 .select({
                     gameId: schema.games.gameId,
                     tokenImageUrl: schema.games.tokenImageUrl,
@@ -318,6 +327,14 @@ export class GameRepository {
                         eq(schema.games.isClaimed, false),
                     ),
                 );
+
+            return games.map((game) => ({
+                gameId: game.gameId,
+                tokenImageUrl: game.tokenImageUrl,
+                tokenSymbol: game.tokenSymbol,
+                currentPrizePool: game.prizePool,
+                endTime: game.endTime,
+            }));
         } catch (error) {
             this.logger.error(
                 `❌ 활성 게임 목록 조회 실패: ${error.message}`,

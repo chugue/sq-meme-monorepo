@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
@@ -38,24 +38,29 @@ export class GameService {
      * 트랜잭션 영수증에서 PrizeClaimed 이벤트를 파싱하고 DB 업데이트
      * @param txHash 트랜잭션 해시
      * @param gameId 게임 ID (V2에서는 단일 컨트랙트 + gameId 방식)
-     * @returns 성공 여부
      */
     async processPrizeClaimedTransaction(
         txHash: string,
         gameId: string,
-    ): Promise<boolean> {
+    ): Promise<Result<{ message: string }>> {
         try {
             const receipt =
                 await this.ethereumProvider.getTransactionReceipt(txHash);
 
             if (!receipt) {
                 this.logger.warn(`트랜잭션 영수증 없음: ${txHash}`);
-                return false;
+                return Result.fail(
+                    '트랜잭션 영수증을 찾을 수 없습니다.',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             if (receipt.status === 0) {
                 this.logger.warn(`트랜잭션 실패 (revert): ${txHash}`);
-                return false;
+                return Result.fail(
+                    '트랜잭션이 실패했습니다.',
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                );
             }
 
             // PrizeClaimed 이벤트 찾기 (V2: 단일 컨트랙트 주소 사용)
@@ -73,7 +78,10 @@ export class GameService {
                 this.logger.warn(
                     `PrizeClaimed 이벤트 없음: ${txHash}, gameId: ${gameId}`,
                 );
-                return false;
+                return Result.fail(
+                    'PrizeClaimed 이벤트를 찾을 수 없습니다.',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             // 이벤트 디코딩
@@ -99,20 +107,26 @@ export class GameService {
                 this.logger.warn(
                     `gameId 불일치: 요청=${gameId}, 이벤트=${eventGameId}`,
                 );
-                return false;
+                return Result.fail(
+                    'gameId가 일치하지 않습니다.',
+                    HttpStatus.BAD_REQUEST,
+                );
             }
 
             // 1. 게임 정보 조회 (tokenSymbol, gameToken 획득 + 중복 체크)
             const game = await this.gameRepository.findFullByGameId(gameId);
             if (!game) {
                 this.logger.warn(`게임 정보 없음: gameId=${gameId}`);
-                return false;
+                return Result.fail(
+                    '게임 정보를 찾을 수 없습니다.',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             // 이미 처리된 요청이면 early return (중복 방지)
             if (game.isClaimed) {
                 this.logger.warn(`이미 상금 수령 처리됨: gameId=${gameId}`);
-                return true;
+                return Result.ok({ message: '이미 상금 수령 처리되었습니다.' });
             }
 
             // 2. 게임 상태 업데이트 - 먼저 처리하여 중복 요청 방지
@@ -135,13 +149,16 @@ export class GameService {
             this.logger.log(
                 `✅ 게임 상금 수령 완료: gameId=${gameId}, winner=${winner}`,
             );
-            return true;
+            return Result.ok({ message: '상금 수령 처리 완료' });
         } catch (error) {
             this.logger.error(
                 `PrizeClaimed 처리 실패: ${error.message}`,
                 error.stack,
             );
-            return false;
+            return Result.fail(
+                '상금 수령 처리에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -159,12 +176,18 @@ export class GameService {
 
         if (!receipt) {
             this.logger.warn(`트랜잭션 영수증 없음: ${txHash}`);
-            return Result.fail('트랜잭션 영수증을 찾을 수 없습니다.');
+            return Result.fail(
+                '트랜잭션 영수증을 찾을 수 없습니다.',
+                HttpStatus.NOT_FOUND,
+            );
         }
 
         if (receipt.status === 0) {
             this.logger.warn(`트랜잭션 실패 (revert): ${txHash}`);
-            return Result.fail('트랜잭션이 실패했습니다.');
+            return Result.fail(
+                '트랜잭션이 실패했습니다.',
+                HttpStatus.UNPROCESSABLE_ENTITY,
+            );
         }
 
         // GameCreated 이벤트 찾기
@@ -180,7 +203,10 @@ export class GameService {
 
         if (!gameCreatedLog) {
             this.logger.warn(`GameCreated 이벤트 없음: ${txHash}`);
-            return Result.fail('GameCreated 이벤트를 찾을 수 없습니다.');
+            return Result.fail(
+                'GameCreated 이벤트를 찾을 수 없습니다.',
+                HttpStatus.NOT_FOUND,
+            );
         }
 
         // 이벤트 디코딩
@@ -222,7 +248,10 @@ export class GameService {
         });
 
         if (!result) {
-            return Result.fail('게임 저장에 실패했습니다.');
+            return Result.fail(
+                '게임 저장에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
 
         return Result.ok(result);
@@ -235,7 +264,10 @@ export class GameService {
         const result = await this.gameRepository.createFromFrontend(data);
 
         if (!result) {
-            return Result.fail('게임 저장에 실패했습니다.');
+            return Result.fail(
+                '게임 저장에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
 
         return Result.ok(result);
@@ -248,7 +280,10 @@ export class GameService {
         const result = await this.gameRepository.registerFromBlockchain(data);
 
         if (!result) {
-            return Result.fail('게임 등록에 실패했습니다.');
+            return Result.fail(
+                '게임 등록에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
 
         return Result.ok(result);
@@ -265,19 +300,11 @@ export class GameService {
             );
 
         if (gameIds.length === 0) {
-            return [];
+            return Result.ok([]);
         }
 
-        // 2. 해당 게임들 중 활성 상태인 게임 정보 조회
+        // 2. 해당 게임들 중 활성 상태인 게임 정보 조회 (레파지토리에서 매핑 완료)
         const games = await this.gameRepository.findActiveGamesByIds(gameIds);
-
-        // 3. 응답 형식에 맞게 변환
-        return games.map((game) => ({
-            gameId: game.gameId,
-            tokenImageUrl: game.tokenImageUrl,
-            tokenSymbol: game.tokenSymbol,
-            currentPrizePool: game.prizePool,
-            endTime: game.endTime,
-        }));
+        return Result.ok(games);
     }
 }

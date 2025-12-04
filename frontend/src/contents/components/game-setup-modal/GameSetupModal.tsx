@@ -33,6 +33,7 @@ export function GameSetupModal({
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
   const [realTokenSymbol, setRealTokenSymbol] = useState<string>(tokenSymbol);
   const [isCheckingExistingGame, setIsCheckingExistingGame] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const { checkExistingGame } = useCreateGame();
 
@@ -81,9 +82,10 @@ export function GameSetupModal({
 
   // 모달 닫기 핸들러
   const handleClose = () => {
-    // processing 중에는 닫기 방지
-    if (step === "processing") return;
+    // processing 중에는 닫기 방지 (에러 발생 시에는 허용)
+    if (step === "processing" && !hasError) return;
     setStep("balance-check");
+    setHasError(false);
     onClose();
   };
 
@@ -104,7 +106,7 @@ export function GameSetupModal({
             type="button"
             className="squid-modal-close"
             onClick={handleClose}
-            disabled={step === "processing"}
+            disabled={step === "processing" && !hasError}
           >
             &times;
           </button>
@@ -167,6 +169,7 @@ export function GameSetupModal({
                 setStep("complete");
                 onGameCreated?.(gameId);
               }}
+              onError={() => setHasError(true)}
             />
           )}
 
