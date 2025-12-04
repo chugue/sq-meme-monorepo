@@ -34,7 +34,7 @@ export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
-      ㄴ;
+
       try {
         const [myGamesRes, prizeRes, questRes] = await Promise.all([
           backgroundApi.getMyActiveGames(),

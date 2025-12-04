@@ -1,10 +1,10 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
 import { Result } from 'src/common/types';
-import { UsersRepository } from './users.repository';
-import { User, CheckInRecord } from 'src/common/db/schema/user.schema';
-import { JoinDto } from './dto/join.dto';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
+import { JoinDto } from './dto/join.dto';
+import { UsersRepository } from './users.repository';
 
 export interface ProfilePageData {
     username: string | null;
@@ -55,7 +55,6 @@ export interface MyActiveGameItem {
     currentPrizePool: string | null;
     endTime: string | null;
 }
-
 
 @Injectable()
 export class UsersService {
@@ -216,7 +215,9 @@ export class UsersService {
             }
 
             const commentCounts =
-                await this.commentRepository.countByWalletAddress(walletAddress);
+                await this.commentRepository.countByWalletAddress(
+                    walletAddress,
+                );
 
             const history: CheckInRecord[] = user.checkInHistory ?? [];
             const lastCheckIn = history[history.length - 1];
@@ -268,12 +269,12 @@ export class UsersService {
     /**
      * @description 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
      */
-    async getPrizeRanking(): Promise<
-        Result<{ prizeRanking: PrizeRankItem[] }>
-    > {
+    async getPrizeRanking(
+        limit: number,
+    ): Promise<Result<{ prizeRanking: PrizeRankItem[] }>> {
         try {
             const prizeRankingRaw =
-                await this.gameRepository.getPrizeRankingByUser(5);
+                await this.gameRepository.getPrizeRankingByUser(limit);
 
             // 유저 정보 조회 (profileImage, username)
             const walletAddresses = prizeRankingRaw.map((r) => r.walletAddress);
@@ -319,7 +320,9 @@ export class UsersService {
             const user =
                 await this.usersRepository.findByWalletAddress(walletAddress);
             const commentCount =
-                await this.commentRepository.countByWalletAddress(walletAddress);
+                await this.commentRepository.countByWalletAddress(
+                    walletAddress,
+                );
             const quests = this.calculateQuests(user, commentCount);
 
             return Result.ok({ quests });
@@ -366,9 +369,7 @@ export class UsersService {
 
             return Result.ok({ myActiveGames });
         } catch (error) {
-            this.logger.error(
-                `Get my active games failed: ${error.message}`,
-            );
+            this.logger.error(`Get my active games failed: ${error.message}`);
             return Result.fail(
                 '참여 중인 게임 조회에 실패했습니다.',
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -378,6 +379,7 @@ export class UsersService {
 
     /**
      * @description 퀘스트 진행 상황 계산
+     * TODO: 이거 나중에 퀘스트 쉽게 등록할려면 따로 테이블 만들어서 관리하면 좋을 것 같음
      */
     private calculateQuests(
         user: User | null,

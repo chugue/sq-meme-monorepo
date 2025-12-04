@@ -7,6 +7,11 @@ import {
     CreateGameDtoSchema,
     RegisterGameDtoSchema,
 } from 'src/common/validator/game.validator';
+import {
+    ActiveGameDto,
+    TokenPrizeRankDto,
+    UserPrizeRankDto,
+} from './dto/game.dto';
 
 @Injectable()
 export class GameRepository {
@@ -297,16 +302,7 @@ export class GameRepository {
      * @description 게임 ID 목록으로 활성 게임 정보 조회 (isEnded = false, isClaimed = false)
      * @returns API 응답 형식에 맞게 매핑된 게임 목록
      */
-    async findActiveGamesByIds(gameIds: string[]): Promise<
-        {
-            gameId: string;
-            tokenImageUrl: string | null;
-            tokenAddress: string;
-            tokenSymbol: string | null;
-            currentPrizePool: string | null;
-            endTime: Date | null;
-        }[]
-    > {
+    async findActiveGamesByIds(gameIds: string[]): Promise<ActiveGameDto[]> {
         if (gameIds.length === 0) {
             return [];
         }
@@ -329,9 +325,7 @@ export class GameRepository {
                         eq(schema.games.isClaimed, false),
                     ),
                 )
-                .orderBy(
-                    desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`),
-                );
+                .orderBy(desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`));
 
             return games.map((game) => ({
                 gameId: game.gameId,
@@ -342,9 +336,7 @@ export class GameRepository {
                 endTime: game.endTime,
             }));
         } catch (error) {
-            this.logger.error(
-                `❌ 활성 게임 목록 조회 실패: ${error.message}`,
-            );
+            this.logger.error(`❌ 활성 게임 목록 조회 실패: ${error.message}`);
             return [];
         }
     }
@@ -354,14 +346,7 @@ export class GameRepository {
      */
     async getGameRankingByToken(
         limit: number = 5,
-    ): Promise<
-        {
-            tokenAddress: string;
-            tokenSymbol: string | null;
-            tokenImageUrl: string | null;
-            totalPrize: string;
-        }[]
-    > {
+    ): Promise<TokenPrizeRankDto[]> {
         try {
             const result = await this.db
                 .select({
@@ -378,48 +363,46 @@ export class GameRepository {
                     schema.games.tokenImageUrl,
                 )
                 .orderBy(
-                    desc(
-                        sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`,
-                    ),
+                    desc(sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`),
                 )
                 .limit(limit);
 
             return result;
         } catch (error) {
-            this.logger.error(`❌ 토큰별 상금 랭킹 조회 실패: ${error.message}`);
+            this.logger.error(
+                `❌ 토큰별 상금 랭킹 조회 실패: ${error.message}`,
+            );
             return [];
         }
     }
 
     /**
-     * @description 유저별 총 획득 상금 랭킹 조회 (claim한 게임의 prizePool 합계)
+     * @description 단일 게임 기준 상금 랭킹 조회 (claim한 게임의 prizePool 내림차순)
+     * prizePool은 wei 단위(18 decimal)이므로 ETH 단위(정수)로 변환하여 반환
      */
-    async getPrizeRankingByUser(limit: number = 5): Promise<
-        {
-            walletAddress: string;
-            totalAmount: string;
-        }[]
-    > {
+    async getPrizeRankingByUser(
+        limit: number = 10,
+    ): Promise<UserPrizeRankDto[]> {
         try {
-            // isClaimed = true인 게임의 lastCommentor별 prizePool 합계
+            // isClaimed = true인 개별 게임을 prizePool 내림차순으로 조회
+            // wei -> ETH 변환 (10^18으로 나눔, 소수점 없이 정수로)
             const result = await this.db
                 .select({
                     walletAddress: schema.games.lastCommentor,
-                    totalAmount: sql<string>`COALESCE(SUM(CAST(${schema.games.prizePool} AS NUMERIC)), 0)::TEXT`,
+                    totalAmount: sql<string>`TRUNC(CAST(${schema.games.prizePool} AS NUMERIC) / 1e18)::TEXT`,
                 })
                 .from(schema.games)
                 .where(eq(schema.games.isClaimed, true))
-                .groupBy(schema.games.lastCommentor)
                 .orderBy(
-                    desc(
-                        sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`,
-                    ),
+                    desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`),
                 )
                 .limit(limit);
 
             return result;
         } catch (error) {
-            this.logger.error(`❌ 유저별 상금 랭킹 조회 실패: ${error.message}`);
+            this.logger.error(
+                `❌ 상금 랭킹 조회 실패: ${error.message}`,
+            );
             return [];
         }
     }
