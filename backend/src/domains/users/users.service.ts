@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Result } from 'src/common/types';
 import { UsersRepository } from './users.repository';
 import { User, CheckInRecord } from 'src/common/db/schema/user.schema';
@@ -44,7 +44,10 @@ export class UsersService {
             return Result.ok({ user: updatedUser, isNew });
         } catch (error) {
             this.logger.error(`Join failed: ${error.message}`);
-            return Result.fail('회원가입에 실패했습니다.');
+            return Result.fail(
+                '회원가입에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -112,7 +115,10 @@ export class UsersService {
             return Result.ok({ user });
         } catch (error) {
             this.logger.error(`Get user failed: ${error.message}`);
-            return Result.fail('사용자 조회에 실패했습니다.');
+            return Result.fail(
+                '사용자 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -127,7 +133,10 @@ export class UsersService {
                 await this.usersRepository.findByWalletAddress(walletAddress);
 
             if (!user) {
-                return Result.fail('사용자를 찾을 수 없습니다.');
+                return Result.fail(
+                    '사용자를 찾을 수 없습니다.',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             const commentCounts =
@@ -146,7 +155,10 @@ export class UsersService {
             });
         } catch (error) {
             this.logger.error(`Get profile page data failed: ${error.message}`);
-            return Result.fail('프로필 데이터 조회에 실패했습니다.');
+            return Result.fail(
+                '프로필 데이터 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 }

@@ -138,7 +138,7 @@ export class GameService {
             });
 
             // 3. Winner 레코드 생성
-            await this.winnersService.createWinner({
+            const winnerResult = await this.winnersService.createWinner({
                 walletAddress: winner,
                 gameId: gameId,
                 prize: prizeAmount,
@@ -147,6 +147,12 @@ export class GameService {
                 claimTxHash: txHash,
                 claimedAt: new Date(timestamp * 1000),
             });
+
+            if (!winnerResult.success) {
+                this.logger.error(
+                    `Winner 생성 실패: ${winnerResult.errorMessage}`,
+                );
+            }
 
             this.logger.log(
                 `✅ 게임 상금 수령 완료: gameId=${gameId}, winner=${winner}`,

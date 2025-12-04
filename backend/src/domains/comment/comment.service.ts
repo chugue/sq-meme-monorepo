@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
@@ -40,7 +40,10 @@ export class CommentService {
             return Result.ok({ comments });
         } catch (error) {
             this.logger.error(`Get comments by game failed: ${error.message}`);
-            return Result.fail('Failed to get comments');
+            return Result.fail(
+                '댓글 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -53,7 +56,10 @@ export class CommentService {
 
             const comment = await this.commentRepository.findById(commentId);
             if (!comment) {
-                return Result.fail('Comment not found');
+                return Result.fail(
+                    '댓글을 찾을 수 없습니다',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             const data = await this.commentRepository.toggleLike(
@@ -68,7 +74,10 @@ export class CommentService {
             return Result.ok(data);
         } catch (error) {
             this.logger.error(`Toggle like failed: ${error.message}`);
-            return Result.fail('Failed to toggle like');
+            return Result.fail(
+                '좋아요 처리에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -77,13 +86,19 @@ export class CommentService {
             const result = await this.commentRepository.getLikeCount(commentId);
 
             if (!result) {
-                return Result.fail('Comment not found');
+                return Result.fail(
+                    '댓글을 찾을 수 없습니다',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             return Result.ok(result);
         } catch (error) {
             this.logger.error(`Get like count failed: ${error.message}`);
-            return Result.fail('Failed to get like count');
+            return Result.fail(
+                '좋아요 수 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -101,7 +116,10 @@ export class CommentService {
             return Result.ok(result);
         } catch (error) {
             this.logger.error(`Check user liked failed: ${error.message}`);
-            return Result.fail('Failed to check like status');
+            return Result.fail(
+                '좋아요 상태 확인에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -119,7 +137,10 @@ export class CommentService {
             return Result.ok(result);
         } catch (error) {
             this.logger.error(`Get user liked map failed: ${error.message}`);
-            return Result.fail('Failed to get like map');
+            return Result.fail(
+                '좋아요 맵 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
@@ -143,11 +164,17 @@ export class CommentService {
             );
 
             if (!receipt) {
-                return Result.fail('트랜잭션을 찾을 수 없습니다.');
+                return Result.fail(
+                    '트랜잭션을 찾을 수 없습니다.',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             if (receipt.status === 0) {
-                return Result.fail('트랜잭션이 실패했습니다.');
+                return Result.fail(
+                    '트랜잭션이 실패했습니다.',
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                );
             }
 
             // 3. CommentAdded 이벤트 찾기
@@ -162,7 +189,10 @@ export class CommentService {
             );
 
             if (!commentLog) {
-                return Result.fail('CommentAdded 이벤트를 찾을 수 없습니다.');
+                return Result.fail(
+                    'CommentAdded 이벤트를 찾을 수 없습니다.',
+                    HttpStatus.NOT_FOUND,
+                );
             }
 
             // 4. 이벤트 디코딩
@@ -197,13 +227,19 @@ export class CommentService {
             });
 
             if (!result) {
-                return Result.fail('댓글 저장에 실패했습니다.');
+                return Result.fail(
+                    '댓글 저장에 실패했습니다.',
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                );
             }
 
             return Result.ok(result);
         } catch (error) {
             this.logger.error(`Create comment failed: ${error.message}`);
-            return Result.fail('댓글 저장에 실패했습니다.');
+            return Result.fail(
+                '댓글 저장에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 }
