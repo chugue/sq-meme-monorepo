@@ -238,11 +238,10 @@ export function useTokenContract() {
         .then(async (gameId) => {
           if (!gameId) {
             logger.info("블록체인에 활성 게임 없음");
-            // 블록체인에 활성 게임이 없으면 게임이 끝난 것으로 처리
-            // 백엔드 DB가 아직 업데이트되지 않았을 수 있으므로 블록체인 결과를 신뢰
+            // 백엔드에서 이미 유효한 게임 정보를 받았으면 블록체인 null 결과로 덮어쓰지 않음
+            // (Race condition 방지: 백엔드 응답이 더 신뢰할 수 있는 경우가 많음)
             if (hasSetInitialState) {
-              logger.info("백엔드 데이터가 있었지만 블록체인에 활성 게임 없음 - 게임 종료로 처리");
-              setGameState(null, true);
+              logger.info("백엔드 데이터가 있으므로 블록체인 null 결과 무시");
             }
             return null;
           }

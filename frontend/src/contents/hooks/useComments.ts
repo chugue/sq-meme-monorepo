@@ -1,8 +1,6 @@
 import { Comment } from "@/contents/types/comment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAtomValue } from "jotai";
 import { useEffect, useRef } from "react";
-import { activeGameInfoAtom } from "../atoms/commentAtoms";
 import { backgroundApi } from "../lib/backgroundApi";
 import { logger } from "../lib/injected/logger";
 
@@ -21,10 +19,8 @@ function deduplicateComments(comments: Comment[]): Comment[] {
   return Array.from(seen.values());
 }
 
-export function useComments() {
+export function useComments(gameId: string | null) {
   const queryClient = useQueryClient();
-  const activeGameInfo = useAtomValue(activeGameInfoAtom);
-  const gameId = activeGameInfo?.id ?? null;
   const prevGameIdRef = useRef<string | null>(null);
 
   // gameId가 변경될 때 이전 캐시 즉시 초기화
@@ -40,13 +36,7 @@ export function useComments() {
     prevGameIdRef.current = gameId;
   }, [gameId, queryClient]);
 
-  logger.debug("useComments 호출", {
-    gameId,
-    hasActiveGameInfo: !!activeGameInfo,
-    activeGameInfo: activeGameInfo
-      ? { id: activeGameInfo.id, tokenSymbol: activeGameInfo.tokenSymbol }
-      : null,
-  });
+  logger.debug("useComments 호출", { gameId });
 
   // 댓글 조회 (gameId가 없으면 비활성화) - DB 먼저 조회
   const {

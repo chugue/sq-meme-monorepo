@@ -10,6 +10,8 @@ export interface Comment {
   currentPrizePool?: string;
   isWinnerComment?: boolean;
   imageUrl?: string;
+  username?: string;
+  profileImage?: string;
 }
 
 export interface CreateCommentInput {

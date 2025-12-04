@@ -19,23 +19,44 @@ export function CommentList({ comments, isLoading }: CommentListProps) {
         <>
             {comments.map((comment) => (
                 <div key={comment.id} className="squid-comment-item">
-                    <div className="squid-comment-content">{comment.message}</div>
-                    {comment.imageUrl && (
-                        <div className="squid-comment-image-wrapper">
-                            <img
-                                src={comment.imageUrl}
-                                alt="Comment image"
-                                className="squid-comment-image-preview"
-                            />
+                    <div className="squid-comment-header-row">
+                        <div className="squid-comment-profile">
+                            {comment.profileImage ? (
+                                <img
+                                    src={comment.profileImage}
+                                    alt="Profile"
+                                    className="squid-comment-avatar"
+                                />
+                            ) : (
+                                <div className="squid-comment-avatar-placeholder" />
+                            )}
                         </div>
-                    )}
-                    <div className="squid-comment-meta">
-                        <span className="squid-comment-address">
-                            {formatAddress(comment.commentor)}
-                        </span>
-                        <span className="squid-comment-date">
-                            {formatRelativeTime(comment.createdAt)}
-                        </span>
+                        <div className="squid-comment-info">
+                            <span className="squid-comment-username">
+                                @{comment.username || formatAddress(comment.commentor)}
+                            </span>
+                            <span className="squid-comment-date">
+                                {formatRelativeTime(comment.createdAt)}
+                            </span>
+                        </div>
+                        <div className="squid-comment-like">
+                            <span className="squid-comment-like-icon">&#10084;</span>
+                            <span className="squid-comment-like-count">
+                                {comment.likeCount ?? 0}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="squid-comment-body">
+                        <div className="squid-comment-content">{comment.message}</div>
+                        {comment.imageUrl && (
+                            <div className="squid-comment-image-wrapper">
+                                <img
+                                    src={comment.imageUrl}
+                                    alt="Comment image"
+                                    className="squid-comment-image-preview"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             ))}

@@ -33,8 +33,9 @@ export function CommentSection() {
     location: window.location.href,
   });
 
-  const { comments, isLoading, refetch } = useComments();
   const activeGameInfo = useAtomValue(activeGameInfoAtom);
+  const gameId = activeGameInfo?.id ?? null;
+  const { comments, isLoading, refetch } = useComments(gameId);
   const {
     isConnected,
     address,

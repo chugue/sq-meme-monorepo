@@ -164,6 +164,78 @@
         2px 2px 0px rgba(0, 0, 0, 0.2);
 }
 
+/* 댓글 헤더 (프로필 + 유저네임 + 좋아요) */
+.squid-comment-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.squid-comment-profile {
+    flex-shrink: 0;
+}
+
+.squid-comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #4a9eff;
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+.squid-comment-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #4a9eff;
+    background: linear-gradient(135deg, #4a9eff 0%, #7b2cbf 100%);
+}
+
+.squid-comment-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.squid-comment-username {
+    font-size: 10px;
+    color: #ffffff;
+    font-weight: normal;
+    text-shadow: 1px 1px 0px #0a0a15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.squid-comment-like {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.squid-comment-like-icon {
+    color: #ff6b6b;
+    font-size: 14px;
+    text-shadow: 1px 1px 0px #0a0a15;
+}
+
+.squid-comment-like-count {
+    font-size: 8px;
+    color: #888;
+    text-shadow: 1px 1px 0px #0a0a15;
+}
+
+/* 댓글 본문 */
+.squid-comment-body {
+    padding-left: 46px;
+}
+
 .squid-comment-content {
     color: #ffffff;
     font-size: 11px;
@@ -191,6 +263,7 @@
 
 .squid-comment-date {
     color: #7b2cbf;
+    font-size: 8px;
     text-shadow: 1px 1px 0px #0a0a15;
 }
 
