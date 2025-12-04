@@ -34,7 +34,9 @@ export function CommentSection() {
   });
 
   const activeGameInfo = useAtomValue(activeGameInfoAtom);
-  const gameId = activeGameInfo?.id ?? null;
+  // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
+  const hasValidGame = !!(activeGameInfo?.id);
+  const gameId = hasValidGame ? activeGameInfo.id : null;
   const { comments, isLoading, refetch } = useComments(gameId);
   const {
     isConnected,
@@ -334,54 +336,64 @@ export function CommentSection() {
         />
       </div>
 
-      {/* 펀딩 섹션 */}
-      {activeGameInfo && (
-        <div className="squid-funding-section">
-          <div className="squid-funding-header">
-            <span className="squid-funding-title">FUND PRIZE POOL</span>
-            <p className="squid-funding-desc">
-              Earn comment fees based on your funding share
-            </p>
+      {/* hasValidGame일 때만 펀딩 섹션 + 댓글 폼/리스트 표시 */}
+      {hasValidGame ? (
+        <>
+          <div className="squid-funding-section">
+            <div className="squid-funding-header">
+              <span className="squid-funding-title">FUND PRIZE POOL</span>
+              <p className="squid-funding-desc">
+                Earn comment fees based on your funding share
+              </p>
+            </div>
+            <div className="squid-funding-form">
+              <input
+                type="number"
+                className="squid-funding-input"
+                placeholder="Amount to fund"
+                value={fundingAmount}
+                onChange={(e) => setFundingAmount(e.target.value)}
+                disabled={isFunding}
+                min="0"
+                step="any"
+              />
+              <button
+                type="button"
+                className="squid-funding-button"
+                onClick={handleFund}
+                disabled={
+                  isFunding || !fundingAmount || Number(fundingAmount) <= 0
+                }
+              >
+                {isFunding ? "FUNDING..." : "FUND"}
+              </button>
+            </div>
           </div>
-          <div className="squid-funding-form">
-            <input
-              type="number"
-              className="squid-funding-input"
-              placeholder="Amount to fund"
-              value={fundingAmount}
-              onChange={(e) => setFundingAmount(e.target.value)}
-              disabled={isFunding}
-              min="0"
-              step="any"
-            />
-            <button
-              type="button"
-              className="squid-funding-button"
-              onClick={handleFund}
-              disabled={
-                isFunding || !fundingAmount || Number(fundingAmount) <= 0
-              }
-            >
-              {isFunding ? "FUNDING..." : "FUND"}
-            </button>
+
+          <CommentForm
+            value={newComment}
+            onChange={setNewComment}
+            imageUrl={commentImageUrl}
+            onImageChange={setCommentImageUrl}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            isSigning={false}
+            isConnected={isConnected}
+          />
+
+          <div className="squid-comments-list">
+            <CommentList comments={comments} isLoading={isLoading} />
           </div>
+        </>
+      ) : (
+        <div className="squid-no-game-section">
+          <div className="squid-no-game-icon">🎮</div>
+          <div className="squid-no-game-title">NO ACTIVE GAME</div>
+          <p className="squid-no-game-description">
+            There is no active game for this token yet.
+          </p>
         </div>
       )}
-
-      <CommentForm
-        value={newComment}
-        onChange={setNewComment}
-        imageUrl={commentImageUrl}
-        onImageChange={setCommentImageUrl}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        isSigning={false}
-        isConnected={isConnected}
-      />
-
-      <div className="squid-comments-list">
-        <CommentList comments={comments} isLoading={isLoading} />
-      </div>
     </div>
   );
 }

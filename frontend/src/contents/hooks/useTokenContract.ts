@@ -195,7 +195,8 @@ export function useTokenContract() {
       const backendPromise = backgroundApi
         .getActiveGameByToken(queryTokenAddress)
         .then((result) => {
-          if (result) {
+          // gameId가 유효한 경우에만 처리 (null, undefined, 빈 문자열 제외)
+          if (result?.gameId) {
             // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
             const isEnded = isGameEndedByTime(result.endTime);
 
@@ -225,6 +226,8 @@ export function useTokenContract() {
             setGameState(backendGameInfo, isEnded);
             hasSetInitialState = true;
             setIsLoading(false); // 백엔드 결과로 로딩 해제
+          } else if (result) {
+            logger.warn("백엔드 응답에 gameId 누락", { result });
           }
           return result;
         })
