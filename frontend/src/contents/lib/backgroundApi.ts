@@ -82,7 +82,8 @@ export type BackgroundMessage =
       fileName: string;
       mimeType: string;
     }
-  | { type: "REFRESH_MEMEX_TAB" };
+  | { type: "REFRESH_MEMEX_TAB" }
+  | { type: "SAVE_FUNDING"; data: { txHash: string } };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -395,6 +396,14 @@ export const backgroundApi = {
   refreshMemexTab: async () => {
     return sendToBackground<{ success: boolean }>({
       type: "REFRESH_MEMEX_TAB",
+    });
+  },
+
+  // 펀딩 데이터를 백엔드에 저장 (txHash로 PrizePoolFunded 이벤트 파싱)
+  saveFunding: async (data: { txHash: string }) => {
+    return sendToBackground<{ id: number }>({
+      type: "SAVE_FUNDING",
+      data,
     });
   },
 };

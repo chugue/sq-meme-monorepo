@@ -1071,6 +1071,27 @@ export function createMessageHandler() {
             break;
           }
 
+          case "SAVE_FUNDING": {
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { id: number };
+              }>("/v1/funders", {
+                method: "POST",
+                body: JSON.stringify(message.data),
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 펀딩 저장 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "펀딩 저장 실패",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,
