@@ -1,0 +1,89 @@
+/* ===================================
+   Floating Game Button Styles
+   미친듯한 디자인: 아이콘 좌우 흔들림 + 무지개 랜덤 배경색
+   =================================== */
+
+.squid-floating-game-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(255, 255, 255, 0.3),
+        0 0 60px rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    outline: none;
+    transition: box-shadow 0.1s ease;
+    /* 플로팅 애니메이션 제거 - 고정 위치 */
+}
+
+.squid-floating-game-button:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(255, 255, 255, 0.5),
+        0 0 120px rgba(255, 255, 255, 0.3);
+}
+
+.squid-floating-game-button:active {
+    transform: scale(0.9);
+}
+
+.squid-floating-game-button-icon {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    display: block;
+    transform-origin: center;
+    /* 기본 상태: 애니메이션 없음 */
+}
+
+/* 호버 시에만 좌우로 미친듯이 떨리는 애니메이션 */
+.squid-floating-game-button:hover .squid-floating-game-button-icon {
+    animation: shakeIntense 0.05s ease-in-out infinite;
+}
+
+@keyframes shakeIntense {
+    0% {
+        transform: translateX(-6px) rotate(-10deg) scale(1.1);
+    }
+
+    25% {
+        transform: translateX(6px) rotate(10deg) scale(1.1);
+    }
+
+    50% {
+        transform: translateX(-8px) rotate(-15deg) scale(1.1);
+    }
+
+    75% {
+        transform: translateX(8px) rotate(15deg) scale(1.1);
+    }
+
+    100% {
+        transform: translateX(-6px) rotate(-10deg) scale(1.1);
+    }
+}
+
+/* 모바일 최적화 */
+@media (max-width: 480px) {
+    .squid-floating-game-button {
+        width: 48px;
+        height: 48px;
+        bottom: 16px;
+        right: 16px;
+        border-width: 2px;
+    }
+
+    .squid-floating-game-button-icon {
+        width: 64px;
+        height: 64px;
+    }
+}
