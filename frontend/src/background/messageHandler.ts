@@ -20,10 +20,15 @@ export function createMessageHandler() {
 
         switch (message.type) {
           case "GET_COMMENTS": {
+            const walletAddress = (message as any).walletAddress;
             const response = await apiCall<{
               success: boolean;
               data: { comments: any[] };
-            }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`);
+            }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`, {
+              headers: walletAddress
+                ? { "x-wallet-address": walletAddress }
+                : undefined,
+            });
             result = { success: true, data: response.data?.comments || [] };
             break;
           }
@@ -1340,17 +1345,7 @@ export function createMessageHandler() {
 
           case "TOGGLE_COMMENT_LIKE": {
             try {
-              const { browser } = await import("wxt/browser");
-              const storage =
-                browser?.storage || (globalThis as any).chrome?.storage;
-
-              const sessionState = await new Promise<any>((resolve) => {
-                storage.session.get(["squid_session_state"], (result: any) => {
-                  resolve(result.squid_session_state || null);
-                });
-              });
-
-              const walletAddress = sessionState?.walletAddress;
+              const walletAddress = (message as any).walletAddress;
               if (!walletAddress) {
                 result = {
                   success: false,
@@ -1360,15 +1355,15 @@ export function createMessageHandler() {
               }
 
               const response = await apiCall<{
-                liked: boolean;
-                likeCount: number;
+                success: boolean;
+                data: { liked: boolean; likeCount: number };
               }>(`/v1/comments/${message.commentId}/like`, {
                 method: "POST",
                 headers: {
                   "x-wallet-address": walletAddress,
                 },
               });
-              result = { success: true, data: response };
+              result = { success: true, data: response.data };
             } catch (error: any) {
               console.error("❌ 좋아요 토글 오류:", error);
               result = {

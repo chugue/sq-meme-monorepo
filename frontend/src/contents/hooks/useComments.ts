@@ -19,7 +19,7 @@ function deduplicateComments(comments: Comment[]): Comment[] {
   return Array.from(seen.values());
 }
 
-export function useComments(gameId: string | null) {
+export function useComments(gameId: string | null, walletAddress?: string | null) {
   const queryClient = useQueryClient();
   const prevGameIdRef = useRef<string | null>(null);
 
@@ -44,7 +44,7 @@ export function useComments(gameId: string | null) {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["comments", gameId],
+    queryKey: ["comments", gameId, walletAddress],
     queryFn: async () => {
       if (!gameId) {
         logger.warn("useComments: gameId가 없음");
@@ -52,7 +52,7 @@ export function useComments(gameId: string | null) {
       }
       try {
         logger.info("댓글 조회 시작 (DB)", { gameId });
-        const data = await backgroundApi.getComments(gameId);
+        const data = await backgroundApi.getComments(gameId, walletAddress || undefined);
         logger.info("댓글 조회 완료 (DB)", {
           gameId,
           count: data?.length || 0,
@@ -96,17 +96,17 @@ export function useComments(gameId: string | null) {
 
   // 좋아요 토글
   const toggleLikeMutation = useMutation({
-    mutationFn: async (commentId: number) => {
+    mutationFn: async ({ commentId, walletAddress }: { commentId: number; walletAddress: string }) => {
       try {
-        return await backgroundApi.toggleCommentLike(commentId);
+        return await backgroundApi.toggleCommentLike(commentId, walletAddress);
       } catch (error) {
         console.error("좋아요 토글 실패:", error);
         throw error;
       }
     },
-    onSuccess: (data, commentId) => {
+    onSuccess: (data, { commentId }) => {
       // 캐시 직접 업데이트 (optimistic update)
-      queryClient.setQueryData<Comment[]>(["comments", gameId], (oldComments) => {
+      queryClient.setQueryData<Comment[]>(["comments", gameId, walletAddress], (oldComments) => {
         if (!oldComments) return oldComments;
         return oldComments.map((comment) =>
           comment.id === commentId

@@ -33,11 +33,6 @@ export function CommentSection() {
     location: window.location.href,
   });
 
-  const activeGameInfo = useAtomValue(activeGameInfoAtom);
-  // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
-  const hasValidGame = !!(activeGameInfo?.id);
-  const gameId = hasValidGame ? activeGameInfo.id : null;
-  const { comments, isLoading, refetch, toggleLike } = useComments(gameId);
   const {
     isConnected,
     address,
@@ -47,6 +42,12 @@ export function CommentSection() {
     isLoading: walletLoading,
     error: walletError,
   } = useWallet();
+
+  const activeGameInfo = useAtomValue(activeGameInfoAtom);
+  // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
+  const hasValidGame = !!(activeGameInfo?.id);
+  const gameId = hasValidGame ? activeGameInfo.id : null;
+  const { comments, isLoading, refetch, toggleLike } = useComments(gameId, address);
   const [newComment, setNewComment] = useState("");
   const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -382,7 +383,15 @@ export function CommentSection() {
           />
 
           <div className="squid-comments-list">
-            <CommentList comments={comments} isLoading={isLoading} onToggleLike={toggleLike} />
+            <CommentList
+              comments={comments}
+              isLoading={isLoading}
+              onToggleLike={(commentId) => {
+                if (address) {
+                  toggleLike({ commentId, walletAddress: address });
+                }
+              }}
+            />
           </div>
         </>
       ) : (

@@ -34,7 +34,7 @@ export interface SerializedGameInfo {
 
 // Background Script와 통신하기 위한 메시지 타입
 export type BackgroundMessage =
-  | { type: "GET_COMMENTS"; gameId: string }
+  | { type: "GET_COMMENTS"; gameId: string; walletAddress?: string }
   | {
       type: "CREATE_COMMENT";
       challengeId: string;
@@ -91,7 +91,7 @@ export type BackgroundMessage =
   | { type: "GET_QUESTS" }
   | { type: "GET_MY_ACTIVE_GAMES" }
   | { type: "GET_LIVE_GAMES" }
-  | { type: "TOGGLE_COMMENT_LIKE"; commentId: number };
+  | { type: "TOGGLE_COMMENT_LIKE"; commentId: number; walletAddress: string };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -159,10 +159,11 @@ export async function sendToBackground<T>(
 // API 클라이언트 (Background Script와 통신)
 export const backgroundApi = {
   // 댓글 목록
-  getComments: async (gameId: string) => {
+  getComments: async (gameId: string, walletAddress?: string) => {
     return sendToBackground<Array<any>>({
       type: "GET_COMMENTS",
       gameId,
+      walletAddress,
     });
   },
 
@@ -469,10 +470,11 @@ export const backgroundApi = {
   },
 
   // 댓글 좋아요 토글
-  toggleCommentLike: async (commentId: number) => {
+  toggleCommentLike: async (commentId: number, walletAddress: string) => {
     return sendToBackground<{ liked: boolean; likeCount: number }>({
       type: "TOGGLE_COMMENT_LIKE",
       commentId,
+      walletAddress,
     });
   },
 };

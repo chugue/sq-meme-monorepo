@@ -74,7 +74,9 @@ export class CommentRepository {
 
                 await tx
                     .update(schema.comments)
-                    .set({ likeCount: sql`${schema.comments.likeCount} - 1` })
+                    .set({
+                        likeCount: sql`GREATEST(COALESCE(${schema.comments.likeCount}, 0) - 1, 0)`,
+                    })
                     .where(eq(schema.comments.id, commentId));
 
                 liked = false;

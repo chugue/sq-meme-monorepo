@@ -99,8 +99,8 @@ export function CommentForm({
                     </div>
                 )}
 
-                {/* 이미지 추가 버튼 - 텍스트필드 아래 왼쪽 */}
-                {onImageChange && (
+                {/* 이미지 추가 버튼 - 텍스트필드 아래 왼쪽 (이미지가 없을 때만 표시) */}
+                {onImageChange && !imageUrl && (
                     <button
                         type="button"
                         className="squid-comment-add-image-inline"
