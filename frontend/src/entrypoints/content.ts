@@ -1010,6 +1010,18 @@ export default defineContentScript({
                         return true; // 비동기 응답
                     }
 
+                    // 로그아웃 시 UI 숨김 (사이드 패널에서 로그아웃 시)
+                    if (message.type === "HIDE_SQUID_UI") {
+                        console.log("🚪 [Content] HIDE_SQUID_UI 요청 수신 - UI 숨김");
+                        const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
+                        if (container) {
+                            container.style.display = "none";
+                            console.log("✅ [Content] SQUID UI 숨김 완료");
+                        }
+                        sendResponse({ success: true });
+                        return true;
+                    }
+
                     // 로그아웃 시 inject script 토큰 캐시 초기화
                     if (message.type === "LOGOUT_INJECT_SCRIPT") {
                         console.log("🚪 [Content] LOGOUT_INJECT_SCRIPT 요청 수신");

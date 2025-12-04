@@ -632,15 +632,28 @@ export function createMessageHandler() {
                 );
               });
 
+              // 모든 MEMEX 탭에 로그아웃 메시지 전송 (UI 숨김 + inject script 캐시 초기화)
               try {
                 const memexTabs = await tabs.query({
                   url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
                 });
 
-                if (memexTabs.length > 0 && memexTabs[0]?.id) {
-                  await tabs.sendMessage(memexTabs[0].id, {
-                    type: "LOGOUT_INJECT_SCRIPT",
-                  });
+                // 모든 탭에 메시지 전송
+                for (const tab of memexTabs) {
+                  if (tab.id) {
+                    try {
+                      // UI 숨김 메시지
+                      await tabs.sendMessage(tab.id, {
+                        type: "HIDE_SQUID_UI",
+                      });
+                      // Inject script 캐시 초기화 메시지
+                      await tabs.sendMessage(tab.id, {
+                        type: "LOGOUT_INJECT_SCRIPT",
+                      });
+                    } catch {
+                      // 개별 탭 메시지 전송 실패는 무시
+                    }
+                  }
                 }
               } catch {
                 // Content Script 메시지 전송 실패는 무시
