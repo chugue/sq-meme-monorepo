@@ -387,12 +387,13 @@ export function useTokenContract() {
       // SPA 네비게이션 감지 시 상태 초기화 + 캐시된 토큰 정보 처리
       if (event.data.source === MESSAGE_SOURCE.SPA_NAVIGATION) {
         resetState();
-        // 캐시된 토큰 정보가 있으면 즉시 처리
-        const { cachedToken } = event.data;
-        if (cachedToken?.contractAddress) {
-          logger.info("SPA 네비게이션 + 캐시된 토큰 정보", cachedToken);
-          handleTokenContractCached(cachedToken);
-        }
+        // NOTE: cachedToken은 항상 null (injected.js에서 __next_f 추출 후 TOKEN_CONTRACT_CACHED로 전송)
+        // // 캐시된 토큰 정보가 있으면 즉시 처리
+        // const { cachedToken } = event.data;
+        // if (cachedToken?.contractAddress) {
+        //   logger.info("SPA 네비게이션 + 캐시된 토큰 정보", cachedToken);
+        //   handleTokenContractCached(cachedToken);
+        // }
         // 없으면 TOKEN_CONTRACT_CACHED 메시지를 기다림
         return;
       }

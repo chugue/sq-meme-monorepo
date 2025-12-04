@@ -14,7 +14,8 @@ function isProfilePage(url: string): boolean {
     return profilePattern.test(url);
 }
 
-import { extractProfileData } from '@/shared/lib/profileExtractor';
+// NOTE: fetch 비활성화로 인해 미사용 - injected.js에서 토큰 추출
+// import { extractProfileData } from '@/shared/lib/profileExtractor';
 
 // 프로필 페이지에서 정보 가져오기 (여러 방법 시도)
 async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
@@ -37,39 +38,40 @@ async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
         console.log("🔍 [Content] 프로필 URL:", profileUrl);
         const isCurrentProfile = currentUrl.includes(profileUrl.replace('https://app.memex.xyz', ''));
 
+        // NOTE: fetch 비활성화 - injected.js에서 토큰 추출하므로 중복 네트워크 요청 방지
         // 방법 1: fetch로 HTML 가져와서 self.__next_f.push 스크립트 태그 파싱 (가장 신뢰성 높음)
-        try {
-            console.log("🔍 [Content] fetch로 HTML 가져와서 파싱 시도... --------------------------");
-            const response = await fetch(profileUrl);
-            if (response.ok) {
-                const html = await response.text();
+        // try {
+        //     console.log("🔍 [Content] fetch로 HTML 가져와서 파싱 시도... --------------------------");
+        //     const response = await fetch(profileUrl);
+        //     if (response.ok) {
+        //         const html = await response.text();
 
-                // self.__next_f.push 스크립트에서 추출
-                const profileData = extractProfileData(html);
+        //         // self.__next_f.push 스크립트에서 추출
+        //         const profileData = extractProfileData(html);
 
-                if (!profileImageUrl && profileData.profileImageUrl) {
-                    profileImageUrl = profileData.profileImageUrl;
-                }
-                if (!tokenAddr && profileData.tokenAddr) {
-                    tokenAddr = profileData.tokenAddr;
-                }
-                if (!tokenSymbol && profileData.tokenSymbol) {
-                    tokenSymbol = profileData.tokenSymbol;
-                }
-                if (!tokenImageUrl && profileData.tokenImageUrl) {
-                    tokenImageUrl = profileData.tokenImageUrl;
-                }
-                if (!memexWalletAddress && profileData.memexWalletAddress) {
-                    memexWalletAddress = profileData.memexWalletAddress;
-                }
+        //         if (!profileImageUrl && profileData.profileImageUrl) {
+        //             profileImageUrl = profileData.profileImageUrl;
+        //         }
+        //         if (!tokenAddr && profileData.tokenAddr) {
+        //             tokenAddr = profileData.tokenAddr;
+        //         }
+        //         if (!tokenSymbol && profileData.tokenSymbol) {
+        //             tokenSymbol = profileData.tokenSymbol;
+        //         }
+        //         if (!tokenImageUrl && profileData.tokenImageUrl) {
+        //             tokenImageUrl = profileData.tokenImageUrl;
+        //         }
+        //         if (!memexWalletAddress && profileData.memexWalletAddress) {
+        //             memexWalletAddress = profileData.memexWalletAddress;
+        //         }
 
-                if (profileData.profileImageUrl || profileData.tokenAddr || profileData.tokenSymbol) {
-                    console.log("✅ [Content] self.__next_f.push에서 프로필 정보 파싱 성공");
-                }
-            }
-        } catch (fetchErr) {
-            console.warn("⚠️ [Content] fetch로 HTML 가져오기 실패:", fetchErr);
-        }
+        //         if (profileData.profileImageUrl || profileData.tokenAddr || profileData.tokenSymbol) {
+        //             console.log("✅ [Content] self.__next_f.push에서 프로필 정보 파싱 성공");
+        //         }
+        //     }
+        // } catch (fetchErr) {
+        //     console.warn("⚠️ [Content] fetch로 HTML 가져오기 실패:", fetchErr);
+        // }
 
         // 방법 2: DOM에서 직접 프로필 이미지 및 토큰 심볼 추출 (최종 백업)
         if (!profileImageUrl) {
