@@ -12,6 +12,8 @@ interface CommentFormProps {
     isSigning: boolean;
     isConnected: boolean;
     disabled?: boolean;
+    tokenSymbol?: string;
+    commentCost?: string;
 }
 
 export function CommentForm({
@@ -24,6 +26,8 @@ export function CommentForm({
     isSigning,
     isConnected,
     disabled,
+    tokenSymbol,
+    commentCost,
 }: CommentFormProps) {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +36,9 @@ export function CommentForm({
         if (!isConnected) return 'CONNECT WALLET FIRST';
         if (isSigning) return 'SIGNING...';
         if (isSubmitting) return 'SUBMITTING...';
+        if (tokenSymbol && commentCost) {
+            return `SUBMIT (${commentCost} $${tokenSymbol})`;
+        }
         return 'SUBMIT';
     };
 

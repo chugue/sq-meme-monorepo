@@ -19,7 +19,7 @@ import {
 } from "../../lib/contract/abis/commentGameV2";
 import { erc20ABI } from "../../lib/contract/abis/erc20";
 import { createContractClient } from "../../lib/contract/contractClient";
-import { parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { logger } from "../../lib/injected/logger";
 import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
 import { CommentForm } from "./CommentForm";
@@ -380,6 +380,12 @@ export function CommentSection() {
             isSubmitting={isSubmitting}
             isSigning={false}
             isConnected={isConnected}
+            tokenSymbol={activeGameInfo?.tokenSymbol}
+            commentCost={
+              activeGameInfo?.totalFunding
+                ? formatUnits(BigInt(activeGameInfo.totalFunding) / 10000n, 18)
+                : undefined
+            }
           />
 
           <div className="squid-comments-list">

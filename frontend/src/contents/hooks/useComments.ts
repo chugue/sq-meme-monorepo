@@ -94,7 +94,7 @@ export function useComments(gameId: string | null, walletAddress?: string | null
     },
   });
 
-  // 좋아요 토글
+  // 좋아요 토글 (옵티미스틱 업데이트)
   const toggleLikeMutation = useMutation({
     mutationFn: async ({ commentId, walletAddress }: { commentId: number; walletAddress: string }) => {
       try {
@@ -104,16 +104,39 @@ export function useComments(gameId: string | null, walletAddress?: string | null
         throw error;
       }
     },
-    onSuccess: (data, { commentId }) => {
-      // 캐시 직접 업데이트 (optimistic update)
+    onMutate: async ({ commentId }) => {
+      // 진행 중인 refetch 취소
+      await queryClient.cancelQueries({ queryKey: ["comments", gameId, walletAddress] });
+
+      // 이전 상태 스냅샷
+      const previousComments = queryClient.getQueryData<Comment[]>(["comments", gameId, walletAddress]);
+
+      // 옵티미스틱 업데이트
       queryClient.setQueryData<Comment[]>(["comments", gameId, walletAddress], (oldComments) => {
         if (!oldComments) return oldComments;
         return oldComments.map((comment) =>
           comment.id === commentId
-            ? { ...comment, isLiked: data.liked, likeCount: data.likeCount }
+            ? {
+                ...comment,
+                isLiked: !comment.isLiked,
+                likeCount: comment.isLiked ? (comment.likeCount || 1) - 1 : (comment.likeCount || 0) + 1,
+              }
             : comment
         );
       });
+
+      // 롤백을 위한 컨텍스트 반환
+      return { previousComments };
+    },
+    onError: (_error, _variables, context) => {
+      // 에러 발생 시 이전 상태로 롤백
+      if (context?.previousComments) {
+        queryClient.setQueryData(["comments", gameId, walletAddress], context.previousComments);
+      }
+    },
+    onSettled: () => {
+      // 성공/실패 관계없이 서버와 동기화
+      queryClient.invalidateQueries({ queryKey: ["comments", gameId, walletAddress] });
     },
   });
 
