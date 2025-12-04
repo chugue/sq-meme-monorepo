@@ -62,104 +62,157 @@
         }
     }
 
-    // 원본 fetch 저장
-    const originalFetch = window.fetch;
+    /**
+     * __next_f 데이터에서 토큰 컨트랙트 주소 추출
+     * Next.js RSC 페이로드에서 프로필의 tokenAddress를 찾습니다.
+     */
+    function extractTokenFromNextF() {
+        try {
+            const currentUrl = window.location.href;
+            const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-    // fetch를 즉시 intercept (다른 코드보다 먼저)
-    if (typeof originalFetch === 'function') {
-        window.fetch = function (...args) {
-            const [url, options = {}] = args;
-            const urlString = typeof url === 'string' ? url : url?.url || '';
+            if (!profileMatch) {
+                return null;
+            }
 
+            const [, username, userTag] = profileMatch;
 
-            // /api/service/public/price/latest/{id}/{contractAddress} 요청 감지
-            const priceMatch = urlString.match(/\/api\/service\/public\/price\/latest\/([^\/]+)\/(0x[a-fA-F0-9]+)/);
-            if (priceMatch) {
-                const [, id, contractAddress] = priceMatch;
+            // 방법 1: DOM에서 __next_f 스크립트 태그들을 찾아서 파싱
+            const scripts = document.querySelectorAll('script');
+            let tokenAddress = null;
+            let tokenSymbol = null;
 
-                // 현재 브라우저 URL에서 profile/{username}/{usertag} 추출
-                const currentUrl = window.location.href;
-                const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+            for (const script of scripts) {
+                const content = script.textContent || '';
 
-                if (profileMatch) {
-                    const [, username, userTag] = profileMatch;
-                    const cacheKey = `${username}#${userTag}`;
-
-                    // 이미 같은 토큰이 캐시되어 있는지 확인 (중복 메시지 방지)
-                    const existingCache = tokenContractCache.get(cacheKey);
-                    const isNewToken = !existingCache || existingCache.contractAddress !== contractAddress;
-
-                    // DOM에서 토큰 심볼 파싱 (.Profile_symbol__TEC9N 요소)
-                    let tokenSymbol = null;
-                    try {
-                        const symbolElement = document.querySelector('.Profile_symbol__TEC9N');
-                        if (symbolElement) {
-                            tokenSymbol = symbolElement.textContent?.trim() || null;
-                        }
-                    } catch (e) {
-                        // DOM 파싱 실패는 무시
+                // self.__next_f.push 형태의 스크립트에서 tokenAddress 추출
+                if (content.includes('self.__next_f.push')) {
+                    // tokenAddress 패턴 찾기 (이스케이프된 JSON 내부)
+                    // "tokenAddress":"0x..." 또는 \"tokenAddress\":\"0x...\"
+                    const tokenMatch = content.match(/\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/);
+                    if (tokenMatch && tokenMatch[1]) {
+                        tokenAddress = tokenMatch[1];
                     }
 
-                    // 캐시에 저장 (항상 업데이트 - timestamp 갱신)
-                    tokenContractCache.set(cacheKey, {
-                        id,
-                        contractAddress,
-                        username,
-                        userTag,
-                        symbol: tokenSymbol,
-                        timestamp: Date.now()
-                    });
-
-                    // window에도 저장 (Content Script와 공유)
-                    try {
-                        if (!window.__SQUID_MEME_TOKEN_CONTRACTS__) {
-                            window.__SQUID_MEME_TOKEN_CONTRACTS__ = {};
-                        }
-                        window.__SQUID_MEME_TOKEN_CONTRACTS__[cacheKey] = {
-                            id,
-                            contractAddress,
-                            username,
-                            userTag,
-                            symbol: tokenSymbol,
-                            timestamp: Date.now()
-                        };
-                    } catch (e) {
-                        // 저장 실패는 무시
+                    // tokenSymbol도 추출
+                    const symbolMatch = content.match(/\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/);
+                    if (symbolMatch && symbolMatch[1]) {
+                        tokenSymbol = symbolMatch[1];
                     }
 
-                    // 새로운 토큰일 때만 로그 및 메시지 전송 (중복 방지)
-                    if (isNewToken) {
-                        log.info('✅ 토큰 컨트랙트 주소 캐시됨', {
-                            username,
-                            userTag,
-                            id,
-                            contractAddress,
-                            symbol: tokenSymbol,
-                            cacheKey
-                        });
-
-                        // Content Script에 토큰 컨트랙트 캐시 알림 (최초 1회만)
-                        window.postMessage(
-                            {
-                                source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
-                                data: {
-                                    id,
-                                    contractAddress,
-                                    username,
-                                    userTag,
-                                    symbol: tokenSymbol,
-                                    timestamp: Date.now()
-                                },
-                            },
-                            '*'
-                        );
+                    if (tokenAddress) {
+                        break;
                     }
                 }
             }
 
-            return originalFetch.apply(this, args);
-        };
+            // 방법 2: DOM에서 직접 심볼 추출 (폴백)
+            if (!tokenSymbol) {
+                const symbolElement = document.querySelector('.Profile_symbol__TEC9N');
+                if (symbolElement) {
+                    tokenSymbol = symbolElement.textContent?.trim() || null;
+                }
+            }
+
+            if (tokenAddress) {
+                return {
+                    contractAddress: tokenAddress,
+                    username,
+                    userTag,
+                    symbol: tokenSymbol,
+                    timestamp: Date.now()
+                };
+            }
+
+            return null;
+        } catch (e) {
+            log.error('__next_f 토큰 추출 실패', e);
+            return null;
+        }
     }
+
+    // 원본 fetch 저장
+    const originalFetch = window.fetch;
+
+    // NOTE: fetch intercept 비활성화 - __next_f 방식으로 대체
+    // price API 호출 대기 없이 __next_f에서 즉시 토큰 주소 추출
+    // if (typeof originalFetch === 'function') {
+    //     window.fetch = function (...args) {
+    //         const [url, options = {}] = args;
+    //         const urlString = typeof url === 'string' ? url : url?.url || '';
+    //
+    //
+    //         // /api/service/public/price/latest/{id}/{contractAddress} 요청 감지
+    //         const priceMatch = urlString.match(/\/api\/service\/public\/price\/latest\/([^\/]+)\/(0x[a-fA-F0-9]+)/);
+    //         if (priceMatch) {
+    //             const [, id, contractAddress] = priceMatch;
+    //
+    //             // 현재 브라우저 URL에서 profile/{username}/{usertag} 추출
+    //             const currentUrl = window.location.href;
+    //             const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+    //
+    //             if (profileMatch) {
+    //                 const [, username, userTag] = profileMatch;
+    //                 const cacheKey = `${username}#${userTag}`;
+    //
+    //                 // 이미 같은 토큰이 캐시되어 있는지 확인 (중복 메시지 방지)
+    //                 const existingCache = tokenContractCache.get(cacheKey);
+    //                 const isNewToken = !existingCache || existingCache.contractAddress !== contractAddress;
+    //
+    //                 // DOM에서 토큰 심볼 파싱 (.Profile_symbol__TEC9N 요소)
+    //                 let tokenSymbol = null;
+    //                 try {
+    //                     const symbolElement = document.querySelector('.Profile_symbol__TEC9N');
+    //                     if (symbolElement) {
+    //                         tokenSymbol = symbolElement.textContent?.trim() || null;
+    //                     }
+    //                 } catch (e) {
+    //                     // DOM 파싱 실패는 무시
+    //                 }
+    //
+    //                 // 캐시에 저장 (항상 업데이트 - timestamp 갱신)
+    //                 tokenContractCache.set(cacheKey, {
+    //                     id,
+    //                     contractAddress,
+    //                     username,
+    //                     userTag,
+    //                     symbol: tokenSymbol,
+    //                     timestamp: Date.now()
+    //                 });
+    //
+    //                 // 새로운 토큰일 때만 로그 및 메시지 전송 (중복 방지)
+    //                 if (isNewToken) {
+    //                     log.info('✅ 토큰 컨트랙트 주소 캐시됨', {
+    //                         username,
+    //                         userTag,
+    //                         id,
+    //                         contractAddress,
+    //                         symbol: tokenSymbol,
+    //                         cacheKey
+    //                     });
+    //
+    //                     // Content Script에 토큰 컨트랙트 캐시 알림 (최초 1회만)
+    //                     window.postMessage(
+    //                         {
+    //                             source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
+    //                             data: {
+    //                                 id,
+    //                                 contractAddress,
+    //                                 username,
+    //                                 userTag,
+    //                                 symbol: tokenSymbol,
+    //                                 timestamp: Date.now()
+    //                             },
+    //                         },
+    //                         '*'
+    //                     );
+    //                 }
+    //             }
+    //         }
+    //
+    //         return originalFetch.apply(this, args);
+    //     };
+    // }
 
     // 로깅 헬퍼
     const log = {
@@ -385,12 +438,13 @@
                 // 3. 토큰 컨트랙트 캐시 초기화
                 tokenContractCache.clear();
 
-                // 4. window에 저장된 토큰 컨트랙트 정보 삭제
-                try {
-                    delete window.__SQUID_MEME_TOKEN_CONTRACTS__;
-                } catch (e) {
-                    // 삭제 실패는 무시
-                }
+                // NOTE: window 캐시 비활성화 - 이벤트 드리븐 방식으로 대체
+                // // 4. window에 저장된 토큰 컨트랙트 정보 삭제
+                // try {
+                //     delete window.__SQUID_MEME_TOKEN_CONTRACTS__;
+                // } catch (e) {
+                //     // 삭제 실패는 무시
+                // }
 
                 // 5. localStorage의 Mock 토큰 삭제 (개발/테스트 환경)
                 try {
@@ -517,101 +571,101 @@
      * SPA 네비게이션 감지
      * history.pushState와 replaceState를 가로채서 Content Script에 알림
      */
-    // function setupSpaNavigationDetection() {
-    //     let lastUrl = window.location.href;
+    function setupSpaNavigationDetection() {
+        let lastUrl = window.location.href;
 
-    //     // URL 변경 알림 함수 (캐시 미사용 - 항상 __next_f에서 직접 추출)
-    //     const notifyUrlChange = (newUrl, type) => {
-    //         if (newUrl === lastUrl) {
-    //             return;
-    //         }
+        // URL 변경 알림 함수 (캐시 미사용 - 항상 __next_f에서 직접 추출)
+        const notifyUrlChange = (newUrl, type) => {
+            if (newUrl === lastUrl) {
+                return;
+            }
 
-    //         log.info(`🔄 SPA Navigation detected (${type})`, {
-    //             from: lastUrl,
-    //             to: newUrl
-    //         });
+            log.info(`🔄 SPA Navigation detected (${type})`, {
+                from: lastUrl,
+                to: newUrl
+            });
 
-    //         lastUrl = newUrl;
+            lastUrl = newUrl;
 
-    //         // 프로필 페이지인지 확인
-    //         const profileMatch = newUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+            // 프로필 페이지인지 확인
+            const profileMatch = newUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-    //         // Content Script에 URL 변경 알림 (토큰 정보 없이 먼저 전송)
-    //         window.postMessage(
-    //             {
-    //                 source: MESSAGE_SOURCE.SPA_NAVIGATION,
-    //                 data: {
-    //                     url: newUrl,
-    //                     type: type,
-    //                     timestamp: Date.now()
-    //                 },
-    //                 cachedToken: null  // 캐시 미사용
-    //             },
-    //             '*'
-    //         );
+            // Content Script에 URL 변경 알림 (토큰 정보 없이 먼저 전송)
+            window.postMessage(
+                {
+                    source: MESSAGE_SOURCE.SPA_NAVIGATION,
+                    data: {
+                        url: newUrl,
+                        type: type,
+                        timestamp: Date.now()
+                    },
+                    cachedToken: null  // 캐시 미사용
+                },
+                '*'
+            );
 
-    //         // 프로필 페이지면 __next_f에서 토큰 정보 추출 후 전송
-    //         if (profileMatch) {
-    //             // DOM 렌더링 후 __next_f 추출 시도 (약간의 딜레이)
-    //             const tryExtractToken = (attempt = 1) => {
-    //                 const tokenInfo = extractTokenFromNextF();
+            // 프로필 페이지면 __next_f에서 토큰 정보 추출 후 전송
+            if (profileMatch) {
+                // DOM 렌더링 후 __next_f 추출 시도 (약간의 딜레이)
+                const tryExtractToken = (attempt = 1) => {
+                    const tokenInfo = extractTokenFromNextF();
 
-    //                 if (tokenInfo) {
-    //                     log.info(`__next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
-    //                     window.postMessage(
-    //                         {
-    //                             source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
-    //                             data: tokenInfo,
-    //                         },
-    //                         '*'
-    //                     );
-    //                 } else if (attempt < 5) {
-    //                     // 최대 5회 재시도 (100ms, 300ms, 500ms, 700ms)
-    //                     log.info(`토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
-    //                     setTimeout(() => tryExtractToken(attempt + 1), 200 * attempt);
-    //                 } else {
-    //                     log.warn('토큰 정보 추출 실패 (최대 재시도 초과)');
-    //                 }
-    //             };
+                    if (tokenInfo) {
+                        log.info(`__next_f에서 토큰 정보 추출 성공 (시도 ${attempt})`, tokenInfo);
+                        window.postMessage(
+                            {
+                                source: MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED,
+                                data: tokenInfo,
+                            },
+                            '*'
+                        );
+                    } else if (attempt < 5) {
+                        // 최대 5회 재시도 (100ms, 200ms, 300ms, 400ms)
+                        log.info(`토큰 정보 없음, 재시도 예약 (시도 ${attempt})`);
+                        setTimeout(() => tryExtractToken(attempt + 1), 100 * attempt);
+                    } else {
+                        log.warn('토큰 정보 추출 실패 (최대 재시도 초과)');
+                    }
+                };
 
-    //             // 첫 시도는 약간의 딜레이 후
-    //             setTimeout(() => tryExtractToken(1), 100);
-    //         }
-    //     };
+                // 첫 시도는 약간의 딜레이 후 (DOM 렌더링 대기)
+                setTimeout(() => tryExtractToken(1), 50);
+            }
+        };
 
-    //     // history.pushState 가로채기
-    //     const originalPushState = history.pushState;
-    //     history.pushState = function (...args) {
-    //         const result = originalPushState.apply(this, args);
-    //         // pushState 후 약간의 딜레이를 주고 URL 확인
-    //         setTimeout(() => {
-    //             notifyUrlChange(window.location.href, 'pushState');
-    //         }, 0);
-    //         return result;
-    //     };
+        // history.pushState 가로채기
+        const originalPushState = history.pushState;
+        history.pushState = function (...args) {
+            const result = originalPushState.apply(this, args);
+            // pushState 후 약간의 딜레이를 주고 URL 확인
+            setTimeout(() => {
+                notifyUrlChange(window.location.href, 'pushState');
+            }, 0);
+            return result;
+        };
 
-    //     // history.replaceState 가로채기
-    //     const originalReplaceState = history.replaceState;
-    //     history.replaceState = function (...args) {
-    //         const result = originalReplaceState.apply(this, args);
-    //         setTimeout(() => {
-    //             notifyUrlChange(window.location.href, 'replaceState');
-    //         }, 0);
-    //         return result;
-    //     };
+        // history.replaceState 가로채기
+        const originalReplaceState = history.replaceState;
+        history.replaceState = function (...args) {
+            const result = originalReplaceState.apply(this, args);
+            setTimeout(() => {
+                notifyUrlChange(window.location.href, 'replaceState');
+            }, 0);
+            return result;
+        };
 
-    //     // popstate 이벤트 (브라우저 뒤로/앞으로 버튼)
-    //     window.addEventListener('popstate', () => {
-    //         setTimeout(() => {
-    //             notifyUrlChange(window.location.href, 'popstate');
-    //         }, 0);
-    //     });
+        // popstate 이벤트 (브라우저 뒤로/앞으로 버튼)
+        window.addEventListener('popstate', () => {
+            setTimeout(() => {
+                notifyUrlChange(window.location.href, 'popstate');
+            }, 0);
+        });
 
-    //     log.info('✅ SPA navigation detection 설정 완료');
-    // }
+        log.info('✅ SPA navigation detection 설정 완료');
+    }
 
-    // // SPA 네비게이션 감지 설정
-    // setupSpaNavigationDetection();
+    // SPA 네비게이션 감지 설정
+    setupSpaNavigationDetection();
 
     log.info('Injected script ready');
 })();

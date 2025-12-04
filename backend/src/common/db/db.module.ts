@@ -22,6 +22,18 @@ export const PG_POOL = 'PG_POOL';
 
                 const pool = new Pool({
                     connectionString,
+                    // Supabase Transaction mode pooler 호환 설정
+                    max: 10, // 최대 연결 수 제한
+                    idleTimeoutMillis: 30000, // 30초 유휴 타임아웃
+                    connectionTimeoutMillis: 10000, // 10초 연결 타임아웃
+                });
+
+                // Pool 에러 핸들러 등록 (unhandled error 방지)
+                pool.on('error', (err) => {
+                    logger.error(
+                        `❌ PostgreSQL Pool 에러: ${err.message}`,
+                    );
+                    // 연결 에러는 로깅만 하고 프로세스 크래시 방지
                 });
 
                 // 연결 테스트

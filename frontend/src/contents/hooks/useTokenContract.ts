@@ -167,8 +167,14 @@ export function useTokenContract() {
       forceRefresh = false
     ): Promise<GameInfo | null> => {
       // 중복 조회 방지 (단, activeGameInfo가 null이면 재조회 허용)
-      if (!forceRefresh && lastTokenAddressRef.current === tokenAddress && activeGameInfo) {
-        logger.debug("이미 조회한 토큰 주소 (게임 정보 있음)", { tokenAddress });
+      if (
+        !forceRefresh &&
+        lastTokenAddressRef.current === tokenAddress &&
+        activeGameInfo
+      ) {
+        logger.debug("이미 조회한 토큰 주소 (게임 정보 있음)", {
+          tokenAddress,
+        });
         return null;
       }
 
@@ -304,43 +310,44 @@ export function useTokenContract() {
     [setCurrentPageInfo, fetchGameByToken]
   );
 
-  /**
-   * window에서 초기 토큰 정보 확인
-   */
-  const checkInitialTokenInfo = useCallback(() => {
-    try {
-      const cachedTokens = (window as any).__SQUID_MEME_TOKEN_CONTRACTS__;
-      const currentUrl = window.location.href;
-      const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+  // NOTE: 이벤트 드리븐 방식으로 모든 케이스가 커버되므로 폴링 방식 비활성화
+  // /**
+  //  * window에서 초기 토큰 정보 확인
+  //  */
+  // const checkInitialTokenInfo = useCallback(() => {
+  //   try {
+  //     const cachedTokens = (window as any).__SQUID_MEME_TOKEN_CONTRACTS__;
+  //     const currentUrl = window.location.href;
+  //     const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-      logger.info("초기 토큰 정보 확인 시작", {
-        hasCachedTokens: !!cachedTokens,
-        currentUrl,
-        isProfilePage: !!profileMatch,
-      });
+  //     logger.info("초기 토큰 정보 확인 시작", {
+  //       hasCachedTokens: !!cachedTokens,
+  //       currentUrl,
+  //       isProfilePage: !!profileMatch,
+  //     });
 
-      if (cachedTokens && typeof cachedTokens === "object" && profileMatch) {
-        const [, username, userTag] = profileMatch;
-        const cacheKey = `${username}#${userTag}`;
+  //     if (cachedTokens && typeof cachedTokens === "object" && profileMatch) {
+  //       const [, username, userTag] = profileMatch;
+  //       const cacheKey = `${username}#${userTag}`;
 
-        const tokenInfo = cachedTokens[cacheKey];
-        logger.info("캐시 확인", { cacheKey, hasTokenInfo: !!tokenInfo });
+  //       const tokenInfo = cachedTokens[cacheKey];
+  //       logger.info("캐시 확인", { cacheKey, hasTokenInfo: !!tokenInfo });
 
-        if (tokenInfo) {
-          logger.info("초기 토큰 정보 발견", tokenInfo);
-          // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
-          lastTokenAddressRef.current = null;
-          handleTokenContractCached(tokenInfo);
-        } else {
-          logger.info(
-            "캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기"
-          );
-        }
-      }
-    } catch (err) {
-      logger.error("초기 토큰 정보 확인 실패", err);
-    }
-  }, [handleTokenContractCached]);
+  //       if (tokenInfo) {
+  //         logger.info("초기 토큰 정보 발견", tokenInfo);
+  //         // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
+  //         lastTokenAddressRef.current = null;
+  //         handleTokenContractCached(tokenInfo);
+  //       } else {
+  //         logger.info(
+  //           "캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기"
+  //         );
+  //       }
+  //     }
+  //   } catch (err) {
+  //     logger.error("초기 토큰 정보 확인 실패", err);
+  //   }
+  // }, [handleTokenContractCached]);
 
   /**
    * SPA 네비게이션 시 상태 초기화
@@ -402,15 +409,16 @@ export function useTokenContract() {
 
     window.addEventListener("message", handleMessage);
 
-    // 초기 토큰 정보 확인 (이미 캐시되어 있는 경우)
-    checkInitialTokenInfo();
+    // NOTE: 이벤트 드리븐 방식으로 모든 케이스가 커버되므로 폴링 방식 비활성화
+    // checkInitialTokenInfo();
 
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [handleTokenContractCached, checkInitialTokenInfo, resetState]);
+  }, [handleTokenContractCached, resetState]);
 
   return {
+    activeGameInfo,
     currentPageInfo,
     isLoading,
     error,

@@ -376,6 +376,8 @@ export function createMessageHandler() {
           }
 
           case "PROFILE_URL_CHANGED": {
+            // NOTE: 프로필 캐시 버그로 인해 local storage 저장 비활성화
+            // 내 프로필인 경우 session storage 업데이트만 수행
             const {
               username,
               userTag,
@@ -421,66 +423,8 @@ export function createMessageHandler() {
               const isMyProfile =
                 loggedInUsername === username && loggedInUserTag === userTag;
 
-              const profileStorageKey = "profile";
-              const profileKey = `${username}#${userTag}`;
-
-              const existingProfiles = await new Promise<Record<string, any>>(
-                (resolve) => {
-                  storage.local.get([profileStorageKey], (result: any) => {
-                    const runtime =
-                      browser?.runtime || (globalThis as any).chrome?.runtime;
-                    if (runtime?.lastError) {
-                      resolve({});
-                      return;
-                    }
-                    resolve(result[profileStorageKey] || {});
-                  });
-                }
-              );
-
+              // 내 프로필인 경우에만 session storage 업데이트
               if (isMyProfile) {
-                const existingProfile = existingProfiles[profileKey];
-
-                if (
-                  existingProfile &&
-                  existingProfile.profileImageUrl &&
-                  existingProfile.tokenAddr &&
-                  existingProfile.tokenSymbol &&
-                  existingProfile.memexWalletAddress
-                ) {
-                  result = {
-                    success: true,
-                    data: { success: true, skipped: true },
-                  };
-                  break;
-                }
-
-                const profileData = {
-                  profileImageUrl: profileInfo.profileImageUrl,
-                  tokenAddr: profileInfo.tokenAddr,
-                  tokenSymbol: profileInfo.tokenSymbol,
-                  tokenImageUrl: profileInfo.tokenImageUrl,
-                  memexWalletAddress: profileInfo.memexWalletAddress,
-                  updatedAt: Date.now(),
-                };
-
-                existingProfiles[profileKey] = profileData;
-
-                await new Promise<void>((resolve, reject) => {
-                  storage.local.set(
-                    { [profileStorageKey]: existingProfiles },
-                    () => {
-                      const runtime =
-                        browser?.runtime || (globalThis as any).chrome?.runtime;
-                      if (runtime?.lastError) {
-                        reject(new Error(runtime.lastError.message));
-                        return;
-                      }
-                      resolve();
-                    }
-                  );
-                });
-
                 const updatedState = {
                   ...sessionState,
                   isMemexLoggedIn: true,
@@ -507,49 +451,8 @@ export function createMessageHandler() {
                     }
                   );
                 });
-              } else {
-                const existingCache = existingProfiles[profileKey];
-
-                if (
-                  existingCache &&
-                  existingCache.profileImageUrl &&
-                  existingCache.tokenAddr &&
-                  existingCache.tokenSymbol &&
-                  existingCache.memexWalletAddress
-                ) {
-                  result = {
-                    success: true,
-                    data: { success: true, skipped: true },
-                  };
-                  break;
-                }
-
-                const profileData = {
-                  profileImageUrl: profileInfo.profileImageUrl,
-                  tokenAddr: profileInfo.tokenAddr,
-                  tokenSymbol: profileInfo.tokenSymbol,
-                  tokenImageUrl: profileInfo.tokenImageUrl,
-                  memexWalletAddress: profileInfo.memexWalletAddress,
-                  updatedAt: Date.now(),
-                };
-
-                existingProfiles[profileKey] = profileData;
-
-                await new Promise<void>((resolve, reject) => {
-                  storage.local.set(
-                    { [profileStorageKey]: existingProfiles },
-                    () => {
-                      const runtime =
-                        browser?.runtime || (globalThis as any).chrome?.runtime;
-                      if (runtime?.lastError) {
-                        reject(new Error(runtime.lastError.message));
-                        return;
-                      }
-                      resolve();
-                    }
-                  );
-                });
               }
+              // 다른 사람 프로필은 더 이상 local storage에 캐시하지 않음
 
               result = { success: true, data: { success: true } };
             } catch (error: any) {
@@ -917,18 +820,63 @@ export function createMessageHandler() {
             break;
           }
 
-          // FIXME: 이거 Connect Wallet시에 강제로 url이동시켜서 구글 버튼 클릭하게 해야되요.
-          // 안그러면 사용자가 직접 app.memex.xyz로 이동해서 이 메서드가 실행되어야 되는데, 그렇게는 실행 안할거 같아서요.
-          // 강제 이동후 구글로그인 버튼이 아니면, memex Login 버튼을 눌려도 아무 동작안하는 화면만 사용자가 보게되어요.
           case "MEMEX_LOGIN": {
             try {
               const { browser } = await import("wxt/browser");
               const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
               const scripting = (globalThis as any).chrome?.scripting;
 
-              const memexTabs = await tabs.query({
+              const triggerLogin = (message as any).triggerLogin ?? false;
+
+              let memexTabs = await tabs.query({
                 url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
               });
+
+              // triggerLogin이 true이고 memex 탭이 없으면 현재 활성 탭을 memex로 이동
+              if (triggerLogin && memexTabs.length === 0) {
+                const [activeTab] = await tabs.query({
+                  active: true,
+                  currentWindow: true,
+                });
+
+                if (activeTab?.id) {
+                  // 현재 활성 탭을 app.memex.xyz로 이동
+                  await tabs.update(activeTab.id, {
+                    url: "https://app.memex.xyz",
+                  });
+
+                  // 페이지 로드 완료를 기다림
+                  await new Promise<void>((resolve) => {
+                    const listener = (
+                      tabId: number,
+                      changeInfo: { status?: string }
+                    ) => {
+                      if (
+                        tabId === activeTab.id &&
+                        changeInfo.status === "complete"
+                      ) {
+                        tabs.onUpdated.removeListener(listener);
+                        resolve();
+                      }
+                    };
+                    tabs.onUpdated.addListener(listener);
+
+                    // 타임아웃 (10초)
+                    setTimeout(() => {
+                      tabs.onUpdated.removeListener(listener);
+                      resolve();
+                    }, 10000);
+                  });
+
+                  // 추가 대기 (DOM 렌더링 시간)
+                  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+                  // memex 탭 다시 조회
+                  memexTabs = await tabs.query({
+                    url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                  });
+                }
+              }
 
               if (memexTabs.length === 0) {
                 result = { success: true, data: { isLoggedIn: false } };
@@ -940,8 +888,6 @@ export function createMessageHandler() {
                 result = { success: true, data: { isLoggedIn: false } };
                 break;
               }
-
-              const triggerLogin = (message as any).triggerLogin ?? false;
 
               const messageToSend = {
                 type: "MEMEX_LOGIN",
@@ -959,6 +905,7 @@ export function createMessageHandler() {
                   target: { tabId: targetTab.id },
                   world: "MAIN",
                   func: (shouldTriggerLogin: boolean) => {
+                    // 먼저 gtm_user_identifier 확인
                     try {
                       const data = window.sessionStorage.getItem(
                         "gtm_user_identifier"
@@ -966,6 +913,7 @@ export function createMessageHandler() {
                       if (data) {
                         const parsed = JSON.parse(data);
                         if (parsed.username && parsed.user_tag) {
+                          // 이미 로그인 되어있음
                           return {
                             success: true,
                             isLoggedIn: true,
@@ -978,6 +926,7 @@ export function createMessageHandler() {
                       // 파싱 오류 무시
                     }
 
+                    // 로그인 되어있지 않고 triggerLogin이 true인 경우
                     if (shouldTriggerLogin) {
                       const googleButton = (document.querySelector(
                         'button[class*="googleButton"]'
@@ -996,13 +945,16 @@ export function createMessageHandler() {
                           isLoggedIn: false,
                           loginStarted: true,
                         };
-                      } else {
-                        return {
-                          success: true,
-                          isLoggedIn: false,
-                          loginStarted: false,
-                        };
                       }
+                      // 구글 버튼이 없는 경우 - 이미 로그인 화면이 아님
+                      // gtm_user_identifier가 없지만 구글 버튼도 없으면
+                      // 페이지가 아직 로딩중이거나 이미 로그인 후 다른 페이지일 수 있음
+                      return {
+                        success: true,
+                        isLoggedIn: false,
+                        loginStarted: false,
+                        noGoogleButton: true,
+                      };
                     }
 
                     return {

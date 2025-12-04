@@ -1,5 +1,3 @@
-import { useAtomValue } from "jotai";
-import { activeGameInfoAtom } from "../atoms/commentAtoms";
 import { useTokenContract } from "../hooks/useTokenContract";
 import { useUserInfo } from "../hooks/useUserInfo";
 import { CommentSection } from "./comment-section";
@@ -13,8 +11,7 @@ export function ProfilePage() {
   useUserInfo();
 
   // 토큰 컨트랙트 감지 및 게임 정보 조회
-  const { isLoading: isTokenLoading } = useTokenContract();
-  const activeGameInfo = useAtomValue(activeGameInfoAtom);
+  const { activeGameInfo, isLoading: isTokenLoading } = useTokenContract();
 
   if (isTokenLoading) {
     return (
