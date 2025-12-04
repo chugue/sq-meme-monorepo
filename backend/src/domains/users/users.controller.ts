@@ -6,6 +6,7 @@ import {
     HttpStatus,
     Param,
     Post,
+    Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { WalletAddress } from 'src/common/decorators';
@@ -65,8 +66,8 @@ export class UsersController {
      * 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
      */
     @Get('prize-ranking')
-    async getPrizeRanking() {
-        return this.usersService.getPrizeRanking();
+    async getPrizeRanking(@Query('limit') limit?: number) {
+        return this.usersService.getPrizeRanking(limit);
     }
 
     /**

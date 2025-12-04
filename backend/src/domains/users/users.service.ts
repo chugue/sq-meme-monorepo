@@ -270,7 +270,7 @@ export class UsersService {
      * @description 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
      */
     async getPrizeRanking(
-        limit: number,
+        limit?: number,
     ): Promise<Result<{ prizeRanking: PrizeRankItem[] }>> {
         try {
             const prizeRankingRaw =

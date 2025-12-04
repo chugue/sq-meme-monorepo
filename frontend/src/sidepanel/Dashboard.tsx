@@ -29,7 +29,7 @@ interface DashboardProps {
   walletAddress?: string;
   onNavigateToProfile?: () => void;
   onNavigateToLeaderboard?: () => void;
-  onNavigateToMyGames?: () => void;
+  onNavigateToLiveGames?: () => void;
   onNavigateToMyAssets?: () => void;
   onNavigateToHowToPlay?: () => void;
   onNavigateToQuest?: () => void;
@@ -39,7 +39,7 @@ export function Dashboard({
   walletAddress: walletAddressProp,
   onNavigateToProfile,
   onNavigateToLeaderboard,
-  onNavigateToMyGames,
+  onNavigateToLiveGames,
   onNavigateToMyAssets,
   onNavigateToHowToPlay,
   onNavigateToQuest,
@@ -64,7 +64,6 @@ export function Dashboard({
         <img src={homeBg} alt="Background" className="bg-image" />
         <img src={homeFloor} alt="Floor" className="floor-image" />
       </div>
-
       {/* Left Top: Profile Box with Image */}
       <button className="profile-btn" onClick={onNavigateToProfile}>
         <div className="profile-box-container">
@@ -85,7 +84,6 @@ export function Dashboard({
           className="profile-banner"
         />
       </button>
-
       {/* Right: Menu Icons (Vertical) */}
       <div className="menu-icons-vertical">
         <button
@@ -132,7 +130,6 @@ export function Dashboard({
           </span>
         </button>
       </div>
-
       {/* Main Content: Squid Character and Asset Display */}
       <section className="main-content">
         <div className="squid-character-container">
@@ -143,16 +140,14 @@ export function Dashboard({
           </div>
         </div>
       </section>
-
-      {/* Bottom: Logo and Live Game Banner */}
-      <div className="bottom-section">
+      ㄴ{/* Bottom: Logo and Live Game Banner */}
+      <button className="bottom-section" onClick={onNavigateToLiveGames}>
         <img src={logoIcon} alt="Logo" className="logo-image" />
-        <button className="live-game-banner" onClick={onNavigateToMyGames}>
+        <div className="live-game-banner">
           <img src={homeBanner} alt="Live Games" className="banner-image" />
           <span className="live-game-banner-text">Live Games</span>
-        </button>
-      </div>
-
+        </div>
+      </button>
       {/* Footer */}
       <footer className="dashboard-footer">
         <span className="wallet-label">Connected:</span>

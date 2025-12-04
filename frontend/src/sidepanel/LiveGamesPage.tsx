@@ -1,7 +1,7 @@
 import { ChevronLeft, Home } from "lucide-react";
 import { useEffect } from "react";
 import { useMemexLogin } from "./hooks/useMemexLogin";
-import "./MyGamesPage.css";
+import "./LiveGamesPage.css";
 
 // Mock data
 const mockUserData = {
@@ -50,7 +50,7 @@ interface MyGamesPageProps {
   onBack: () => void;
 }
 
-export function MyGamesPage({ onBack }: MyGamesPageProps) {
+export function LiveGamesPage({ onBack }: MyGamesPageProps) {
   const { username, profileImageUrl } = useMemexLogin();
 
   useEffect(() => {}, []);
