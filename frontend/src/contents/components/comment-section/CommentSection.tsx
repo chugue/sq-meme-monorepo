@@ -4,9 +4,9 @@
  */
 
 import { useAtomValue } from "jotai";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Address } from "viem";
-import { parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
 import { useComments } from "../../hooks/useComments";
 import { useWallet } from "../../hooks/useWallet";
@@ -33,10 +33,6 @@ export function CommentSection() {
         location: window.location.href,
     });
 
-    const activeGameInfo = useAtomValue(activeGameInfoAtom);
-    const hasValidGame = !!(activeGameInfo?.id);
-    const gameId = hasValidGame ? activeGameInfo.id : null;
-    const { comments, isLoading, refetch } = useComments(gameId);
     const {
         isConnected,
         address,
@@ -46,18 +42,17 @@ export function CommentSection() {
         isLoading: walletLoading,
         error: walletError,
     } = useWallet();
+
+    const activeGameInfo = useAtomValue(activeGameInfoAtom);
+    // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
+    const hasValidGame = !!(activeGameInfo?.id);
+    const gameId = hasValidGame ? activeGameInfo.id : null;
+    const { comments, isLoading, refetch, toggleLike } = useComments(gameId, address);
     const [newComment, setNewComment] = useState("");
     const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [fundingAmount, setFundingAmount] = useState("");
     const [isFunding, setIsFunding] = useState(false);
-    // 컴포넌트가 마운트될 때마다 댓글 새로고침 (팝업이 다시 열릴 때 포함)
-    useEffect(() => {
-        if (gameId) {
-            logger.info("CommentSection 마운트됨, 댓글 새로고침", { gameId });
-            refetch();
-        }
-    }, [gameId, refetch]);
 
     // 펀딩 핸들러
     const handleFund = useCallback(async () => {
@@ -418,20 +413,24 @@ export function CommentSection() {
                         isSubmitting={isSubmitting}
                         isSigning={false}
                         isConnected={isConnected}
-                    />
-                    <CommentForm
-                        value={newComment}
-                        onChange={setNewComment}
-                        imageUrl={commentImageUrl}
-                        onImageChange={setCommentImageUrl}
-                        onSubmit={handleSubmit}
-                        isSubmitting={isSubmitting}
-                        isSigning={false}
-                        isConnected={isConnected}
+                        tokenSymbol={activeGameInfo?.tokenSymbol}
+                        commentCost={
+                            activeGameInfo?.totalFunding
+                                ? formatUnits(BigInt(activeGameInfo.totalFunding) / 10000n, 18)
+                                : undefined
+                        }
                     />
 
                     <div className="squid-comments-list">
-                        <CommentList comments={comments} isLoading={isLoading} />
+                        <CommentList
+                            comments={comments}
+                            isLoading={isLoading}
+                            onToggleLike={(commentId) => {
+                                if (address) {
+                                    toggleLike({ commentId, walletAddress: address });
+                                }
+                            }}
+                        />
                     </div>
                 </>
             ) : (
@@ -443,17 +442,6 @@ export function CommentSection() {
                     </p>
                 </div>
             )}
-
-            <div className="squid-comments-list">
-                <CommentList comments={comments} isLoading={isLoading} />
-            </div>
-            <div className="squid-no-game-section">
-                <div className="squid-no-game-icon">🎮</div>
-                <div className="squid-no-game-title">NO ACTIVE GAME</div>
-                <p className="squid-no-game-description">
-                    There is no active game for this token yet.
-                </p>
-            </div>
-        </div >
+        </div>
     );
 }

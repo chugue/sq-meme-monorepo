@@ -4,9 +4,10 @@ import { formatAddress, formatRelativeTime } from '../../utils/messageFormatter'
 interface CommentListProps {
     comments: Comment[];
     isLoading: boolean;
+    onToggleLike?: (commentId: number) => void;
 }
 
-export function CommentList({ comments, isLoading }: CommentListProps) {
+export function CommentList({ comments, isLoading, onToggleLike }: CommentListProps) {
     if (isLoading) {
         return <div className="squid-comment-loading">LOADING...</div>;
     }
@@ -39,12 +40,16 @@ export function CommentList({ comments, isLoading }: CommentListProps) {
                                 {formatRelativeTime(comment.createdAt)}
                             </span>
                         </div>
-                        <div className="squid-comment-like">
+                        <button
+                            className={`squid-comment-like${comment.isLiked ? ' liked' : ''}`}
+                            onClick={() => onToggleLike?.(comment.id)}
+                            type="button"
+                        >
                             <span className="squid-comment-like-icon">&#10084;</span>
                             <span className="squid-comment-like-count">
                                 {comment.likeCount ?? 0}
                             </span>
-                        </div>
+                        </button>
                     </div>
                     <div className="squid-comment-body">
                         <div className="squid-comment-content">{comment.message}</div>

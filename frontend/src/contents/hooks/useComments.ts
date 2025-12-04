@@ -19,7 +19,7 @@ function deduplicateComments(comments: Comment[]): Comment[] {
     return Array.from(seen.values());
 }
 
-export function useComments(gameId: string | null) {
+export function useComments(gameId: string | null, walletAddress: string | null) {
     const queryClient = useQueryClient();
     const prevGameIdRef = useRef<string | null>(null);
 
@@ -44,7 +44,7 @@ export function useComments(gameId: string | null) {
         isLoading,
         refetch,
     } = useQuery({
-        queryKey: ["comments", gameId],
+        queryKey: ["comments", gameId, walletAddress],
         queryFn: async () => {
             if (!gameId) {
                 logger.warn("useComments: gameId가 없음");
@@ -52,7 +52,7 @@ export function useComments(gameId: string | null) {
             }
             try {
                 logger.info("댓글 조회 시작 (DB)", { gameId });
-                const data = await backgroundApi.getComments(gameId);
+                const data = await backgroundApi.getComments(gameId, walletAddress || undefined);
                 logger.info("댓글 조회 완료 (DB)", {
                     gameId,
                     count: data?.length || 0,
@@ -66,9 +66,8 @@ export function useComments(gameId: string | null) {
         },
         enabled: !!gameId,
         retry: 1,
-        staleTime: 0, // 항상 최신 데이터 가져오기
+        staleTime: 2000, // 2초간 fresh 상태 유지 (불필요한 refetch 방지)
         refetchOnWindowFocus: false, // 윈도우 포커스 시 자동 refetch 비활성화
-        refetchOnMount: true, // 마운트 시 항상 refetch
     });
 
     // 댓글 작성
@@ -95,22 +94,51 @@ export function useComments(gameId: string | null) {
         },
     });
 
-    // gameId가 null에서 값으로 변경될 때 명시적으로 refetch
-    useEffect(() => {
-        if (gameId && prevGameIdRef.current === null) {
-            logger.info("gameId가 null에서 값으로 변경됨, 댓글 조회 시작", { gameId });
-            // 약간의 딜레이를 두어 React Query가 먼저 처리하도록 함
-            setTimeout(() => {
-                refetch();
-            }, 100);
-        } else if (gameId && prevGameIdRef.current !== gameId) {
-            logger.info("gameId 변경 감지, 댓글 조회", { 
-                prevGameId: prevGameIdRef.current,
-                newGameId: gameId 
+    // 좋아요 토글 (옵티미스틱 업데이트)
+    const toggleLikeMutation = useMutation({
+        mutationFn: async ({ commentId, walletAddress }: { commentId: number; walletAddress: string }) => {
+            try {
+                return await backgroundApi.toggleCommentLike(commentId, walletAddress);
+            } catch (error) {
+                console.error("좋아요 토글 실패:", error);
+                throw error;
+            }
+        },
+        onMutate: async ({ commentId }) => {
+            // 진행 중인 refetch 취소
+            await queryClient.cancelQueries({ queryKey: ["comments", gameId, walletAddress] });
+
+            // 이전 상태 스냅샷
+            const previousComments = queryClient.getQueryData<Comment[]>(["comments", gameId, walletAddress]);
+
+            // 옵티미스틱 업데이트
+            queryClient.setQueryData<Comment[]>(["comments", gameId, walletAddress], (oldComments) => {
+                if (!oldComments) return oldComments;
+                return oldComments.map((comment) =>
+                    comment.id === commentId
+                        ? {
+                            ...comment,
+                            isLiked: !comment.isLiked,
+                            likeCount: comment.isLiked ? (comment.likeCount || 1) - 1 : (comment.likeCount || 0) + 1,
+                        }
+                        : comment
+                );
             });
-            refetch();
-        }
-    }, [gameId, refetch]);
+
+            // 롤백을 위한 컨텍스트 반환
+            return { previousComments };
+        },
+        onError: (_error, _variables, context) => {
+            // 에러 발생 시 이전 상태로 롤백
+            if (context?.previousComments) {
+                queryClient.setQueryData(["comments", gameId, walletAddress], context.previousComments);
+            }
+        },
+        onSettled: () => {
+            // 성공/실패 관계없이 서버와 동기화
+            queryClient.invalidateQueries({ queryKey: ["comments", gameId, walletAddress] });
+        },
+    });
 
     return {
         comments,
@@ -118,5 +146,7 @@ export function useComments(gameId: string | null) {
         refetch,
         createComment: createCommentMutation.mutateAsync,
         isSubmitting: createCommentMutation.isPending,
+        toggleLike: toggleLikeMutation.mutateAsync,
+        isTogglingLike: toggleLikeMutation.isPending,
     };
 }

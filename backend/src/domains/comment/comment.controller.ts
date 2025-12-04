@@ -34,8 +34,11 @@ export class CommentController {
     }
 
     @Get('game/:gameId')
-    async getCommentsByGameId(@Param('gameId') gameId: string) {
-        return this.commentService.getCommentsByGameId(gameId);
+    async getCommentsByGameId(
+        @Param('gameId') gameId: string,
+        @WalletAddress() userAddress: string | null,
+    ) {
+        return this.commentService.getCommentsByGameId(gameId, userAddress);
     }
 
     @Post(':id/like')

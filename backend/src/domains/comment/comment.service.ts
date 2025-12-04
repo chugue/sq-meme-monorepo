@@ -6,8 +6,8 @@ import { Result } from 'src/common/types';
 import { CreateCommentDto } from 'src/common/validator/comment.validator';
 import {
     CommentRepository,
-    ToggleLikeResult,
     LikeCountResult,
+    ToggleLikeResult,
     UserLikedResult,
 } from './comment.repository';
 
@@ -32,11 +32,30 @@ export class CommentService {
     }
 
     /**
-     * @description 게임 ID로 댓글 목록 조회
+     * @description 게임 ID로 댓글 목록 조회 (사용자 좋아요 여부 포함)
      */
-    async getCommentsByGameId(gameId: string) {
+    async getCommentsByGameId(gameId: string, userAddress: string | null) {
         try {
             const comments = await this.commentRepository.findByGameId(gameId);
+
+            // 사용자 지갑 주소가 있으면 좋아요 여부 조회
+            if (userAddress) {
+                const normalizedAddress = userAddress.toLowerCase();
+                const commentIds = comments.map((c) => c.id);
+                const likedMap = await this.commentRepository.getUserLikedMap(
+                    normalizedAddress,
+                    commentIds,
+                );
+
+                const commentsWithLiked = comments.map((comment) => ({
+                    ...comment,
+                    isLiked: likedMap.get(comment.id) ?? false,
+                    ㄴ,
+                }));
+
+                return Result.ok({ comments: commentsWithLiked });
+            }
+
             return Result.ok({ comments });
         } catch (error) {
             this.logger.error(`Get comments by game failed: ${error.message}`);
@@ -147,7 +166,9 @@ export class CommentService {
     /**
      * @description 트랜잭션 해시로 CommentAdded 이벤트를 파싱하여 댓글 저장
      */
-    async createComment(dto: CreateCommentDto): Promise<Result<{ id: number }>> {
+    async createComment(
+        dto: CreateCommentDto,
+    ): Promise<Result<{ id: number }>> {
         try {
             // 1. 중복 체크
             const existing = await this.commentRepository.findByTxHash(

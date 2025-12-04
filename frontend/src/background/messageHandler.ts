@@ -20,10 +20,15 @@ export function createMessageHandler() {
 
         switch (message.type) {
           case "GET_COMMENTS": {
+            const walletAddress = (message as any).walletAddress;
             const response = await apiCall<{
               success: boolean;
               data: { comments: any[] };
-            }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`);
+            }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`, {
+              headers: walletAddress
+                ? { "x-wallet-address": walletAddress }
+                : undefined,
+            });
             result = { success: true, data: response.data?.comments || [] };
             break;
           }
@@ -1333,6 +1338,38 @@ export function createMessageHandler() {
                   error instanceof Error
                     ? error.message
                     : "라이브 게임 조회 실패",
+              };
+            }
+            break;
+          }
+
+          case "TOGGLE_COMMENT_LIKE": {
+            try {
+              const walletAddress = (message as any).walletAddress;
+              if (!walletAddress) {
+                result = {
+                  success: false,
+                  error: "지갑 주소가 없습니다. 먼저 지갑을 연결해주세요.",
+                };
+                break;
+              }
+
+              const response = await apiCall<{
+                success: boolean;
+                data: { liked: boolean; likeCount: number };
+              }>(`/v1/comments/${message.commentId}/like`, {
+                method: "POST",
+                headers: {
+                  "x-wallet-address": walletAddress,
+                },
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 좋아요 토글 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "좋아요 토글 실패",
               };
             }
             break;
