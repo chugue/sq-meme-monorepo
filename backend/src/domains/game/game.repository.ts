@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -45,7 +45,7 @@ export class GameRepository {
     }
 
     /**
-     * @description 토큰 주소로 활성 게임을 조회합니다 (isEnded = false).
+     * @description 토큰 주소로 활성 게임을 조회합니다 (endTime > NOW()).
      * @param tokenAddress 게임 토큰 주소 (0x...)
      * @returns 활성 게임 정보 또는 null
      */
@@ -57,7 +57,8 @@ export class GameRepository {
                 .where(
                     and(
                         eq(schema.games.gameToken, tokenAddress.toLowerCase()),
-                        eq(schema.games.isEnded, false),
+                        gt(schema.games.endTime, new Date()), // 시간 기준으로 활성 여부 판단
+                        eq(schema.games.isClaimed, false),
                     ),
                 )
                 .limit(1);
@@ -299,7 +300,7 @@ export class GameRepository {
     }
 
     /**
-     * @description 게임 ID 목록으로 활성 게임 정보 조회 (isEnded = false, isClaimed = false)
+     * @description 게임 ID 목록으로 활성 게임 정보 조회 (endTime > NOW(), isClaimed = false)
      * @returns API 응답 형식에 맞게 매핑된 게임 목록
      */
     async findActiveGamesByIds(gameIds: string[]): Promise<ActiveGameDto[]> {
@@ -321,7 +322,7 @@ export class GameRepository {
                 .where(
                     and(
                         inArray(schema.games.gameId, gameIds),
-                        eq(schema.games.isEnded, false),
+                        gt(schema.games.endTime, new Date()), // 시간 기준으로 활성 여부 판단
                         eq(schema.games.isClaimed, false),
                     ),
                 )
@@ -342,7 +343,7 @@ export class GameRepository {
     }
 
     /**
-     * @description 전체 활성 게임 목록 조회 (isEnded = false, isClaimed = false)
+     * @description 전체 활성 게임 목록 조회 (endTime > NOW(), isClaimed = false)
      * 상금순으로 정렬
      */
     async findAllActiveGames(limit: number = 50): Promise<ActiveGameDto[]> {
@@ -359,7 +360,7 @@ export class GameRepository {
                 .from(schema.games)
                 .where(
                     and(
-                        eq(schema.games.isEnded, false),
+                        gt(schema.games.endTime, new Date()), // 시간 기준으로 활성 여부 판단
                         eq(schema.games.isClaimed, false),
                     ),
                 )
