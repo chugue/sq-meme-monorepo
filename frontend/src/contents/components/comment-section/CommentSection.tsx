@@ -6,6 +6,7 @@
 import { useAtomValue } from "jotai";
 import { useCallback, useState } from "react";
 import type { Address } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
 import { useComments } from "../../hooks/useComments";
 import { useWallet } from "../../hooks/useWallet";
@@ -19,7 +20,6 @@ import {
 } from "../../lib/contract/abis/commentGameV2";
 import { erc20ABI } from "../../lib/contract/abis/erc20";
 import { createContractClient } from "../../lib/contract/contractClient";
-import { formatUnits, parseUnits } from "viem";
 import { logger } from "../../lib/injected/logger";
 import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
 import { CommentForm } from "./CommentForm";
@@ -45,9 +45,12 @@ export function CommentSection() {
 
   const activeGameInfo = useAtomValue(activeGameInfoAtom);
   // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
-  const hasValidGame = !!(activeGameInfo?.id);
+  const hasValidGame = !!activeGameInfo?.id;
   const gameId = hasValidGame ? activeGameInfo.id : null;
-  const { comments, isLoading, refetch, toggleLike } = useComments(gameId, address);
+  const { comments, isLoading, refetch, toggleLike } = useComments(
+    gameId,
+    address
+  );
   const [newComment, setNewComment] = useState("");
   const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
