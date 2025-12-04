@@ -34,7 +34,8 @@ export function CommentSection() {
     });
 
     const activeGameInfo = useAtomValue(activeGameInfoAtom);
-    const gameId = activeGameInfo?.id ?? null;
+    const hasValidGame = !!(activeGameInfo?.id);
+    const gameId = hasValidGame ? activeGameInfo.id : null;
     const { comments, isLoading, refetch } = useComments(gameId);
     const {
         isConnected,
@@ -50,7 +51,6 @@ export function CommentSection() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [fundingAmount, setFundingAmount] = useState("");
     const [isFunding, setIsFunding] = useState(false);
-
     // 컴포넌트가 마운트될 때마다 댓글 새로고침 (팝업이 다시 열릴 때 포함)
     useEffect(() => {
         if (gameId) {
@@ -375,21 +375,85 @@ export function CommentSection() {
                     </div>
                 </div>
             )}
+            {/* hasValidGame일 때만 펀딩 섹션 + 댓글 폼/리스트 표시 */}
+            {hasValidGame ? (
+                <>
+                    <div className="squid-funding-section">
+                        <div className="squid-funding-header">
+                            <span className="squid-funding-title">FUND PRIZE POOL</span>
+                            <p className="squid-funding-desc">
+                                Earn comment fees based on your funding share
+                            </p>
+                        </div>
+                        <div className="squid-funding-form">
+                            <input
+                                type="number"
+                                className="squid-funding-input"
+                                placeholder="Amount to fund"
+                                value={fundingAmount}
+                                onChange={(e) => setFundingAmount(e.target.value)}
+                                disabled={isFunding}
+                                min="0"
+                                step="any"
+                            />
+                            <button
+                                type="button"
+                                className="squid-funding-button"
+                                onClick={handleFund}
+                                disabled={
+                                    isFunding || !fundingAmount || Number(fundingAmount) <= 0
+                                }
+                            >
+                                {isFunding ? "FUNDING..." : "FUND"}
+                            </button>
+                        </div>
+                    </div>
 
-            <CommentForm
-                value={newComment}
-                onChange={setNewComment}
-                imageUrl={commentImageUrl}
-                onImageChange={setCommentImageUrl}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-                isSigning={false}
-                isConnected={isConnected}
-            />
+                    <CommentForm
+                        value={newComment}
+                        onChange={setNewComment}
+                        imageUrl={commentImageUrl}
+                        onImageChange={setCommentImageUrl}
+                        onSubmit={handleSubmit}
+                        isSubmitting={isSubmitting}
+                        isSigning={false}
+                        isConnected={isConnected}
+                    />
+                    <CommentForm
+                        value={newComment}
+                        onChange={setNewComment}
+                        imageUrl={commentImageUrl}
+                        onImageChange={setCommentImageUrl}
+                        onSubmit={handleSubmit}
+                        isSubmitting={isSubmitting}
+                        isSigning={false}
+                        isConnected={isConnected}
+                    />
+
+                    <div className="squid-comments-list">
+                        <CommentList comments={comments} isLoading={isLoading} />
+                    </div>
+                </>
+            ) : (
+                <div className="squid-no-game-section">
+                    <div className="squid-no-game-icon">🎮</div>
+                    <div className="squid-no-game-title">NO ACTIVE GAME</div>
+                    <p className="squid-no-game-description">
+                        There is no active game for this token yet.
+                    </p>
+                </div>
+            )}
 
             <div className="squid-comments-list">
                 <CommentList comments={comments} isLoading={isLoading} />
             </div>
-        </div>
+            <div className="squid-no-game-section">
+                <div className="squid-no-game-icon">🎮</div>
+                <div className="squid-no-game-title">NO ACTIVE GAME</div>
+                <p className="squid-no-game-description">
+                    There is no active game for this token yet.
+                </p>
+            </div>
+        </div >
     );
 }
