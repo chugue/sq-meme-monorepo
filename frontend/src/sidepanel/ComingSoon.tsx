@@ -95,38 +95,78 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
       const cachedUserInfo = await getMemexUserInfo();
 
       if (cachedUserInfo) {
-        // GTM 키가 있으면 바로 profile 페이지로 이동 후 로그인 완료
-        console.log("✅ GTM 키 발견, profile 페이지로 이동:", cachedUserInfo);
+        // GTM 키가 있으면 바로 백엔드에서 user 정보 조회
+        console.log("✅ GTM 키 발견, 백엔드에서 user 조회:", cachedUserInfo);
         setLoggingIn(true);
 
         try {
-          // 프로필 페이지로 이동 (useMemexLogin의 fetchProfileInfo와 동일한 로직)
-          const memeXLink = `https://app.memex.xyz/profile/${cachedUserInfo.username}/${cachedUserInfo.user_tag}`;
-          // 프로필 페이지로 이동은 사용자가 직접 브라우저에서 수행
-          // URL 변경 감지로 자동으로 프로필 정보가 가져와짐
-          console.log("🖼️ [ComingSoon] 프로필 링크:", memeXLink);
-
-          // 로그인 상태 확인
+          // 백엔드에서 user 정보 조회
           const checkResult = (await backgroundApi.getUserByUsername(
             cachedUserInfo.username,
             cachedUserInfo.user_tag
-          )) as { user: User };
+          )) as { user: User | null };
 
-          if (checkResult?.user?.profileImage && onMemexLoginComplete) {
+          if (checkResult?.user && onMemexLoginComplete) {
             console.log("✅ MEMEX 로그인 완료:", checkResult.user.userName);
-            setUser(checkResult.user); // 세션에 user 저장
+            setUser(checkResult.user);
             setLoggingIn(false);
             await refetch();
             onMemexLoginComplete(cachedUserInfo.username, cachedUserInfo.user_tag);
             return;
           }
 
-          // 만약 실패하면 기존 폴링 로직으로 fallback
-          console.log("⚠️ 프로필 페이지에서 로그인 확인 실패, 폴링 시작...");
-        } catch (err) {
-          console.error("❌ 프로필 페이지 이동 실패:", err);
-          if (isContentScriptError(err)) {
+          // 백엔드에 user가 없으면 신규 사용자 - 자동 회원가입 시도
+          console.log("🆕 [cachedUserInfo] 백엔드에 user 없음, 자동 회원가입 시도...");
+
+          // 1. 프로필 정보 fetch
+          const profileInfo = await backgroundApi.fetchMemexProfileInfo(
+            cachedUserInfo.username,
+            cachedUserInfo.user_tag
+          );
+          console.log("📋 [cachedUserInfo] 프로필 정보:", profileInfo);
+
+          // 2. 지갑 주소 확인
+          if (!address) {
+            console.warn("⚠️ [cachedUserInfo] 지갑 연결 필요");
             setLoggingIn(false);
+            // 지갑 미연결 상태에서는 memexLogin으로 계속 진행
+          } else if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
+            // 3. 필수 정보 확인 후 Join 요청
+            const joinResult = await backgroundApi.join({
+              username: cachedUserInfo.username,
+              userTag: cachedUserInfo.user_tag,
+              walletAddress: address,
+              profileImageUrl: profileInfo.profileImageUrl,
+              memeXLink: `https://app.memex.xyz/profile/${cachedUserInfo.username}/${cachedUserInfo.user_tag}`,
+              myTokenAddr: profileInfo.tokenAddr,
+              myTokenSymbol: profileInfo.tokenSymbol || "",
+              memexWalletAddress: profileInfo.memexWalletAddress,
+              isPolicyAgreed: true,
+            });
+
+            if (joinResult?.user && onMemexLoginComplete) {
+              setUser(joinResult.user);
+              console.log("✅ [cachedUserInfo] 자동 회원가입 완료:", joinResult.user.userName);
+              setLoggingIn(false);
+              await refetch();
+              onMemexLoginComplete(cachedUserInfo.username, cachedUserInfo.user_tag);
+              return;
+            }
+          } else {
+            console.warn("⚠️ [cachedUserInfo] 프로필 정보 부족, 회원가입 불가:", {
+              profileImageUrl: profileInfo?.profileImageUrl,
+              tokenAddr: profileInfo?.tokenAddr,
+              memexWalletAddress: profileInfo?.memexWalletAddress,
+            });
+          }
+
+          // 회원가입 실패 시 memexLogin으로 계속 진행
+          console.log("⚠️ [cachedUserInfo] 자동 회원가입 실패, memexLogin으로 계속 진행...");
+          setLoggingIn(false);
+        } catch (err) {
+          console.error("❌ [cachedUserInfo] 처리 실패:", err);
+          setLoggingIn(false);
+          if (isContentScriptError(err)) {
             showRefreshSnackbar();
             return;
           }
@@ -173,11 +213,58 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             onMemexLoginComplete(result.username, result.userTag);
             return;
           }
+
+          // 백엔드에 user가 없으면 신규 사용자 - 자동 회원가입 시도
+          console.log("🆕 백엔드에 user 없음, 자동 회원가입 시도...");
+          setLoggingIn(true);
+
+          // 1. 프로필 정보 fetch
+          const profileInfo = await backgroundApi.fetchMemexProfileInfo(
+            result.username,
+            result.userTag
+          );
+          console.log("📋 프로필 정보:", profileInfo);
+
+          // 2. 지갑 주소 확인
+          if (!address) {
+            console.warn("⚠️ 지갑 연결 필요");
+            setLoggingIn(false);
+            return;
+          }
+
+          // 3. 필수 정보 확인 후 Join 요청
+          if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
+            const joinResult = await backgroundApi.join({
+              username: result.username,
+              userTag: result.userTag,
+              walletAddress: address,
+              profileImageUrl: profileInfo.profileImageUrl,
+              memeXLink: `https://app.memex.xyz/profile/${result.username}/${result.userTag}`,
+              myTokenAddr: profileInfo.tokenAddr,
+              myTokenSymbol: profileInfo.tokenSymbol || "",
+              memexWalletAddress: profileInfo.memexWalletAddress,
+              isPolicyAgreed: true,
+            });
+
+            if (joinResult?.user) {
+              setUser(joinResult.user);
+              console.log("✅ 자동 회원가입 완료:", joinResult.user.userName);
+              setLoggingIn(false);
+              onMemexLoginComplete(result.username, result.userTag);
+              return;
+            }
+          } else {
+            console.warn("⚠️ 프로필 정보 부족, 회원가입 불가:", {
+              profileImageUrl: profileInfo?.profileImageUrl,
+              tokenAddr: profileInfo?.tokenAddr,
+              memexWalletAddress: profileInfo?.memexWalletAddress,
+            });
+          }
+          setLoggingIn(false);
         } catch (userErr) {
-          console.warn("⚠️ User 정보 조회 실패:", userErr);
+          console.warn("⚠️ User 정보 조회/회원가입 실패:", userErr);
+          setLoggingIn(false);
         }
-        // 백엔드에 user가 없으면 신규 사용자 - 로그인 완료 처리하지 않음
-        console.log("⚠️ 백엔드에 user 없음 (신규 사용자), 로그인 미완료");
       }
 
       // 로그인 시작됨 - 폴링으로 로그인 완료 확인
@@ -227,10 +314,55 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                   onMemexLoginComplete(checkResult.username, checkResult.userTag);
                   return;
                 }
-                // 백엔드에 user 없음 - 계속 폴링
-                console.log("⚠️ 백엔드에 user 없음, 폴링 계속...");
+
+                // 백엔드에 user 없음 - 자동 회원가입 시도
+                console.log("🆕 백엔드에 user 없음, 자동 회원가입 시도...");
+
+                // 1. 프로필 정보 fetch
+                const profileInfo = await backgroundApi.fetchMemexProfileInfo(
+                  checkResult.username,
+                  checkResult.userTag
+                );
+                console.log("📋 프로필 정보:", profileInfo);
+
+                // 2. 지갑 주소 확인
+                if (!address) {
+                  console.warn("⚠️ 지갑 연결 필요, 폴링 계속...");
+                  setTimeout(checkLoginStatus, pollInterval);
+                  return;
+                }
+
+                // 3. 필수 정보 확인 후 Join 요청
+                if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
+                  const joinResult = await backgroundApi.join({
+                    username: checkResult.username,
+                    userTag: checkResult.userTag,
+                    walletAddress: address,
+                    profileImageUrl: profileInfo.profileImageUrl,
+                    memeXLink: `https://app.memex.xyz/profile/${checkResult.username}/${checkResult.userTag}`,
+                    myTokenAddr: profileInfo.tokenAddr,
+                    myTokenSymbol: profileInfo.tokenSymbol || "",
+                    memexWalletAddress: profileInfo.memexWalletAddress,
+                    isPolicyAgreed: true,
+                  });
+
+                  if (joinResult?.user) {
+                    setUser(joinResult.user);
+                    console.log("✅ 자동 회원가입 완료:", joinResult.user.userName);
+                    setLoggingIn(false);
+                    await refetch();
+                    onMemexLoginComplete(checkResult.username, checkResult.userTag);
+                    return;
+                  }
+                } else {
+                  console.warn("⚠️ 프로필 정보 부족, 폴링 계속:", {
+                    profileImageUrl: profileInfo?.profileImageUrl,
+                    tokenAddr: profileInfo?.tokenAddr,
+                    memexWalletAddress: profileInfo?.memexWalletAddress,
+                  });
+                }
               } catch (userErr) {
-                console.warn("⚠️ User 정보 조회 실패, 폴링 계속:", userErr);
+                console.warn("⚠️ User 정보 조회/회원가입 실패, 폴링 계속:", userErr);
               }
             }
 

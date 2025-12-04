@@ -933,7 +933,6 @@ export function createMessageHandler() {
                       if (data) {
                         const parsed = JSON.parse(data);
                         if (parsed.username && parsed.user_tag) {
-                          // 이미 로그인 되어있음
                           return {
                             success: true,
                             isLoggedIn: true,
@@ -1079,12 +1078,18 @@ export function createMessageHandler() {
               );
               result = { success: true, data: response.data };
             } catch (error: any) {
-              console.error("❌ 사용자 조회 오류:", error);
-              result = {
-                success: false,
-                error:
-                  error instanceof Error ? error.message : "사용자 조회 실패",
-              };
+              const errorMsg = error.message || "";
+              // 404 Not Found는 정상 응답으로 처리 (신규 사용자)
+              if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                result = { success: true, data: { user: null } };
+              } else {
+                console.error("❌ 사용자 조회 오류:", error);
+                result = {
+                  success: false,
+                  error:
+                    error instanceof Error ? error.message : "사용자 조회 실패",
+                };
+              }
             }
             break;
           }

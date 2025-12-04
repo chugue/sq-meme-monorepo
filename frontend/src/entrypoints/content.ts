@@ -38,42 +38,56 @@ async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
         console.log("🔍 [Content] 프로필 URL:", profileUrl);
         const isCurrentProfile = currentUrl.includes(profileUrl.replace('https://app.memex.xyz', ''));
 
-        // NOTE: fetch 비활성화 - injected.js에서 토큰 추출하므로 중복 네트워크 요청 방지
-        // 방법 1: fetch로 HTML 가져와서 self.__next_f.push 스크립트 태그 파싱 (가장 신뢰성 높음)
-        // try {
-        //     console.log("🔍 [Content] fetch로 HTML 가져와서 파싱 시도... --------------------------");
-        //     const response = await fetch(profileUrl);
-        //     if (response.ok) {
-        //         const html = await response.text();
+        // 방법 1: fetch로 HTML 가져와서 self.__next_f.push 스크립트에서 정보 추출
+        // 현재 페이지가 해당 프로필이 아닌 경우 필수 (예: 홈에서 MEMEX LOGIN 시)
+        try {
+            console.log("🔍 [Content] fetch로 HTML 가져와서 파싱 시도...");
+            const response = await fetch(profileUrl);
+            if (response.ok) {
+                const html = await response.text();
 
-        //         // self.__next_f.push 스크립트에서 추출
-        //         const profileData = extractProfileData(html);
+                // tokenAddress 패턴 (이스케이프된 JSON 내부)
+                const tokenMatch = html.match(
+                    /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+                );
+                if (tokenMatch && tokenMatch[1]) {
+                    tokenAddr = tokenMatch[1];
+                    console.log("✅ [Content] fetch HTML에서 tokenAddr 발견:", tokenAddr);
+                }
 
-        //         if (!profileImageUrl && profileData.profileImageUrl) {
-        //             profileImageUrl = profileData.profileImageUrl;
-        //         }
-        //         if (!tokenAddr && profileData.tokenAddr) {
-        //             tokenAddr = profileData.tokenAddr;
-        //         }
-        //         if (!tokenSymbol && profileData.tokenSymbol) {
-        //             tokenSymbol = profileData.tokenSymbol;
-        //         }
-        //         if (!tokenImageUrl && profileData.tokenImageUrl) {
-        //             tokenImageUrl = profileData.tokenImageUrl;
-        //         }
-        //         if (!memexWalletAddress && profileData.memexWalletAddress) {
-        //             memexWalletAddress = profileData.memexWalletAddress;
-        //         }
+                // walletAddress 패턴
+                const walletMatch = html.match(
+                    /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+                );
+                if (walletMatch && walletMatch[1]) {
+                    memexWalletAddress = walletMatch[1];
+                    console.log("✅ [Content] fetch HTML에서 memexWalletAddress 발견:", memexWalletAddress);
+                }
 
-        //         if (profileData.profileImageUrl || profileData.tokenAddr || profileData.tokenSymbol) {
-        //             console.log("✅ [Content] self.__next_f.push에서 프로필 정보 파싱 성공");
-        //         }
-        //     }
-        // } catch (fetchErr) {
-        //     console.warn("⚠️ [Content] fetch로 HTML 가져오기 실패:", fetchErr);
-        // }
+                // profileImage 패턴
+                const profileImgMatch = html.match(
+                    /\\?"profileImage\\?"\\?:\s*\\?"(https?:[^"\\]+)\\?"/
+                );
+                if (profileImgMatch && profileImgMatch[1]) {
+                    // 이스케이프된 슬래시 복원
+                    profileImageUrl = profileImgMatch[1].replace(/\\\//g, '/');
+                    console.log("✅ [Content] fetch HTML에서 profileImageUrl 발견:", profileImageUrl);
+                }
 
-        // 방법 2: DOM에서 직접 프로필 이미지 및 토큰 심볼 추출 (최종 백업)
+                // tokenSymbol 패턴
+                const symbolMatch = html.match(
+                    /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/
+                );
+                if (symbolMatch && symbolMatch[1]) {
+                    tokenSymbol = symbolMatch[1];
+                    console.log("✅ [Content] fetch HTML에서 tokenSymbol 발견:", tokenSymbol);
+                }
+            }
+        } catch (fetchErr) {
+            console.warn("⚠️ [Content] fetch로 HTML 가져오기 실패:", fetchErr);
+        }
+
+        // 방법 2: DOM에서 직접 프로필 이미지 및 토큰 심볼 추출 (현재 페이지가 프로필인 경우 또는 백업)
         if (!profileImageUrl) {
             const profileImg = document.querySelector('img[alt="Profile"]') as HTMLImageElement;
             if (profileImg && profileImg.src) {
@@ -100,6 +114,49 @@ async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
                 }
             } catch (e) {
                 console.warn("⚠️ [Content] DOM에서 토큰 심볼 추출 실패:", e);
+            }
+        }
+
+        // self.__next_f.push 스크립트에서 tokenAddr, memexWalletAddress 추출
+        if (!tokenAddr || !memexWalletAddress) {
+            try {
+                const scripts = document.querySelectorAll("script");
+                for (const script of scripts) {
+                    const content = script.textContent || "";
+
+                    // self.__next_f.push 형태의 스크립트에서 추출
+                    if (content.includes("self.__next_f.push")) {
+                        // tokenAddress 패턴 (이스케이프된 JSON 내부)
+                        if (!tokenAddr) {
+                            const tokenMatch = content.match(
+                                /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+                            );
+                            if (tokenMatch && tokenMatch[1]) {
+                                tokenAddr = tokenMatch[1];
+                                console.log("✅ [Content] __next_f에서 tokenAddr 발견:", tokenAddr);
+                            }
+                        }
+
+                        // memexWalletAddress 패턴 (walletAddress 또는 address 필드)
+                        if (!memexWalletAddress) {
+                            // 방법 1: walletAddress 필드
+                            const walletMatch = content.match(
+                                /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+                            );
+                            if (walletMatch && walletMatch[1]) {
+                                memexWalletAddress = walletMatch[1];
+                                console.log("✅ [Content] __next_f에서 memexWalletAddress 발견:", memexWalletAddress);
+                            }
+                        }
+
+                        // 둘 다 찾았으면 중단
+                        if (tokenAddr && memexWalletAddress) {
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("⚠️ [Content] __next_f에서 토큰/지갑 주소 추출 실패:", e);
             }
         }
 
