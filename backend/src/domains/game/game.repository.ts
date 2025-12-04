@@ -301,6 +301,7 @@ export class GameRepository {
         {
             gameId: string;
             tokenImageUrl: string | null;
+            tokenAddress: string;
             tokenSymbol: string | null;
             currentPrizePool: string | null;
             endTime: Date | null;
@@ -315,6 +316,7 @@ export class GameRepository {
                 .select({
                     gameId: schema.games.gameId,
                     tokenImageUrl: schema.games.tokenImageUrl,
+                    tokenAddress: schema.games.gameToken,
                     tokenSymbol: schema.games.tokenSymbol,
                     prizePool: schema.games.prizePool,
                     endTime: schema.games.endTime,
@@ -326,11 +328,15 @@ export class GameRepository {
                         eq(schema.games.isEnded, false),
                         eq(schema.games.isClaimed, false),
                     ),
+                )
+                .orderBy(
+                    desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`),
                 );
 
             return games.map((game) => ({
                 gameId: game.gameId,
                 tokenImageUrl: game.tokenImageUrl,
+                tokenAddress: game.tokenAddress,
                 tokenSymbol: game.tokenSymbol,
                 currentPrizePool: game.prizePool,
                 endTime: game.endTime,

@@ -76,4 +76,12 @@ export class UsersController {
     async getQuests(@WalletAddress() walletAddress: string) {
         return this.usersService.getQuests(walletAddress);
     }
+
+    /**
+     * 내가 참여 중인 활성 게임 목록 조회 (참여 중인 게임 탭)
+     */
+    @Get('my-active-games')
+    async getMyActiveGames(@WalletAddress() walletAddress: string) {
+        return this.usersService.getMyActiveGames(walletAddress);
+    }
 }

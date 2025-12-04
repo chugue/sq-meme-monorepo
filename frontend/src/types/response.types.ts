@@ -96,3 +96,18 @@ export interface PrizeRankingResponse {
 export interface QuestsResponse {
   quests: QuestCategory[];
 }
+
+// 내가 참여 중인 게임 아이템
+export interface MyActiveGameItem {
+  gameId: string;
+  tokenImage: string | null;
+  tokenAddress: string;
+  tokenSymbol: string | null;
+  currentPrizePool: string | null;
+  endTime: string | null;
+}
+
+// My Active Games API 응답 타입
+export interface MyActiveGamesResponse {
+  myActiveGames: MyActiveGameItem[];
+}

@@ -1246,6 +1246,49 @@ export function createMessageHandler() {
             break;
           }
 
+          case "GET_MY_ACTIVE_GAMES": {
+            try {
+              const { browser } = await import("wxt/browser");
+              const storage =
+                browser?.storage || (globalThis as any).chrome?.storage;
+
+              const sessionState = await new Promise<any>((resolve) => {
+                storage.session.get(["squid_session_state"], (result: any) => {
+                  resolve(result.squid_session_state || null);
+                });
+              });
+
+              const walletAddress = sessionState?.walletAddress;
+              if (!walletAddress) {
+                result = {
+                  success: false,
+                  error: "지갑 주소가 없습니다. 먼저 지갑을 연결해주세요.",
+                };
+                break;
+              }
+
+              const response = await apiCall<{
+                success: boolean;
+                data: { myActiveGames: any[] };
+              }>("/v1/users/my-active-games", {
+                headers: {
+                  "x-wallet-address": walletAddress,
+                },
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 참여 중인 게임 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "참여 중인 게임 조회 실패",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,

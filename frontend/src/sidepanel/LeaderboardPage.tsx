@@ -2,7 +2,7 @@ import { ChevronLeft, Home } from "lucide-react";
 import { useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 import {
-  GameRankItem,
+  MyActiveGameItem,
   PrizeRankItem,
   QuestCategory,
 } from "../types/response.types";
@@ -25,23 +25,24 @@ export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
   const [activeTab, setActiveTab] = useState<TabType>("games");
 
   // API 데이터 상태
-  const [gameRanking, setGameRanking] = useState<GameRankItem[]>([]);
+  const [myActiveGames, setMyActiveGames] = useState<MyActiveGameItem[]>([]);
   const [prizeRanking, setPrizeRanking] = useState<PrizeRankItem[]>([]);
   const [quests, setQuests] = useState<QuestCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 컴포넌트 로드 시 세 API 동시 호출
+  // 컴포넌트 로드 시 네 API 동시 호출
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
+      ㄴ;
       try {
-        const [gameRes, prizeRes, questRes] = await Promise.all([
-          backgroundApi.getGameRanking(),
+        const [myGamesRes, prizeRes, questRes] = await Promise.all([
+          backgroundApi.getMyActiveGames(),
           backgroundApi.getPrizeRanking(),
           backgroundApi.getQuests(),
         ]);
 
-        setGameRanking(gameRes.gameRanking);
+        setMyActiveGames(myGamesRes.myActiveGames);
         setPrizeRanking(prizeRes.prizeRanking);
         setQuests(questRes.quests);
         console.log("✅ [LeaderboardPage] 데이터 로드 완료");
@@ -59,12 +60,12 @@ export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
     <div className="leaderboard-list">
       {isLoading ? (
         <div className="loading">Loading...</div>
-      ) : gameRanking.length === 0 ? (
-        <div className="empty-state">No game ranking data</div>
+      ) : myActiveGames.length === 0 ? (
+        <div className="empty-state">참여 중인 게임이 없습니다</div>
       ) : (
-        gameRanking.map((game) => (
-          <div key={game.rank} className="leaderboard-item">
-            <span className="rank-number">{game.rank}</span>
+        myActiveGames.map((game, index) => (
+          <div key={game.gameId} className="leaderboard-item">
+            <span className="rank-number">{index + 1}</span>
             <div className="token-image">
               {game.tokenImage ? (
                 <img src={game.tokenImage} alt={game.tokenSymbol || ""} />
@@ -73,7 +74,7 @@ export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
               )}
             </div>
             <span className="item-name">{game.tokenSymbol}</span>
-            <span className="item-value">{game.totalPrize} ETH</span>
+            <span className="item-value">{game.currentPrizePool} ETH</span>
           </div>
         ))
       )}
@@ -127,8 +128,8 @@ export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
                   {quest.claimed
                     ? "Claimed"
                     : quest.isEligible
-                      ? "Claim"
-                      : "Locked"}
+                    ? "Claim"
+                    : "Locked"}
                 </button>
               </div>
             ))}

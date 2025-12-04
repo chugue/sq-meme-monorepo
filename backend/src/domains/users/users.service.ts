@@ -46,6 +46,16 @@ export interface QuestCategory {
     items: QuestItem[];
 }
 
+// 내가 참여 중인 게임 아이템
+export interface MyActiveGameItem {
+    gameId: string;
+    tokenImage: string | null;
+    tokenAddress: string;
+    tokenSymbol: string | null;
+    currentPrizePool: string | null;
+    endTime: string | null;
+}
+
 
 @Injectable()
 export class UsersService {
@@ -317,6 +327,50 @@ export class UsersService {
             this.logger.error(`Get quests failed: ${error.message}`);
             return Result.fail(
                 '퀘스트 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * @description 내가 참여 중인 활성 게임 목록 조회 (참여 중인 게임 탭)
+     */
+    async getMyActiveGames(
+        walletAddress: string,
+    ): Promise<Result<{ myActiveGames: MyActiveGameItem[] }>> {
+        try {
+            // 1. 내가 댓글을 남긴 게임 ID 목록 조회
+            const gameIds =
+                await this.commentRepository.findGameIdsByWalletAddress(
+                    walletAddress,
+                );
+
+            if (gameIds.length === 0) {
+                return Result.ok({ myActiveGames: [] });
+            }
+
+            // 2. 해당 게임 중 활성 게임만 조회 (isEnded=false, isClaimed=false, order by prizePool)
+            const activeGames =
+                await this.gameRepository.findActiveGamesByIds(gameIds);
+
+            const myActiveGames: MyActiveGameItem[] = activeGames.map(
+                (game) => ({
+                    gameId: game.gameId,
+                    tokenImage: game.tokenImageUrl,
+                    tokenAddress: game.tokenAddress,
+                    tokenSymbol: game.tokenSymbol,
+                    currentPrizePool: game.currentPrizePool,
+                    endTime: game.endTime?.toISOString() ?? null,
+                }),
+            );
+
+            return Result.ok({ myActiveGames });
+        } catch (error) {
+            this.logger.error(
+                `Get my active games failed: ${error.message}`,
+            );
+            return Result.fail(
+                '참여 중인 게임 조회에 실패했습니다.',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }

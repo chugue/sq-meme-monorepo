@@ -88,7 +88,8 @@ export type BackgroundMessage =
   | { type: "GET_PROFILE" }
   | { type: "GET_GAME_RANKING" }
   | { type: "GET_PRIZE_RANKING" }
-  | { type: "GET_QUESTS" };
+  | { type: "GET_QUESTS" }
+  | { type: "GET_MY_ACTIVE_GAMES" };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -448,6 +449,13 @@ export const backgroundApi = {
   getQuests: async () => {
     return sendToBackground<import("../../types/response.types").QuestsResponse>({
       type: "GET_QUESTS",
+    });
+  },
+
+  // 내가 참여 중인 활성 게임 목록 조회 (참여 중인 게임 탭)
+  getMyActiveGames: async () => {
+    return sendToBackground<import("../../types/response.types").MyActiveGamesResponse>({
+      type: "GET_MY_ACTIVE_GAMES",
     });
   },
 };
