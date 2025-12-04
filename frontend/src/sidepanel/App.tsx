@@ -45,6 +45,7 @@ export function SidePanelApp() {
         <ProfilePage
           walletAddress={address || undefined}
           onBack={() => setCurrentPage("dashboard")}
+          onNavigateToMyAssets={() => setCurrentPage("myAssets")}
         />
       );
     }

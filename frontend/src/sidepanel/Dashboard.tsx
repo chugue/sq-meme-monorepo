@@ -17,13 +17,22 @@ import { useAtomValue } from "jotai";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 
-// Mock data
-const mockUserData = {
+// Default data (세션 데이터가 없을 때 사용)
+const defaultUserData = {
   profileImage:
     "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
-  walletAddress: "0x13a90df0418e2a2c7e5801cb75d0a0e00319bdd1",
-  asset: "1,000,000$M",
 };
+
+// mTokenBalance 포맷팅 (콤마 추가)
+function formatMTokenBalance(balance: string | undefined): string {
+  if (!balance || balance === "0") return "0$M";
+  try {
+    const num = BigInt(balance);
+    return `${num.toLocaleString()} $M`;
+  } catch {
+    return "0$M";
+  }
+}
 
 interface DashboardProps {
   walletAddress?: string;
@@ -49,6 +58,16 @@ export function Dashboard({
   const session = useAtomValue(sessionAtom);
   const { user } = session;
 
+  // 디버깅: 세션 데이터 변화 확인
+  console.log(
+    "🏠 [Dashboard] session user:",
+    user?.userName,
+    "profileImage:",
+    user?.profileImage,
+    "mTokenBalance:",
+    user?.mTokenBalance
+  );
+
   // 지갑 주소 우선순위: props > hook > null
   const walletAddress = walletAddressProp || walletAddressFromHook || null;
 
@@ -73,7 +92,7 @@ export function Dashboard({
             className="profile-box-frame"
           />
           <img
-            src={user?.profileImage || mockUserData.profileImage}
+            src={user?.profileImage || defaultUserData.profileImage}
             alt="Profile"
             className="profile-box-image"
           />
@@ -136,7 +155,10 @@ export function Dashboard({
           {/* <img src={squidoGif} alt="Squid Character-main" className="squid-character-main" /> */}
           <div className="asset-display-main">
             <span className="asset-label-main">ASSET</span>
-            <span className="asset-amount-main">{mockUserData.asset}</span>
+            {/* <span className="asset-amount-main">{formatMTokenBalance(user?.mTokenBalance)}</span> */}
+            <span className="asset-amount-main">
+              {formatMTokenBalance("1000000000")}
+            </span>
           </div>
         </div>
       </section>

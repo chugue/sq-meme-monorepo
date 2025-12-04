@@ -16,9 +16,10 @@ const mockUserData = {
 interface ProfilePageProps {
   walletAddress?: string;
   onBack: () => void;
+  onNavigateToMyAssets?: () => void;
 }
 
-export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
+export function ProfilePage({ walletAddress, onBack, onNavigateToMyAssets }: ProfilePageProps) {
   const { logout } = useMemexLogin();
   const session = useAtomValue(sessionAtom);
   const { user } = session;
@@ -44,8 +45,7 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
   };
 
   const handleCheckAssets = () => {
-    // TODO: 자산 확인 페이지로 이동 또는 모달 표시
-    console.log("Check assets clicked");
+    onNavigateToMyAssets?.();
   };
 
   const handleLogout = () => {
