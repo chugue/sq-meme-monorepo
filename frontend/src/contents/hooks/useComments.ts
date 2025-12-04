@@ -94,11 +94,36 @@ export function useComments(gameId: string | null) {
     },
   });
 
+  // 좋아요 토글
+  const toggleLikeMutation = useMutation({
+    mutationFn: async (commentId: number) => {
+      try {
+        return await backgroundApi.toggleCommentLike(commentId);
+      } catch (error) {
+        console.error("좋아요 토글 실패:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data, commentId) => {
+      // 캐시 직접 업데이트 (optimistic update)
+      queryClient.setQueryData<Comment[]>(["comments", gameId], (oldComments) => {
+        if (!oldComments) return oldComments;
+        return oldComments.map((comment) =>
+          comment.id === commentId
+            ? { ...comment, isLiked: data.liked, likeCount: data.likeCount }
+            : comment
+        );
+      });
+    },
+  });
+
   return {
     comments,
     isLoading,
     refetch,
     createComment: createCommentMutation.mutateAsync,
     isSubmitting: createCommentMutation.isPending,
+    toggleLike: toggleLikeMutation.mutateAsync,
+    isTogglingLike: toggleLikeMutation.isPending,
   };
 }

@@ -6,6 +6,7 @@ export interface Comment {
   message: string;
   createdAt: string;
   likeCount?: number;
+  isLiked?: boolean;
   endTime?: string;
   currentPrizePool?: string;
   isWinnerComment?: boolean;

@@ -90,7 +90,8 @@ export type BackgroundMessage =
   | { type: "GET_PRIZE_RANKING" }
   | { type: "GET_QUESTS" }
   | { type: "GET_MY_ACTIVE_GAMES" }
-  | { type: "GET_LIVE_GAMES" };
+  | { type: "GET_LIVE_GAMES" }
+  | { type: "TOGGLE_COMMENT_LIKE"; commentId: number };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -464,6 +465,14 @@ export const backgroundApi = {
   getLiveGames: async () => {
     return sendToBackground<import("../../types/response.types").LiveGamesResponse>({
       type: "GET_LIVE_GAMES",
+    });
+  },
+
+  // 댓글 좋아요 토글
+  toggleCommentLike: async (commentId: number) => {
+    return sendToBackground<{ liked: boolean; likeCount: number }>({
+      type: "TOGGLE_COMMENT_LIKE",
+      commentId,
     });
   },
 };

@@ -1338,6 +1338,48 @@ export function createMessageHandler() {
             break;
           }
 
+          case "TOGGLE_COMMENT_LIKE": {
+            try {
+              const { browser } = await import("wxt/browser");
+              const storage =
+                browser?.storage || (globalThis as any).chrome?.storage;
+
+              const sessionState = await new Promise<any>((resolve) => {
+                storage.session.get(["squid_session_state"], (result: any) => {
+                  resolve(result.squid_session_state || null);
+                });
+              });
+
+              const walletAddress = sessionState?.walletAddress;
+              if (!walletAddress) {
+                result = {
+                  success: false,
+                  error: "지갑 주소가 없습니다. 먼저 지갑을 연결해주세요.",
+                };
+                break;
+              }
+
+              const response = await apiCall<{
+                liked: boolean;
+                likeCount: number;
+              }>(`/v1/comments/${message.commentId}/like`, {
+                method: "POST",
+                headers: {
+                  "x-wallet-address": walletAddress,
+                },
+              });
+              result = { success: true, data: response };
+            } catch (error: any) {
+              console.error("❌ 좋아요 토글 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "좋아요 토글 실패",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,
