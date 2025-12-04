@@ -102,14 +102,25 @@ export class GameService {
                 return false;
             }
 
-            // 1. 게임 정보 조회 (tokenSymbol, gameToken 획득)
+            // 1. 게임 정보 조회 (tokenSymbol, gameToken 획득 + 중복 체크)
             const game = await this.gameRepository.findFullByGameId(gameId);
             if (!game) {
                 this.logger.warn(`게임 정보 없음: gameId=${gameId}`);
                 return false;
             }
 
-            // 2. Winner 레코드 생성
+            // 이미 처리된 요청이면 early return (중복 방지)
+            if (game.isClaimed) {
+                this.logger.warn(`이미 상금 수령 처리됨: gameId=${gameId}`);
+                return true;
+            }
+
+            // 2. 게임 상태 업데이트 (isClaimed = true) - 먼저 처리하여 중복 요청 방지
+            await this.gameRepository.updateGameState(gameId, {
+                isClaimed: true,
+            });
+
+            // 3. Winner 레코드 생성
             await this.winnersService.createWinner({
                 walletAddress: winner,
                 gameId: gameId,
@@ -120,14 +131,9 @@ export class GameService {
                 claimedAt: new Date(timestamp * 1000),
             });
 
-            this.logger.log(`✅ Winner 레코드 생성 완료: ${winner}`);
-
-            // 3. 게임 상태 업데이트 (isClaimed = true)
-            await this.gameRepository.updateGameState(gameId, {
-                isClaimed: true,
-            });
-
-            this.logger.log(`✅ 게임 상금 수령 완료 처리: gameId=${gameId}`);
+            this.logger.log(
+                `✅ 게임 상금 수령 완료: gameId=${gameId}, winner=${winner}`,
+            );
             return true;
         } catch (error) {
             this.logger.error(

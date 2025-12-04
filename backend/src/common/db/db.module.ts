@@ -5,12 +5,13 @@ import { Pool } from 'pg';
 import * as schema from './schema';
 
 export const DrizzleAsyncProvider = 'drizzleProvider';
+export const PG_POOL = 'PG_POOL';
 
 @Global()
 @Module({
     providers: [
         {
-            provide: DrizzleAsyncProvider,
+            provide: PG_POOL,
             inject: [ConfigService],
             useFactory: async (configService: ConfigService) => {
                 const logger = new Logger('DbModule');
@@ -35,10 +36,17 @@ export const DrizzleAsyncProvider = 'drizzleProvider';
                     throw error;
                 }
 
+                return pool;
+            },
+        },
+        {
+            provide: DrizzleAsyncProvider,
+            inject: [PG_POOL],
+            useFactory: (pool: Pool) => {
                 return drizzle(pool, { schema });
             },
         },
     ],
-    exports: [DrizzleAsyncProvider],
+    exports: [DrizzleAsyncProvider, PG_POOL],
 })
 export class DbModule {}

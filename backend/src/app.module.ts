@@ -4,6 +4,7 @@ import * as path from 'path';
 
 import { CommonModule } from './common/common.module';
 import { DbModule } from './common/db/db.module';
+import { TransactionModule } from './common/transaction';
 import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
 import { UsersModule } from './domains/users/users.module';
@@ -26,6 +27,7 @@ import { AppController } from './app.controller';
         }),
         CommonModule,
         DbModule,
+        TransactionModule,
         GameModule,
         CommentModule,
         UsersModule,
