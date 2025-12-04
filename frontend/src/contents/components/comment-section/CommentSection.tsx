@@ -340,6 +340,39 @@ export function CommentSection() {
         />
       </div>
 
+      {/* 펀딩 섹션 */}
+      {activeGameInfo && (
+        <div className="squid-funding-section">
+          <div className="squid-funding-header">
+            <span className="squid-funding-title">FUND PRIZE POOL</span>
+            <p className="squid-funding-desc">
+              Earn comment fees based on your funding share
+            </p>
+          </div>
+          <div className="squid-funding-form">
+            <input
+              type="number"
+              className="squid-funding-input"
+              placeholder="Amount to fund"
+              value={fundingAmount}
+              onChange={(e) => setFundingAmount(e.target.value)}
+              disabled={isFunding}
+              min="0"
+              step="any"
+            />
+            <button
+              type="button"
+              className="squid-funding-button"
+              onClick={handleFund}
+              disabled={
+                isFunding || !fundingAmount || Number(fundingAmount) <= 0
+              }
+            >
+              {isFunding ? "FUNDING..." : "FUND"}
+            </button>
+          </div>
+        </div>
+      )}
       {/* hasValidGame일 때만 펀딩 섹션 + 댓글 폼/리스트 표시 */}
       {hasValidGame ? (
         <>

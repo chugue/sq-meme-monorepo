@@ -18,8 +18,13 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0.1;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* 모달 컨테이너 */
@@ -33,6 +38,74 @@
     overflow-y: auto;
     box-shadow: 0 0 40px rgba(255, 0, 110, 0.3);
     animation: slideUp 0.3s ease-out;
+    /* 스크롤바 스타일링 */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 0, 110, 0.02);
+}
+
+/* Webkit 브라우저용 스크롤바 스타일 */
+.squid-modal-container::-webkit-scrollbar {
+    width: 4px;
+    background: rgba(255, 0, 110, 0.02);
+    transition: width 0.2s ease;
+}
+
+.squid-modal-container::-webkit-scrollbar-track {
+    background: rgba(255, 0, 110, 0.02);
+}
+
+.squid-modal-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 0, 110, 0.02);
+    border-radius: 20px;
+    transition: background 0.2s ease, width 0.2s ease;
+}
+
+/* hover 시 스크롤바 표시 - 넓게 */
+.squid-modal-container:hover::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+.squid-modal-container:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 0, 110, 0.6) !important;
+}
+
+.squid-modal-container:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 0, 110, 0.9) !important;
+}
+
+/* 스크롤 중일 때 스크롤바 표시 - 얇게 */
+.squid-modal-container.is-scrolling::-webkit-scrollbar {
+    width: 4px;
+}
+
+.squid-modal-container.is-scrolling::-webkit-scrollbar-thumb {
+    background: rgba(255, 0, 110, 0.02);
+}
+
+/* 스크롤 중이면서 hover 시 - 더 넓게 */
+.squid-modal-container.is-scrolling:hover::-webkit-scrollbar {
+    width: 8px;
+}
+
+.squid-modal-container.is-scrolling:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 0, 110, 0.7);
+}
+
+/* Firefox용 스크롤바 스타일 */
+.squid-modal-container:not(:hover):not(.is-scrolling) {
+    scrollbar-color: rgba(255, 0, 110, 0.02);
+}
+
+.squid-modal-container:hover {
+    scrollbar-color: rgba(255, 0, 110, 0.5);
+}
+
+.squid-modal-container.is-scrolling {
+    scrollbar-color: rgba(255, 0, 110, 0.4);
+}
+
+.squid-modal-container.is-scrolling:hover {
+    scrollbar-color: rgba(255, 0, 110, 0.6);
 }
 
 @keyframes slideUp {
@@ -40,6 +113,7 @@
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -129,8 +203,15 @@
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .squid-step-title {
@@ -450,7 +531,9 @@
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ===================================
