@@ -12,7 +12,7 @@ import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
 import { useWallet } from "../../hooks/useWallet";
 import { formatAddress } from "../../utils/messageFormatter";
 import { ClaimPrizeSection } from "./ClaimPrizeSection";
-import "./CommentSection.css";
+import "../comment-section/CommentSection.css";
 import { CreateGameSection } from "./CreateGameSection";
 
 interface NoGameSectionProps {

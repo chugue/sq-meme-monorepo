@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai";
 import { activeGameInfoAtom } from "../atoms/commentAtoms";
 import { useTokenContract } from "../hooks/useTokenContract";
 import { useUserInfo } from "../hooks/useUserInfo";
-import { CommentSection } from "./sub-components/CommentSection";
+import { CommentSection } from "./comment-section";
 import { NoGameSection } from "./sub-components/NoGameSection";
 
 /**

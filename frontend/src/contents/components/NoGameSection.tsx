@@ -21,7 +21,7 @@ import {
 } from "../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../lib/injectedApi";
 import { GameSetupModal } from "./game-setup-modal/GameSetupModal";
-import "./sub-components/CommentSection.css";
+import "./comment-section/CommentSection.css";
 import { TransactionSuccessModal } from "./sub-components/TransactionSuccessModal";
 
 interface NoGameSectionProps {
