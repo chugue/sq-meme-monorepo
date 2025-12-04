@@ -25,7 +25,7 @@ import "./sub-components/CommentSection.css";
 import { TransactionSuccessModal } from "./sub-components/TransactionSuccessModal";
 
 interface NoGameSectionProps {
-  onGameCreated?: (gameAddress: string) => void;
+  onGameCreated?: (gameId: string) => void;
 }
 
 /**
@@ -133,9 +133,9 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
   /**
    * 게임 생성 완료 핸들러
    */
-  const handleGameCreated = (gameAddress: string) => {
+  const handleGameCreated = (gameId: string) => {
     setIsModalOpen(false);
-    onGameCreated?.(gameAddress);
+    onGameCreated?.(gameId);
     // memex 포스팅 페이지로 리다이렉트
     window.location.href =
       "https://app.memex.xyz/posting?un=codingcat&ut=fE9Dd8";
@@ -286,10 +286,10 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             : "TOKEN"
         }
         onGameCreated={handleGameCreated}
-        onExistingGameFound={(gameAddress) => {
+        onExistingGameFound={(gameId) => {
           // 기존 게임 발견 시 모달 닫고 게임 UI로 전환
           setIsModalOpen(false);
-          onGameCreated?.(gameAddress);
+          onGameCreated?.(gameId);
           window.location.reload();
         }}
       />

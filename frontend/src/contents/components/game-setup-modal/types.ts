@@ -23,7 +23,7 @@ export interface GameSetupModalProps {
     tokenAddress: Address;
     tokenSymbol?: string;
     onGameCreated?: (gameId: string) => void;
-    onExistingGameFound?: (gameAddress: string) => void;
+    onExistingGameFound?: (gameId: string) => void;
 }
 
 // 기본 설정값

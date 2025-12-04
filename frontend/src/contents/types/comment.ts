@@ -1,7 +1,7 @@
 export interface Comment {
   id: number;
   commentId: number; // 블록체인 commentId
-  gameAddress: string;
+  gameId: string;
   commentor: string;
   message: string;
   createdAt: string;
@@ -13,7 +13,7 @@ export interface Comment {
 }
 
 export interface CreateCommentInput {
-  gameAddress: string;
+  gameId: string;
   commentor: string;
   message: string;
 }

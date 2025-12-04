@@ -47,7 +47,7 @@ export function GameSetupModal({
 
       // 진행 중인 게임이 있으면 콜백 호출하고 모달 닫기
       if (existingGame && !existingGame.isEnded) {
-        onExistingGameFound?.(existingGame.gameAddress);
+        onExistingGameFound?.(existingGame.gameId.toString());
         onClose();
       }
     };

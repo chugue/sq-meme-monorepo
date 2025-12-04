@@ -9,7 +9,6 @@ export interface CreateCommentRequest {
 export interface CreateGameRequest {
   txHash: string;
   gameId: string;
-  gameAddr: string;
   gameTokenAddr: string;
   tokenSymbol: string;
   initiator: string;

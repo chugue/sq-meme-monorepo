@@ -23,7 +23,6 @@ const numericStringSchema = z.string().regex(/^\d+$/, '숫자 문자열이어야
 export const CreateGameDtoSchema = z.object({
     txHash: txHashSchema,
     gameId: numericStringSchema,
-    gameAddr: ethereumAddressSchema,
     gameTokenAddr: ethereumAddressSchema,
     tokenSymbol: z.string().min(1),
     initiator: ethereumAddressSchema,

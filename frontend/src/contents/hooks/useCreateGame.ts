@@ -75,7 +75,6 @@ export interface GameSettings {
 
 export interface ExistingGameInfo {
   gameId: bigint;
-  gameAddress: Address; // V2에서는 컨트랙트 주소가 동일하지만 호환성을 위해 유지
   tokenSymbol: string;
   isEnded: boolean;
 }
@@ -169,7 +168,6 @@ export function useCreateGame(): UseCreateGameReturn {
 
         const existingGameInfo: ExistingGameInfo = {
           gameId: gameInfo.id,
-          gameAddress: COMMENT_GAME_V2_ADDRESS as Address,
           tokenSymbol: gameInfo.tokenSymbol,
           isEnded: gameInfo.isEnded,
         };

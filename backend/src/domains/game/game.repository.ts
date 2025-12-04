@@ -68,7 +68,7 @@ export class GameRepository {
 
     /**
      * @description 게임 상태를 업데이트합니다 (종료시간, 상금풀, 마지막 댓글 작성자 등)
-     * @param gameId 게임 ID (V2에서는 gameId와 gameAddress가 동일)
+     * @param gameId 게임 ID
      */
     async updateGameState(
         gameId: string,
@@ -94,11 +94,11 @@ export class GameRepository {
 
     /**
      * @description 프론트엔드에서 전송한 게임 데이터를 검증하고 저장
-     * @returns 생성된 게임 주소 또는 null (중복/실패 시)
+     * @returns 생성된 게임 ID 또는 null (중복/실패 시)
      */
     async createFromFrontend(
         rawData: unknown,
-    ): Promise<{ gameAddress: string } | null> {
+    ): Promise<{ gameId: string } | null> {
         const result = CreateGameDtoSchema.safeParse(rawData);
         if (!result.success) {
             this.logger.error(`Invalid game data: ${result.error.message}`);
@@ -120,7 +120,6 @@ export class GameRepository {
                 .values({
                     txHash: dto.txHash,
                     gameId: dto.gameId,
-                    gameAddress: dto.gameAddr,
                     gameToken: dto.gameTokenAddr,
                     tokenSymbol: dto.tokenSymbol,
                     initiator: dto.initiator,
@@ -131,10 +130,10 @@ export class GameRepository {
                     lastCommentor: dto.lastCommentor,
                     isClaimed: dto.isClaimed,
                 })
-                .returning({ gameAddress: schema.games.gameAddress });
+                .returning({ gameId: schema.games.gameId });
 
-            this.logger.log(`✅ 게임 저장 완료: ${game.gameAddress}`);
-            return { gameAddress: game.gameAddress };
+            this.logger.log(`✅ 게임 저장 완료: ${game.gameId}`);
+            return { gameId: game.gameId };
         } catch (error) {
             this.logger.error(`❌ 게임 저장 실패: ${error.message}`);
             return null;
@@ -144,9 +143,9 @@ export class GameRepository {
     /**
      * @description txHash로 게임 조회
      */
-    async findByTxHash(txHash: string): Promise<{ gameAddress: string } | null> {
+    async findByTxHash(txHash: string): Promise<{ gameId: string } | null> {
         const [game] = await this.db
-            .select({ gameAddress: schema.games.gameAddress })
+            .select({ gameId: schema.games.gameId })
             .from(schema.games)
             .where(eq(schema.games.txHash, txHash))
             .limit(1);
@@ -217,7 +216,6 @@ export class GameRepository {
                 .values({
                     txHash: data.txHash,
                     gameId: data.gameId,
-                    gameAddress: data.gameId, // V2에서는 gameId를 gameAddress로 사용
                     gameToken: data.gameToken.toLowerCase(),
                     tokenSymbol: data.tokenSymbol,
                     tokenImageUrl: data.tokenImageUrl,
@@ -271,7 +269,6 @@ export class GameRepository {
                 .insert(schema.games)
                 .values({
                     gameId: dto.gameId,
-                    gameAddress: dto.gameId, // V2에서는 gameId를 gameAddress로 사용
                     gameToken: dto.gameToken,
                     tokenSymbol: dto.tokenSymbol,
                     initiator: dto.initiator,

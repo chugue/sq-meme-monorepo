@@ -258,7 +258,7 @@ export function createMessageHandler() {
             try {
               const response = await apiCall<{
                 success: boolean;
-                data: { gameAddress: string };
+                data: { gameId: string };
               }>("/v1/games", {
                 method: "POST",
                 body: JSON.stringify(message.data),
@@ -344,12 +344,12 @@ export function createMessageHandler() {
           case "REGISTER_CLAIM_PRIZE": {
             console.log(
               "🏆 REGISTER_CLAIM_PRIZE 요청:",
-              message.gameAddress,
+              message.gameId,
               message.txHash
             );
             try {
               const response = await apiCall<{ success: boolean }>(
-                `/v1/games/${encodeURIComponent(message.gameAddress)}/claim`,
+                `/v1/games/${encodeURIComponent(message.gameId)}/claim`,
                 {
                   method: "POST",
                   body: JSON.stringify({ txHash: message.txHash }),

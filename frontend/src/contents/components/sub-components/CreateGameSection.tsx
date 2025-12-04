@@ -14,7 +14,7 @@ import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
 interface CreateGameSectionProps {
   tokenAddress: Address;
   tokenSymbol: string;
-  onGameCreated?: (gameAddress: string) => void;
+  onGameCreated?: (gameId: string) => void;
 }
 
 export function CreateGameSection({
@@ -45,9 +45,9 @@ export function CreateGameSection({
     setIsModalOpen(true);
   };
 
-  const handleGameCreated = (gameAddress: string) => {
+  const handleGameCreated = (gameId: string) => {
     setIsModalOpen(false);
-    onGameCreated?.(gameAddress);
+    onGameCreated?.(gameId);
     window.location.reload();
   };
 
@@ -103,9 +103,9 @@ export function CreateGameSection({
         tokenAddress={tokenAddress}
         tokenSymbol={tokenSymbol}
         onGameCreated={handleGameCreated}
-        onExistingGameFound={(gameAddress) => {
+        onExistingGameFound={(gameId) => {
           setIsModalOpen(false);
-          onGameCreated?.(gameAddress);
+          onGameCreated?.(gameId);
           window.location.reload();
         }}
       />

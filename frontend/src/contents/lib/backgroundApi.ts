@@ -46,7 +46,7 @@ export type BackgroundMessage =
   | { type: "GET_ACTIVE_GAME_BY_TOKEN"; tokenAddress: string }
   | { type: "SAVE_COMMENT"; data: CreateCommentRequest }
   | { type: "SAVE_GAME"; data: CreateGameRequest }
-  | { type: "REGISTER_CLAIM_PRIZE"; gameAddress: string; txHash: string }
+  | { type: "REGISTER_CLAIM_PRIZE"; gameId: string; txHash: string }
   | { type: "WALLET_CONNECT" }
   | { type: "WALLET_GET_ACCOUNT" }
   | { type: "MEMEX_LOGIN"; triggerLogin?: boolean }
@@ -237,17 +237,17 @@ export const backgroundApi = {
 
   // 게임 데이터를 백엔드에 저장
   saveGame: async (data: CreateGameRequest) => {
-    return sendToBackground<{ gameAddress: string }>({
+    return sendToBackground<{ gameId: string }>({
       type: "SAVE_GAME",
       data,
     });
   },
 
   // claimPrize txHash를 백엔드에 등록
-  registerClaimPrizeTx: async (gameAddress: string, txHash: string) => {
+  registerClaimPrizeTx: async (gameId: string, txHash: string) => {
     return sendToBackground<{ success: boolean }>({
       type: "REGISTER_CLAIM_PRIZE",
-      gameAddress,
+      gameId,
       txHash,
     });
   },
@@ -386,7 +386,6 @@ export const backgroundApi = {
 export interface GameInfo {
   id: number;
   gameId: string;
-  gameAddress: string;
   gameToken: string;
   tokenSymbol: string | null;
   initiator: string;

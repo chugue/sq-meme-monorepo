@@ -20,7 +20,6 @@ export const games = squidSchema.table(
 
         // 1. 게임 기본 정보
         gameId: text('game_id').notNull().unique(), // 컨트랙트상의 ID (uint256)
-        gameAddress: varchar('game_address', { length: 42 }).notNull(),
         gameToken: varchar('game_token', { length: 42 }).notNull(),
         tokenSymbol: varchar('token_symbol', { length: 32 }), // 토큰 심볼 (예: MTK)
         tokenImageUrl: text('token_image_url'), // 토큰 이미지 URL
@@ -54,7 +53,6 @@ export const games = squidSchema.table(
         return {
             // ⚡️ 검색 속도를 위한 인덱스 추가
             claimedIdx: index('claimed_idx').on(table.isClaimed), // 상금 수령 여부
-            addressIdx: index('game_address_idx').on(table.gameAddress), // 주소로 게임 찾기
             tokenIdx: index('game_token_idx').on(table.gameToken), // 토큰 주소로 게임 찾기
         };
     },

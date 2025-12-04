@@ -232,7 +232,7 @@ export class GameService {
     /**
      * @description 프론트엔드에서 전송한 게임 데이터를 저장
      */
-    async createGame(data: unknown): Promise<Result<{ gameAddress: string }>> {
+    async createGame(data: unknown): Promise<Result<{ gameId: string }>> {
         try {
             const result = await this.gameRepository.createFromFrontend(data);
 

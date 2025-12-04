@@ -16,7 +16,7 @@ import "./CommentSection.css";
 import { CreateGameSection } from "./CreateGameSection";
 
 interface NoGameSectionProps {
-  onGameCreated?: (gameAddress: string) => void;
+  onGameCreated?: (gameId: string) => void;
 }
 
 export function NoGameSection({ onGameCreated }: NoGameSectionProps) {

@@ -37,16 +37,16 @@ export class GameController {
         return this.gameService.createGame(body);
     }
 
-    @Post(':gameAddress/claim')
+    @Post(':gameId/claim')
     @HttpCode(HttpStatus.OK)
     @ApiRegisterClaimPrize('claimPrize 트랜잭션 등록')
     async registerClaimPrize(
-        @Param('gameAddress') gameAddress: string,
+        @Param('gameId') gameId: string,
         @Body() body: { txHash: string },
     ) {
         const success = await this.gameService.processPrizeClaimedTransaction(
             body.txHash,
-            gameAddress,
+            gameId,
         );
 
         return {

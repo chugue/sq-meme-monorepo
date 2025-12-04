@@ -18,9 +18,9 @@ export const ApiRegisterClaimPrize = (summary = 'claimPrize 트랜잭션 등록'
     applyDecorators(
         ApiOperation({ summary }),
         ApiParam({
-            name: 'gameAddress',
-            description: '게임 컨트랙트 주소',
-            example: '0x1234567890123456789012345678901234567890',
+            name: 'gameId',
+            description: '게임 ID',
+            example: '1',
         }),
         ApiResponse({
             status: 200,
