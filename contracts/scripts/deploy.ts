@@ -2,12 +2,12 @@ import hre from "hardhat";
 import { defineChain, createWalletClient, createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-const insectarium = defineChain({
-  id: 43522,
-  name: "Insectarium Testnet",
+const formicarium = defineChain({
+  id: 43521,
+  name: "Formicarium Testnet",
   nativeCurrency: { name: "Meme", symbol: "M", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://rpc.insectarium.memecore.net"] },
+    default: { http: ["https://rpc.formicarium.memecore.net"] },
   },
 });
 
@@ -26,12 +26,12 @@ async function main() {
 
   const walletClient = createWalletClient({
     account,
-    chain: insectarium,
+    chain: formicarium,
     transport: http(),
   });
 
   const publicClient = createPublicClient({
-    chain: insectarium,
+    chain: formicarium,
     transport: http(),
   });
 

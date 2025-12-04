@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import type { Address } from "viem";
+import { EXPLORER_URL } from "../../config/wagmi";
 import { backgroundApi } from "../../lib/backgroundApi";
 import { commentGameV2ABI, COMMENT_GAME_V2_ADDRESS } from "../../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../../lib/injectedApi";
@@ -89,7 +90,7 @@ export function ClaimPrizeSection({
           <div className="squid-tx-hash" style={{ marginTop: "8px" }}>
             TX:{" "}
             <a
-              href={`https://explorer.memecore.org/tx/${claimTxHash}`}
+              href={`${EXPLORER_URL}/tx/${claimTxHash}`}
               target="_blank"
               rel="noopener noreferrer"
             >

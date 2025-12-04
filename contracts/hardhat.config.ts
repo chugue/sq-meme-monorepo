@@ -38,11 +38,11 @@ export default defineConfig({
       type: "edr-simulated",
       chainType: "op",
     },
-    insectarium: {
+    formicarium: {
       type: "http",
       chainType: "l1",
-      chainId: 43522,
-      url: "https://rpc.insectarium.memecore.net",
+      chainId: 43521,
+      url: "https://rpc.formicarium.memecore.net",
       accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
     },
   },
