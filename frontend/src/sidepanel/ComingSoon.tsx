@@ -28,7 +28,7 @@ function isContentScriptError(error: unknown): boolean {
 }
 
 interface ComingSoonProps {
-  onMemexLoginComplete?: () => void;
+  onMemexLoginComplete?: (username: string, userTag: string) => void;
 }
 
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
@@ -117,7 +117,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             setUser(checkResult.user); // 세션에 user 저장
             setLoggingIn(false);
             await refetch();
-            onMemexLoginComplete();
+            onMemexLoginComplete(cachedUserInfo.username, cachedUserInfo.user_tag);
             return;
           }
 
@@ -158,12 +158,26 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
         return;
       }
 
-      // 이미 로그인되어 있으면 바로 완료
-      if (result?.isLoggedIn && onMemexLoginComplete) {
-        console.log("✅ MEMEX 로그인 완료:", result.username);
-        setLoggingIn(false);
-        onMemexLoginComplete();
-        return;
+      // 이미 로그인되어 있으면 백엔드에서 user 정보 조회 후 완료
+      if (result?.isLoggedIn && result.username && result.userTag && onMemexLoginComplete) {
+        console.log("🔐 GTM 로그인 확인됨, 백엔드에서 user 정보 조회:", result.username);
+        try {
+          const userResult = await backgroundApi.getUserByUsername(
+            result.username,
+            result.userTag
+          );
+          if (userResult?.user) {
+            setUser(userResult.user);
+            console.log("✅ MEMEX 로그인 완료:", userResult.user.userName);
+            setLoggingIn(false);
+            onMemexLoginComplete(result.username, result.userTag);
+            return;
+          }
+        } catch (userErr) {
+          console.warn("⚠️ User 정보 조회 실패:", userErr);
+        }
+        // 백엔드에 user가 없으면 신규 사용자 - 로그인 완료 처리하지 않음
+        console.log("⚠️ 백엔드에 user 없음 (신규 사용자), 로그인 미완료");
       }
 
       // 로그인 시작됨 - 폴링으로 로그인 완료 확인
@@ -197,9 +211,9 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             );
 
             if (checkResult?.isLoggedIn && checkResult.username && checkResult.userTag && onMemexLoginComplete) {
-              console.log("✅ MEMEX 로그인 완료:", checkResult.username);
+              console.log("🔐 GTM 로그인 확인됨, 백엔드에서 user 정보 조회:", checkResult.username);
 
-              // 백엔드에서 user 정보 가져오기
+              // 백엔드에서 user 정보 가져오기 - user가 있어야만 로그인 완료
               try {
                 const userResult = await backgroundApi.getUserByUsername(
                   checkResult.username,
@@ -207,17 +221,17 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 );
                 if (userResult?.user) {
                   setUser(userResult.user);
-                  console.log("✅ User 정보 저장 완료:", userResult.user.userName);
+                  console.log("✅ MEMEX 로그인 완료:", userResult.user.userName);
+                  setLoggingIn(false);
+                  await refetch();
+                  onMemexLoginComplete(checkResult.username, checkResult.userTag);
+                  return;
                 }
+                // 백엔드에 user 없음 - 계속 폴링
+                console.log("⚠️ 백엔드에 user 없음, 폴링 계속...");
               } catch (userErr) {
-                console.warn("⚠️ User 정보 조회 실패:", userErr);
+                console.warn("⚠️ User 정보 조회 실패, 폴링 계속:", userErr);
               }
-
-              setLoggingIn(false);
-              // 지갑 연결 상태 재확인 (jotai 전역 상태 업데이트)
-              await refetch();
-              onMemexLoginComplete();
-              return;
             }
 
             // 아직 로그인 안됨, 다시 체크

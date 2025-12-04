@@ -23,9 +23,9 @@ export function SidePanelApp() {
   }, [isConnected, isMemexLoggedIn]);
 
   // MEMEX 로그인 완료 핸들러
-  const handleMemexLoginComplete = () => {
-    console.log("🔐 [App] handleMemexLoginComplete 호출됨");
-    setMemexLoggedIn(true);
+  const handleMemexLoginComplete = (username: string, userTag: string) => {
+    console.log("🔐 [App] handleMemexLoginComplete 호출됨:", { username, userTag });
+    setMemexLoggedIn(true, username, userTag);
   };
 
   // 로딩 중일 때
