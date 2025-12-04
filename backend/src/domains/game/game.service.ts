@@ -202,7 +202,18 @@ export class GameService {
         );
 
         if (!gameCreatedLog) {
+            // 디버깅: 어떤 로그가 있는지 출력
             this.logger.warn(`GameCreated 이벤트 없음: ${txHash}`);
+            this.logger.warn(`조회 조건 - topic: ${gameCreatedTopic}`);
+            this.logger.warn(
+                `조회 조건 - contractAddress: ${this.contractAddress}`,
+            );
+            this.logger.warn(`receipt.logs 개수: ${receipt.logs.length}`);
+            receipt.logs.forEach((log, idx) => {
+                this.logger.warn(
+                    `  log[${idx}]: address=${log.address}, topic0=${log.topics[0]}`,
+                );
+            });
             return Result.fail(
                 'GameCreated 이벤트를 찾을 수 없습니다.',
                 HttpStatus.NOT_FOUND,

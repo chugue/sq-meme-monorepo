@@ -1,11 +1,4 @@
-import {
-    Body,
-    Controller,
-    Get,
-    HttpStatus,
-    Param,
-    Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
     ApiCreateGame,
@@ -14,7 +7,6 @@ import {
     ApiGetGamesInPlaying,
     ApiRegisterClaimPrize,
     ApiRegisterGame,
-    Transactional,
     WalletAddress,
 } from 'src/common/decorators';
 import { Result } from 'src/common/types';
@@ -37,7 +29,6 @@ export class GameController {
     }
 
     @Post(':gameId/claim')
-    @Transactional()
     @ApiRegisterClaimPrize('claimPrize 트랜잭션 등록')
     async registerClaimPrize(
         @Param('gameId') gameId: string,

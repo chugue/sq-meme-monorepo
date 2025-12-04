@@ -154,13 +154,12 @@ export function useTokenContract() {
   );
 
   /**
-   * 토큰 주소로 게임 정보 조회
+   * 토큰 주소로 게임 정보 조회 (최적화 버전)
    *
    * 흐름:
-   * 1. 백엔드 getActiveGameByToken + 블록체인 getActiveGameId 동시 요청
-   * 2. 백엔드 결과 먼저 UI 반영 (빠르니까)
-   * 3. 블록체인 gameId로 getGameInfo 조회
-   * 4. 블록체인 결과로 상태 대체
+   * 1. 백엔드 API와 블록체인 RPC를 병렬로 시작 (await 없이)
+   * 2. 백엔드 결과가 먼저 오면 즉시 UI 반영 (로딩 해제)
+   * 3. 블록체인 결과는 백그라운드에서 처리하여 UI 업데이트
    */
   const fetchGameByToken = useCallback(
     async (
@@ -177,97 +176,111 @@ export function useTokenContract() {
       setIsLoading(true);
       setError(null);
 
-      try {
-        const queryTokenAddress = MOCK_ERC20_ADDRESS;
-        logger.info("토큰 주소로 게임 조회 시작", {
-          tokenAddress,
-          queryTokenAddress,
-        });
+      const queryTokenAddress = MOCK_ERC20_ADDRESS;
+      logger.info("토큰 주소로 게임 조회 시작", {
+        tokenAddress,
+        queryTokenAddress,
+      });
 
-        // 1. 백엔드 getActiveGameByToken + 블록체인 getActiveGameId 동시 요청
-        const [backendGame, blockchainGameId] = await Promise.all([
-          backgroundApi.getActiveGameByToken(queryTokenAddress),
-          fetchActiveGameId(queryTokenAddress),
-        ]);
+      let backendGame: GameInfo | null = null;
+      let hasSetInitialState = false;
 
-        // 2. 백엔드 결과 먼저 UI 반영 (빠르니까)
-        if (backendGame) {
-          logger.info("백엔드 활성 게임 발견, UI 먼저 반영", {
-            gameId: backendGame.gameId,
-          });
-
-          const backendGameInfo: ActiveGameInfo = {
-            id: backendGame.gameId,
-            initiator: backendGame.initiator,
-            gameToken: backendGame.gameToken,
-            cost: backendGame.cost,
-            gameTime: backendGame.gameTime,
-            tokenSymbol: backendGame.tokenSymbol || "",
-            endTime: backendGame.endTime,
-            lastCommentor: backendGame.lastCommentor,
-            prizePool: backendGame.prizePool,
-            isClaimed: backendGame.isClaimed,
-            isEnded: backendGame.isEnded,
-            totalFunding: backendGame.totalFunding || "0",
-            funderCount: backendGame.funderCount || "0",
-          };
-
-          setGameState(backendGameInfo, backendGame.isEnded);
-        }
-
-        // 3. 블록체인 gameId로 getGameInfo 조회
-        if (blockchainGameId) {
-          const blockchainGame = await fetchGameInfoById(blockchainGameId);
-
-          if (blockchainGame) {
-            const gameInfo = toActiveGameInfo(blockchainGame);
-            const blockchainGameIdStr = blockchainGame.id.toString();
-
-            logger.info("블록체인 게임 정보로 UI 대체", {
-              blockchainGameId: blockchainGameIdStr,
-              backendGameId: backendGame?.gameId || "없음",
-              isEnded: blockchainGame.isEnded,
+      // 백엔드 API 호출 (빠름 - 먼저 완료되면 즉시 UI 업데이트)
+      const backendPromise = backgroundApi
+        .getActiveGameByToken(queryTokenAddress)
+        .then((result) => {
+          backendGame = result;
+          if (result) {
+            logger.info("백엔드 활성 게임 발견, UI 즉시 반영", {
+              gameId: result.gameId,
             });
 
-            // 4. 블록체인 결과로 상태 대체
-            setGameState(gameInfo, blockchainGame.isEnded);
+            const backendGameInfo: ActiveGameInfo = {
+              id: result.gameId,
+              initiator: result.initiator,
+              gameToken: result.gameToken,
+              cost: result.cost,
+              gameTime: result.gameTime,
+              tokenSymbol: result.tokenSymbol || "",
+              endTime: result.endTime,
+              lastCommentor: result.lastCommentor,
+              prizePool: result.prizePool,
+              isClaimed: result.isClaimed,
+              isEnded: result.isEnded,
+              totalFunding: result.totalFunding || "0",
+              funderCount: result.funderCount || "0",
+            };
 
-            // 백엔드에 없거나 다른 게임이면 등록
-            const isSameGame = backendGame?.gameId === blockchainGameIdStr;
-
-            if (!isSameGame) {
-              logger.info("새 게임 백엔드 등록", {
-                gameId: blockchainGameIdStr,
-              });
-              backgroundApi.registerGame(blockchainGame).catch((err) => {
-                logger.error("백엔드 게임 등록 실패 (무시)", err);
-              });
-            }
-
-            return isSameGame ? backendGame : null;
+            setGameState(backendGameInfo, result.isEnded);
+            hasSetInitialState = true;
+            setIsLoading(false); // 백엔드 결과로 로딩 해제
           }
-        }
+          return result;
+        })
+        .catch((err) => {
+          logger.error("백엔드 게임 조회 실패", err);
+          return null;
+        });
 
-        // 블록체인에 활성 게임 없음
-        if (!blockchainGameId) {
-          // 백엔드에만 있는 경우 (이미 UI 반영됨)
-          if (backendGame) {
-            logger.info("블록체인에 활성 게임 없음, 백엔드 게임 유지");
-            return backendGame;
+      // 블록체인 조회 (느림 - 백그라운드에서 처리)
+      const blockchainPromise = fetchActiveGameId(queryTokenAddress)
+        .then(async (gameId) => {
+          if (!gameId) {
+            logger.info("블록체인에 활성 게임 없음");
+            return null;
           }
 
-          // 양쪽 모두 게임 없음
+          // gameId로 상세 정보 조회
+          const blockchainGame = await fetchGameInfoById(gameId);
+          if (!blockchainGame) return null;
+
+          const gameInfo = toActiveGameInfo(blockchainGame);
+          const blockchainGameIdStr = blockchainGame.id.toString();
+
+          logger.info("블록체인 게임 정보로 UI 업데이트", {
+            blockchainGameId: blockchainGameIdStr,
+            isEnded: blockchainGame.isEnded,
+          });
+
+          // 블록체인 결과로 UI 업데이트 (더 정확한 정보)
+          setGameState(gameInfo, blockchainGame.isEnded);
+          hasSetInitialState = true;
+
+          // 백엔드에 없거나 다른 게임이면 등록
+          const isSameGame = backendGame?.gameId === blockchainGameIdStr;
+          if (!isSameGame) {
+            logger.info("새 게임 백엔드 등록", { gameId: blockchainGameIdStr });
+            backgroundApi.registerGame(blockchainGame).catch((err) => {
+              logger.error("백엔드 게임 등록 실패 (무시)", err);
+            });
+          }
+
+          return blockchainGame;
+        })
+        .catch((err) => {
+          logger.error("블록체인 게임 조회 실패", err);
+          return null;
+        });
+
+      try {
+        // 둘 다 완료될 때까지 대기 (하지만 UI는 이미 업데이트됨)
+        await Promise.all([backendPromise, blockchainPromise]);
+
+        // 둘 다 게임이 없는 경우
+        if (!hasSetInitialState) {
           logger.info("게임 없음 (백엔드 및 블록체인 모두)", { tokenAddress });
           setGameState(null, false);
         }
 
-        return null;
+        return backendGame;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "게임 조회 실패";
         logger.error("게임 조회 실패", err);
         setError(errorMessage);
-        setGameState(null, false);
+        if (!hasSetInitialState) {
+          setGameState(null, false);
+        }
         return null;
       } finally {
         setIsLoading(false);
