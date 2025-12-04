@@ -1117,6 +1117,135 @@ export function createMessageHandler() {
             break;
           }
 
+          case "GET_PROFILE": {
+            try {
+              const { browser } = await import("wxt/browser");
+              const storage =
+                browser?.storage || (globalThis as any).chrome?.storage;
+
+              // chrome.storage.session에서 walletAddress 가져오기
+              const sessionState = await new Promise<any>((resolve) => {
+                storage.session.get(["squid_session_state"], (result: any) => {
+                  resolve(result.squid_session_state || null);
+                });
+              });
+
+              const walletAddress = sessionState?.walletAddress;
+              if (!walletAddress) {
+                result = {
+                  success: false,
+                  error: "지갑 주소가 없습니다. 먼저 지갑을 연결해주세요.",
+                };
+                break;
+              }
+
+              const response = await apiCall<{
+                success: boolean;
+                data: {
+                  username: string | null;
+                  connectedWallet: string;
+                  memexWallet: string | null;
+                  commentCounts: number;
+                  streakDays: number;
+                };
+              }>("/v1/users/profile", {
+                headers: {
+                  "x-wallet-address": walletAddress,
+                },
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 프로필 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "프로필 조회 실패",
+              };
+            }
+            break;
+          }
+
+          case "GET_GAME_RANKING": {
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { gameRanking: any[] };
+              }>("/v1/users/game-ranking");
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 게임 랭킹 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "게임 랭킹 조회 실패",
+              };
+            }
+            break;
+          }
+
+          case "GET_PRIZE_RANKING": {
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { prizeRanking: any[] };
+              }>("/v1/users/prize-ranking");
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 상금 랭킹 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "상금 랭킹 조회 실패",
+              };
+            }
+            break;
+          }
+
+          case "GET_QUESTS": {
+            try {
+              const { browser } = await import("wxt/browser");
+              const storage =
+                browser?.storage || (globalThis as any).chrome?.storage;
+
+              const sessionState = await new Promise<any>((resolve) => {
+                storage.session.get(["squid_session_state"], (result: any) => {
+                  resolve(result.squid_session_state || null);
+                });
+              });
+
+              const walletAddress = sessionState?.walletAddress;
+              if (!walletAddress) {
+                result = {
+                  success: false,
+                  error: "지갑 주소가 없습니다. 먼저 지갑을 연결해주세요.",
+                };
+                break;
+              }
+
+              const response = await apiCall<{
+                success: boolean;
+                data: { quests: any[] };
+              }>("/v1/users/quests", {
+                headers: {
+                  "x-wallet-address": walletAddress,
+                },
+              });
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 퀘스트 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "퀘스트 조회 실패",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,

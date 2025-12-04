@@ -4,6 +4,7 @@ import { UsersRepository } from './users.repository';
 import { User, CheckInRecord } from 'src/common/db/schema/user.schema';
 import { JoinDto } from './dto/join.dto';
 import { CommentRepository } from '../comment/comment.repository';
+import { GameRepository } from '../game/game.repository';
 
 export interface ProfilePageData {
     username: string | null;
@@ -13,6 +14,39 @@ export interface ProfilePageData {
     streakDays: number;
 }
 
+// 리더보드 - 게임(토큰)별 총 상금 랭킹
+export interface GameRankItem {
+    rank: number;
+    tokenImage: string | null;
+    tokenAddress: string;
+    tokenSymbol: string | null;
+    totalPrize: string;
+}
+
+// 리더보드 - 유저별 총 획득 상금 랭킹
+export interface PrizeRankItem {
+    rank: number;
+    profileImage: string | null;
+    username: string | null;
+    totalAmount: string;
+    tokenAddress: string;
+    tokenSymbol: string;
+}
+
+// 퀘스트 아이템
+export interface QuestItem {
+    title: string;
+    claimed: boolean;
+    isEligible: boolean;
+}
+
+// 퀘스트 카테고리
+export interface QuestCategory {
+    category: string;
+    items: QuestItem[];
+}
+
+
 @Injectable()
 export class UsersService {
     private readonly logger = new Logger(UsersService.name);
@@ -20,6 +54,7 @@ export class UsersService {
     constructor(
         private readonly usersRepository: UsersRepository,
         private readonly commentRepository: CommentRepository,
+        private readonly gameRepository: GameRepository,
     ) {}
 
     /**
@@ -191,5 +226,144 @@ export class UsersService {
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
+    }
+
+    /**
+     * @description 토큰별 상금 랭킹 조회 (Game Ranking 탭)
+     */
+    async getGameRanking(): Promise<Result<{ gameRanking: GameRankItem[] }>> {
+        try {
+            const gameRankingRaw =
+                await this.gameRepository.getGameRankingByToken(5);
+            const gameRanking: GameRankItem[] = gameRankingRaw.map(
+                (item, index) => ({
+                    rank: index + 1,
+                    tokenImage: item.tokenImageUrl,
+                    tokenAddress: item.tokenAddress,
+                    tokenSymbol: item.tokenSymbol,
+                    totalPrize: item.totalPrize,
+                }),
+            );
+
+            return Result.ok({ gameRanking });
+        } catch (error) {
+            this.logger.error(`Get game ranking failed: ${error.message}`);
+            return Result.fail(
+                '게임 랭킹 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * @description 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
+     */
+    async getPrizeRanking(): Promise<
+        Result<{ prizeRanking: PrizeRankItem[] }>
+    > {
+        try {
+            const prizeRankingRaw =
+                await this.gameRepository.getPrizeRankingByUser(5);
+
+            // 유저 정보 조회 (profileImage, username)
+            const walletAddresses = prizeRankingRaw.map((r) => r.walletAddress);
+            const users =
+                await this.usersRepository.findByWalletAddresses(
+                    walletAddresses,
+                );
+            const userMap = new Map(
+                users.map((u: User) => [u.walletAddress, u]),
+            );
+
+            const prizeRanking: PrizeRankItem[] = prizeRankingRaw.map(
+                (item, index) => {
+                    const userInfo = userMap.get(item.walletAddress);
+                    return {
+                        rank: index + 1,
+                        profileImage: userInfo?.profileImage ?? null,
+                        username: userInfo?.userName ?? null,
+                        totalAmount: item.totalAmount,
+                        tokenAddress: '',
+                        tokenSymbol: 'ETH',
+                    };
+                },
+            );
+
+            return Result.ok({ prizeRanking });
+        } catch (error) {
+            this.logger.error(`Get prize ranking failed: ${error.message}`);
+            return Result.fail(
+                '상금 랭킹 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * @description 퀘스트 목록 조회 (Quests 탭)
+     */
+    async getQuests(
+        walletAddress: string,
+    ): Promise<Result<{ quests: QuestCategory[] }>> {
+        try {
+            const user =
+                await this.usersRepository.findByWalletAddress(walletAddress);
+            const commentCount =
+                await this.commentRepository.countByWalletAddress(walletAddress);
+            const quests = this.calculateQuests(user, commentCount);
+
+            return Result.ok({ quests });
+        } catch (error) {
+            this.logger.error(`Get quests failed: ${error.message}`);
+            return Result.fail(
+                '퀘스트 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * @description 퀘스트 진행 상황 계산
+     */
+    private calculateQuests(
+        user: User | null,
+        commentCount: number = 0,
+    ): QuestCategory[] {
+        const history: CheckInRecord[] = user?.checkInHistory ?? [];
+        const lastCheckIn = history[history.length - 1];
+        const currentStreak = lastCheckIn?.currentStreak ?? 0;
+
+        return [
+            {
+                category: 'Check In Quest',
+                items: [
+                    {
+                        title: '5 Days Streak!',
+                        claimed: false, // TODO: 퀘스트 클레임 상태 저장 필요
+                        isEligible: currentStreak >= 5,
+                    },
+                    {
+                        title: '10 Days Streak!',
+                        claimed: false,
+                        isEligible: currentStreak >= 10,
+                    },
+                ],
+            },
+            {
+                category: 'Comment Quest',
+                items: [
+                    {
+                        title: '20 comments',
+                        claimed: false,
+                        isEligible: commentCount >= 20,
+                    },
+                    {
+                        title: '50 comments',
+                        claimed: false,
+                        isEligible: commentCount >= 50,
+                    },
+                ],
+            },
+        ];
     }
 }

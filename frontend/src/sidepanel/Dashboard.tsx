@@ -44,8 +44,7 @@ export function Dashboard({
   onNavigateToHowToPlay,
   onNavigateToQuest,
 }: DashboardProps) {
-  const { username, userTag, profileImageUrl, logout, tokenSymbol } =
-    useMemexLogin();
+  const { logout } = useMemexLogin();
   const { address: walletAddressFromHook } = useSidepanelWallet();
   const session = useAtomValue(sessionAtom);
   const { user } = session;
@@ -75,7 +74,7 @@ export function Dashboard({
             className="profile-box-frame"
           />
           <img
-            src={profileImageUrl}
+            src={user?.profileImage || mockUserData.profileImage}
             alt="Profile"
             className="profile-box-image"
           />

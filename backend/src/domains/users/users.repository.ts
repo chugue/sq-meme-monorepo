@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -107,5 +107,25 @@ export class UsersRepository {
 
         const user = await this.create(newUser);
         return { user, isNew: true };
+    }
+
+    /**
+     * @description 여러 지갑 주소로 사용자 목록 조회
+     */
+    async findByWalletAddresses(walletAddresses: string[]): Promise<User[]> {
+        if (walletAddresses.length === 0) {
+            return [];
+        }
+
+        const normalizedAddresses = walletAddresses.map((addr) =>
+            addr.toLowerCase(),
+        );
+
+        const users = await this.db
+            .select()
+            .from(schema.users)
+            .where(inArray(schema.users.walletAddress, normalizedAddresses));
+
+        return users;
     }
 }

@@ -1,6 +1,9 @@
 import { useAtomValue } from "jotai";
 import { ChevronLeft, Home } from "lucide-react";
-import { currentStreakAtom, sessionAtom } from "./atoms/sessionAtoms";
+import { useEffect, useState } from "react";
+import { ProfilePageData } from "../types/response.types";
+import { backgroundApi } from "../contents/lib/backgroundApi";
+import { sessionAtom } from "./atoms/sessionAtoms";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import "./ProfilePage.css";
 
@@ -8,7 +11,6 @@ import "./ProfilePage.css";
 const mockUserData = {
   profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
   walletAddress: "0x13a90df0418e2a2c7e5801cb75d0a0e00319bdd1",
-  comments: 23,
 };
 
 interface ProfilePageProps {
@@ -17,10 +19,25 @@ interface ProfilePageProps {
 }
 
 export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
-  const { username, profileImageUrl, logout } = useMemexLogin();
+  const { logout } = useMemexLogin();
   const session = useAtomValue(sessionAtom);
-  const currentStreak = useAtomValue(currentStreakAtom);
-  const { memexWalletAddress } = session;
+  const { user } = session;
+  const [profileData, setProfileData] = useState<ProfilePageData | null>(null);
+
+  // 컴포넌트 로드 시 프로필 데이터 조회
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const result = await backgroundApi.getProfile();
+        setProfileData(result);
+        console.log("✅ [ProfilePage] 프로필 데이터 조회 완료:", result);
+      } catch (error) {
+        console.error("❌ [ProfilePage] 프로필 데이터 조회 실패:", error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -45,9 +62,9 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
           <Home size={20} />
         </button>
         <div className="header-user-info">
-          <span className="header-username">{username || "User"}</span>
+          <span className="header-username">{user?.userName || "User"}</span>
           <img
-            src={profileImageUrl || mockUserData.profileImage}
+            src={user?.profileImage || mockUserData.profileImage}
             alt="Profile"
             className="header-profile-image"
           />
@@ -58,7 +75,7 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
       <section className="profile-character-section">
         <div className="character-circle">
           <img
-            src={profileImageUrl || mockUserData.profileImage}
+            src={user?.profileImage || mockUserData.profileImage}
             alt="Character"
             className="character-image"
           />
@@ -71,7 +88,7 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
         <div className="info-group">
           <label className="info-label">Username</label>
           <div className="info-input-wrapper">
-            <span className="info-value">{username || "User"}</span>
+            <span className="info-value">{user?.userName || "User"}</span>
           </div>
         </div>
 
@@ -80,7 +97,9 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
           <label className="info-label">Connected Wallet</label>
           <div className="info-input-wrapper">
             <span className="info-value wallet">
-              {shortenAddress(walletAddress || mockUserData.walletAddress)}
+              {shortenAddress(
+                user?.walletAddress || mockUserData.walletAddress
+              )}
             </span>
           </div>
         </div>
@@ -90,8 +109,8 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
           <label className="info-label">MEMEX Wallet</label>
           <div className="info-input-wrapper">
             <span className="info-value wallet">
-              {memexWalletAddress
-                ? shortenAddress(memexWalletAddress)
+              {user?.memexWalletAddress
+                ? shortenAddress(user?.memexWalletAddress)
                 : "Not connected"}
             </span>
           </div>
@@ -101,14 +120,14 @@ export function ProfilePage({ walletAddress, onBack }: ProfilePageProps) {
         <div className="stats-row">
           <div className="stat-item">
             <span className="stat-label">comments</span>
-            <span className="stat-value">{mockUserData.comments}</span>
+            <span className="stat-value">{profileData?.commentCounts ?? 0}</span>
           </div>
         </div>
         <div className="stats-row">
           <div className="stat-item">
             <span className="stat-label">Streak</span>
             <span className="stat-value">
-              {currentStreak} <span className="stat-unit">days</span>
+              {profileData?.streakDays ?? 0} <span className="stat-unit">days</span>
             </span>
           </div>
         </div>

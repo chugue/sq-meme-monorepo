@@ -84,7 +84,11 @@ export type BackgroundMessage =
       mimeType: string;
     }
   | { type: "REFRESH_MEMEX_TAB" }
-  | { type: "SAVE_FUNDING"; data: { txHash: string } };
+  | { type: "SAVE_FUNDING"; data: { txHash: string } }
+  | { type: "GET_PROFILE" }
+  | { type: "GET_GAME_RANKING" }
+  | { type: "GET_PRIZE_RANKING" }
+  | { type: "GET_QUESTS" };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -416,6 +420,34 @@ export const backgroundApi = {
       type: "GET_USER_BY_USERNAME",
       username,
       userTag,
+    });
+  },
+
+  // 프로필 페이지 데이터 조회 (walletAddress 헤더 사용)
+  getProfile: async () => {
+    return sendToBackground<import("../../types/response.types").ProfilePageData>({
+      type: "GET_PROFILE",
+    });
+  },
+
+  // 토큰별 상금 랭킹 조회 (Game Ranking 탭)
+  getGameRanking: async () => {
+    return sendToBackground<import("../../types/response.types").GameRankingResponse>({
+      type: "GET_GAME_RANKING",
+    });
+  },
+
+  // 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
+  getPrizeRanking: async () => {
+    return sendToBackground<import("../../types/response.types").PrizeRankingResponse>({
+      type: "GET_PRIZE_RANKING",
+    });
+  },
+
+  // 퀘스트 목록 조회 (Quests 탭)
+  getQuests: async () => {
+    return sendToBackground<import("../../types/response.types").QuestsResponse>({
+      type: "GET_QUESTS",
     });
   },
 };

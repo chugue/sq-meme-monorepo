@@ -1,4 +1,5 @@
 import { ChevronLeft, Home } from "lucide-react";
+import { useEffect } from "react";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import "./MyGamesPage.css";
 
@@ -51,6 +52,8 @@ interface MyGamesPageProps {
 
 export function MyGamesPage({ onBack }: MyGamesPageProps) {
   const { username, profileImageUrl } = useMemexLogin();
+
+  useEffect(() => {}, []);
 
   return (
     <div className="my-games-container">

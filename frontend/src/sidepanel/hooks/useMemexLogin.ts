@@ -120,21 +120,16 @@ export function useMemexLogin(): UseMemexLoginReturn {
 
           if (!result.user) {
             console.log("🔐 [useMemexLogin] 사용자 정보 없음 (신규 사용자)");
-            return;
+            return false;
           }
 
+          // 백엔드에서 받은 user 데이터로 로그인 상태 설정
           setUser(result.user);
-
-          /**
-           * FIXME: 현재 사이드 패널때문에 사용자 정보가 스키마대로 필요해요.
-           * 그리고 출석 체크 때문에, 캐시로 로그인 해도 항상 백엔드랑 요청해야되요. /join 또는 /username/usertag
-           * 그래서 캐시로 UserSchema를 다 저장하든지, 이거 사용안하든지 방향으로 되어야 될것 같아요
-           */
-          // 캐시된 정보로 로그인 상태 업데이트
           setMemexLoggedIn({
             isLoggedIn: true,
-            username: cachedUserInfo.username,
-            userTag: cachedUserInfo.user_tag,
+            username: result.user.userName,
+            userTag: result.user.userTag,
+            profileImage: result.user.profileImage,
           });
 
           console.log(
@@ -161,21 +156,45 @@ export function useMemexLogin(): UseMemexLoginReturn {
       console.log("🔐 [useMemexLogin] checkLoginStatus 결과:", result);
 
       if (result?.isLoggedIn && result.username && result.userTag) {
-        // 로그인 상태 업데이트
-        setMemexLoggedIn({
-          isLoggedIn: true,
-          username: result.username,
-          userTag: result.userTag,
-        });
-
         // chrome.storage에 캐시 저장
         await saveMemexUserInfo({
           username: result.username,
           user_tag: result.userTag,
         });
 
-        // 프로필 정보는 URL 변경 감지로 자동 처리되므로 여기서는 가져오지 않음
-        return true;
+        // 백엔드에서 사용자 정보 조회 (출석 체크 포함)
+        try {
+          const userResult = await backgroundApi.getUserByUsername(
+            result.username,
+            result.userTag
+          );
+
+          if (userResult.user) {
+            setUser(userResult.user);
+            setMemexLoggedIn({
+              isLoggedIn: true,
+              username: userResult.user.userName,
+              userTag: userResult.user.userTag,
+              profileImage: userResult.user.profileImage,
+            });
+            console.log(
+              "✅ [useMemexLogin] 사용자 정보 조회 완료:",
+              userResult.user
+            );
+            return true;
+          }
+        } catch (userErr) {
+          console.warn("⚠️ [useMemexLogin] 사용자 정보 조회 실패:", userErr);
+        }
+
+        // 백엔드에 유저가 없으면 (신규 사용자) 임시로 username/userTag만 저장
+        // Join은 나중에 모든 데이터가 준비되면 자동으로 실행됨
+        setMemexLoggedIn({
+          isLoggedIn: false,
+          username: result.username,
+          userTag: result.userTag,
+        });
+        return false;
       }
 
       setMemexLoggedIn({ isLoggedIn: false });
@@ -231,19 +250,48 @@ export function useMemexLogin(): UseMemexLoginReturn {
       return;
     }
 
-    // 기존 데이터가 있으면 활용하고 체크 완료로 표시
-    if (username && userTag) {
-      console.log("🔐 [useMemexLogin] 기존 세션 데이터 활용:", {
-        username,
-        userTag,
-      });
-      setLoginCheckCompleted(true);
-      return;
-    }
-
-    // 데이터가 없으면 조회 수행
     const performCheck = async () => {
-      await checkLoginStatus();
+      // 기존 세션에 username/userTag가 있어도 백엔드 통신 필요 (출석 체크)
+      if (username && userTag) {
+        console.log("🔐 [useMemexLogin] 기존 세션 데이터로 백엔드 조회:", {
+          username,
+          userTag,
+        });
+
+        try {
+          const result = await backgroundApi.getUserByUsername(
+            username,
+            userTag
+          );
+
+          if (result.user) {
+            setUser(result.user);
+            setMemexLoggedIn({
+              isLoggedIn: true,
+              username: result.user.userName,
+              userTag: result.user.userTag,
+              profileImage: result.user.profileImage,
+            });
+            console.log(
+              "✅ [useMemexLogin] 기존 세션 사용자 정보 조회 완료:",
+              result.user
+            );
+          } else {
+            // 백엔드에 유저가 없으면 로그인 상태 false
+            setMemexLoggedIn({ isLoggedIn: false });
+          }
+        } catch (err) {
+          console.warn(
+            "⚠️ [useMemexLogin] 기존 세션 사용자 정보 조회 실패:",
+            err
+          );
+          setMemexLoggedIn({ isLoggedIn: false });
+        }
+      } else {
+        // username/userTag가 없으면 기존 checkLoginStatus 실행
+        await checkLoginStatus();
+      }
+
       setLoginCheckCompleted(true);
     };
 

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -339,6 +339,81 @@ export class GameRepository {
             this.logger.error(
                 `❌ 활성 게임 목록 조회 실패: ${error.message}`,
             );
+            return [];
+        }
+    }
+
+    /**
+     * @description 토큰별 총 상금 랭킹 조회 (claim된 게임 기준, 상위 N개)
+     */
+    async getGameRankingByToken(
+        limit: number = 5,
+    ): Promise<
+        {
+            tokenAddress: string;
+            tokenSymbol: string | null;
+            tokenImageUrl: string | null;
+            totalPrize: string;
+        }[]
+    > {
+        try {
+            const result = await this.db
+                .select({
+                    tokenAddress: schema.games.gameToken,
+                    tokenSymbol: schema.games.tokenSymbol,
+                    tokenImageUrl: schema.games.tokenImageUrl,
+                    totalPrize: sql<string>`COALESCE(SUM(CAST(${schema.games.prizePool} AS NUMERIC)), 0)::TEXT`,
+                })
+                .from(schema.games)
+                .where(eq(schema.games.isClaimed, true))
+                .groupBy(
+                    schema.games.gameToken,
+                    schema.games.tokenSymbol,
+                    schema.games.tokenImageUrl,
+                )
+                .orderBy(
+                    desc(
+                        sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`,
+                    ),
+                )
+                .limit(limit);
+
+            return result;
+        } catch (error) {
+            this.logger.error(`❌ 토큰별 상금 랭킹 조회 실패: ${error.message}`);
+            return [];
+        }
+    }
+
+    /**
+     * @description 유저별 총 획득 상금 랭킹 조회 (claim한 게임의 prizePool 합계)
+     */
+    async getPrizeRankingByUser(limit: number = 5): Promise<
+        {
+            walletAddress: string;
+            totalAmount: string;
+        }[]
+    > {
+        try {
+            // isClaimed = true인 게임의 lastCommentor별 prizePool 합계
+            const result = await this.db
+                .select({
+                    walletAddress: schema.games.lastCommentor,
+                    totalAmount: sql<string>`COALESCE(SUM(CAST(${schema.games.prizePool} AS NUMERIC)), 0)::TEXT`,
+                })
+                .from(schema.games)
+                .where(eq(schema.games.isClaimed, true))
+                .groupBy(schema.games.lastCommentor)
+                .orderBy(
+                    desc(
+                        sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`,
+                    ),
+                )
+                .limit(limit);
+
+            return result;
+        } catch (error) {
+            this.logger.error(`❌ 유저별 상금 랭킹 조회 실패: ${error.message}`);
             return [];
         }
     }

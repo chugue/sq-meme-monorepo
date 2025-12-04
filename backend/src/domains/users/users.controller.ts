@@ -52,4 +52,28 @@ export class UsersController {
     async getProfilePageData(@WalletAddress() walletAddress: string) {
         return this.usersService.getProfilePageData(walletAddress);
     }
+
+    /**
+     * 토큰별 상금 랭킹 조회 (Game Ranking 탭)
+     */
+    @Get('game-ranking')
+    async getGameRanking() {
+        return this.usersService.getGameRanking();
+    }
+
+    /**
+     * 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
+     */
+    @Get('prize-ranking')
+    async getPrizeRanking() {
+        return this.usersService.getPrizeRanking();
+    }
+
+    /**
+     * 퀘스트 목록 조회 (Quests 탭)
+     */
+    @Get('quests')
+    async getQuests(@WalletAddress() walletAddress: string) {
+        return this.usersService.getQuests(walletAddress);
+    }
 }
