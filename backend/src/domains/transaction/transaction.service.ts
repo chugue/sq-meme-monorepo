@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool, PoolClient } from 'pg';
-import { PG_POOL } from '../db/db.module';
-import * as schema from '../db/schema';
+import { PG_POOL } from 'src/common/db/db.module';
+import * as schema from 'src/common/db/schema';
 
 export type TransactionClient = NodePgDatabase<typeof schema>;
 

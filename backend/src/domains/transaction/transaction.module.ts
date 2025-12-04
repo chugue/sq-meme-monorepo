@@ -1,6 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { TransactionInterceptor } from './transaction.interceptor';
+import {
+    ResponseInterceptor,
+    TransactionInterceptor,
+} from 'src/common/interceptors';
 import { TransactionService } from './transaction.service';
 
 /**
@@ -42,6 +45,10 @@ import { TransactionService } from './transaction.service';
         {
             provide: APP_INTERCEPTOR,
             useClass: TransactionInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: ResponseInterceptor,
         },
     ],
     exports: [TransactionService],

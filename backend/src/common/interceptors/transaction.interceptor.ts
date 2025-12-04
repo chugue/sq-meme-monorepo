@@ -15,7 +15,7 @@ import {
     IsolationLevel,
     TRANSACTIONAL_KEY,
     TransactionalOptions,
-} from './transactional.decorator';
+} from '../decorators/transactional.decorator';
 
 // AsyncLocalStorage를 사용하여 요청별 트랜잭션 컨텍스트 관리
 import { AsyncLocalStorage } from 'async_hooks';

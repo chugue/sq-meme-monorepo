@@ -2,8 +2,6 @@ import {
     Body,
     Controller,
     Get,
-    HttpCode,
-    HttpStatus,
     NotFoundException,
     Param,
     Post,
@@ -31,14 +29,12 @@ export class GameController {
     ) {}
 
     @Post()
-    @HttpCode(HttpStatus.CREATED)
     @ApiCreateGame('게임 생성')
     async createGame(@Body() body: unknown) {
         return this.gameService.createGame(body);
     }
 
     @Post(':gameId/claim')
-    @HttpCode(HttpStatus.OK)
     @ApiRegisterClaimPrize('claimPrize 트랜잭션 등록')
     async registerClaimPrize(
         @Param('gameId') gameId: string,
@@ -85,14 +81,12 @@ export class GameController {
     }
 
     @Post('register')
-    @HttpCode(HttpStatus.CREATED)
     @ApiRegisterGame('블록체인에서 조회한 게임 등록')
     async registerGame(@Body() body: unknown) {
         return this.gameService.registerGame(body);
     }
 
     @Post('create-by-tx')
-    @HttpCode(HttpStatus.CREATED)
     @ApiCreateGameByTx('txHash로 게임 생성 (이벤트 파싱)')
     async createGameByTx(@Body() body: unknown) {
         const parsed = CreateGameByTxDtoSchema.safeParse(body);
