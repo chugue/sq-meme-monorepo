@@ -115,9 +115,10 @@ export class GameService {
                 return true;
             }
 
-            // 2. 게임 상태 업데이트 (isClaimed = true) - 먼저 처리하여 중복 요청 방지
+            // 2. 게임 상태 업데이트 - 먼저 처리하여 중복 요청 방지
             await this.gameRepository.updateGameState(gameId, {
                 isClaimed: true,
+                isEnded: true,
             });
 
             // 3. Winner 레코드 생성
@@ -153,123 +154,104 @@ export class GameService {
         txHash: string,
         tokenImageUrl?: string,
     ): Promise<Result<{ gameId: string }>> {
-        try {
-            const receipt =
-                await this.ethereumProvider.getTransactionReceipt(txHash);
+        const receipt =
+            await this.ethereumProvider.getTransactionReceipt(txHash);
 
-            if (!receipt) {
-                this.logger.warn(`트랜잭션 영수증 없음: ${txHash}`);
-                return Result.fail('트랜잭션 영수증을 찾을 수 없습니다.');
-            }
-
-            if (receipt.status === 0) {
-                this.logger.warn(`트랜잭션 실패 (revert): ${txHash}`);
-                return Result.fail('트랜잭션이 실패했습니다.');
-            }
-
-            // GameCreated 이벤트 찾기
-            const gameCreatedTopic =
-                this.gameCreatedIface.getEvent('GameCreated')?.topicHash;
-
-            const gameCreatedLog = receipt.logs.find(
-                (log) =>
-                    log.topics[0] === gameCreatedTopic &&
-                    log.address.toLowerCase() ===
-                        this.contractAddress.toLowerCase(),
-            );
-
-            if (!gameCreatedLog) {
-                this.logger.warn(`GameCreated 이벤트 없음: ${txHash}`);
-                return Result.fail('GameCreated 이벤트를 찾을 수 없습니다.');
-            }
-
-            // 이벤트 디코딩
-            const decoded = this.gameCreatedIface.decodeEventLog(
-                'GameCreated',
-                gameCreatedLog.data,
-                gameCreatedLog.topics,
-            );
-
-            const rawEvent = decoded.toObject();
-
-            const gameId = rawEvent.gameId.toString();
-            const initiator = rawEvent.initiator as string;
-            const gameToken = rawEvent.gameToken as string;
-            const cost = rawEvent.cost.toString();
-            const gameTime = rawEvent.gameTime.toString();
-            const tokenSymbol = rawEvent.tokenSymbol as string;
-            const endTime = rawEvent.endTime.toString();
-            const lastCommentor = rawEvent.lastCommentor as string;
-            const totalFunding = rawEvent.totalFunding.toString();
-
-            this.logger.log(
-                `🎮 GameCreated 확인: gameId=${gameId}, token=${tokenSymbol}, initiator=${initiator}`,
-            );
-
-            // DB에 게임 저장
-            const result = await this.gameRepository.createFromTx({
-                txHash,
-                gameId,
-                initiator,
-                gameToken,
-                cost,
-                gameTime,
-                tokenSymbol,
-                endTime,
-                lastCommentor,
-                totalFunding,
-                tokenImageUrl,
-            });
-
-            if (!result) {
-                return Result.fail('게임 저장에 실패했습니다.');
-            }
-
-            return Result.ok(result);
-        } catch (error) {
-            this.logger.error(
-                `createGameByTx 실패: ${error.message}`,
-                error.stack,
-            );
-            return Result.fail('게임 생성에 실패했습니다.');
+        if (!receipt) {
+            this.logger.warn(`트랜잭션 영수증 없음: ${txHash}`);
+            return Result.fail('트랜잭션 영수증을 찾을 수 없습니다.');
         }
+
+        if (receipt.status === 0) {
+            this.logger.warn(`트랜잭션 실패 (revert): ${txHash}`);
+            return Result.fail('트랜잭션이 실패했습니다.');
+        }
+
+        // GameCreated 이벤트 찾기
+        const gameCreatedTopic =
+            this.gameCreatedIface.getEvent('GameCreated')?.topicHash;
+
+        const gameCreatedLog = receipt.logs.find(
+            (log) =>
+                log.topics[0] === gameCreatedTopic &&
+                log.address.toLowerCase() ===
+                    this.contractAddress.toLowerCase(),
+        );
+
+        if (!gameCreatedLog) {
+            this.logger.warn(`GameCreated 이벤트 없음: ${txHash}`);
+            return Result.fail('GameCreated 이벤트를 찾을 수 없습니다.');
+        }
+
+        // 이벤트 디코딩
+        const decoded = this.gameCreatedIface.decodeEventLog(
+            'GameCreated',
+            gameCreatedLog.data,
+            gameCreatedLog.topics,
+        );
+
+        const rawEvent = decoded.toObject();
+
+        const gameId = rawEvent.gameId.toString();
+        const initiator = rawEvent.initiator as string;
+        const gameToken = rawEvent.gameToken as string;
+        const cost = rawEvent.cost.toString();
+        const gameTime = rawEvent.gameTime.toString();
+        const tokenSymbol = rawEvent.tokenSymbol as string;
+        const endTime = rawEvent.endTime.toString();
+        const lastCommentor = rawEvent.lastCommentor as string;
+        const totalFunding = rawEvent.totalFunding.toString();
+
+        this.logger.log(
+            `🎮 GameCreated 확인: gameId=${gameId}, token=${tokenSymbol}, initiator=${initiator}`,
+        );
+
+        // DB에 게임 저장
+        const result = await this.gameRepository.createFromTx({
+            txHash,
+            gameId,
+            initiator,
+            gameToken,
+            cost,
+            gameTime,
+            tokenSymbol,
+            endTime,
+            lastCommentor,
+            totalFunding,
+            tokenImageUrl,
+        });
+
+        if (!result) {
+            return Result.fail('게임 저장에 실패했습니다.');
+        }
+
+        return Result.ok(result);
     }
 
     /**
      * @description 프론트엔드에서 전송한 게임 데이터를 저장
      */
     async createGame(data: unknown): Promise<Result<{ gameId: string }>> {
-        try {
-            const result = await this.gameRepository.createFromFrontend(data);
+        const result = await this.gameRepository.createFromFrontend(data);
 
-            if (!result) {
-                return Result.fail('게임 저장에 실패했습니다.');
-            }
-
-            return Result.ok(result);
-        } catch (error) {
-            this.logger.error(`Create game failed: ${error.message}`);
+        if (!result) {
             return Result.fail('게임 저장에 실패했습니다.');
         }
+
+        return Result.ok(result);
     }
 
     /**
      * @description 블록체인에서 조회한 게임 데이터를 등록 (txHash 없음)
      */
     async registerGame(data: unknown): Promise<Result<{ gameId: string }>> {
-        try {
-            const result =
-                await this.gameRepository.registerFromBlockchain(data);
+        const result = await this.gameRepository.registerFromBlockchain(data);
 
-            if (!result) {
-                return Result.fail('게임 등록에 실패했습니다.');
-            }
-
-            return Result.ok(result);
-        } catch (error) {
-            this.logger.error(`Register game failed: ${error.message}`);
+        if (!result) {
             return Result.fail('게임 등록에 실패했습니다.');
         }
+
+        return Result.ok(result);
     }
 
     /**

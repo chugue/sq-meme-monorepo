@@ -16,20 +16,28 @@ export class ResponseInterceptor<T> implements NestInterceptor {
         next: CallHandler,
     ): Observable<Result<T>> {
         return next.handle().pipe(
-            map((data) => {
+            map((data: Result<T>) => {
                 const ctx = context.switchToHttp();
                 const response = ctx.getResponse();
                 const request = ctx.getRequest();
 
-                let statusCode = HttpStatus.OK;
-                if (request.method === 'POST') statusCode = HttpStatus.CREATED;
-                if (request.method === 'PUT') statusCode = HttpStatus.CREATED;
-                if (request.method === 'PATCH') statusCode = HttpStatus.CREATED;
-                if (request.method === 'DELETE') statusCode = HttpStatus.OK;
+                if (!data.success) {
+                    // Result.fail인 경우 - statusCode 사용
+                    response.status(data.statusCode);
+                } else {
+                    // Result.ok인 경우 - 메서드에 따른 상태코드
+                    let statusCode = HttpStatus.OK;
+                    if (request.method === 'POST')
+                        statusCode = HttpStatus.CREATED;
+                    if (request.method === 'PUT')
+                        statusCode = HttpStatus.CREATED;
+                    if (request.method === 'PATCH')
+                        statusCode = HttpStatus.CREATED;
 
-                response.status(statusCode);
+                    response.status(statusCode);
+                }
 
-                return Result.ok(data);
+                return data;
             }),
         );
     }

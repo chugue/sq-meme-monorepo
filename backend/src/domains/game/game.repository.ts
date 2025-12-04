@@ -77,6 +77,7 @@ export class GameRepository {
             prizePool?: string;
             lastCommentor?: string;
             isClaimed?: boolean;
+            isEnded?: boolean;
         },
     ) {
         try {

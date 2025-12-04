@@ -14,6 +14,7 @@ import {
     ApiGetGamesInPlaying,
     ApiRegisterClaimPrize,
     ApiRegisterGame,
+    Transactional,
     WalletAddress,
 } from 'src/common/decorators';
 import { CreateGameByTxDtoSchema } from 'src/common/validator/game.validator';
@@ -35,6 +36,7 @@ export class GameController {
     }
 
     @Post(':gameId/claim')
+    @Transactional()
     @ApiRegisterClaimPrize('claimPrize 트랜잭션 등록')
     async registerClaimPrize(
         @Param('gameId') gameId: string,
