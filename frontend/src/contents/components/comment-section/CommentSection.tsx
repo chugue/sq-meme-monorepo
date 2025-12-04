@@ -9,7 +9,10 @@ import type { Address } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
 import { useComments } from "../../hooks/useComments";
 import { useWallet } from "../../hooks/useWallet";
-import { backgroundApi, type CreateCommentRequest } from "../../lib/backgroundApi";
+import {
+  backgroundApi,
+  type CreateCommentRequest,
+} from "../../lib/backgroundApi";
 import {
   COMMENT_GAME_V2_ADDRESS,
   commentGameV2ABI,
@@ -20,8 +23,6 @@ import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
-import { TokenBalanceChecker } from "./TokenBalanceChecker";
-import { WalletConnectionUI } from "./WalletConnectionUI";
 
 export function CommentSection() {
   logger.debug("CommentSection 렌더링", {
@@ -43,6 +44,8 @@ export function CommentSection() {
   const [newComment, setNewComment] = useState("");
   const [commentImageUrl, setCommentImageUrl] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fundingAmount, setFundingAmount] = useState("");
+  const [isFunding, setIsFunding] = useState(false);
 
   const handleSubmit = useCallback(async () => {
     if (!newComment.trim()) {
@@ -113,7 +116,9 @@ export function CommentSection() {
         const savedComment = await backgroundApi.saveComment(apiRequest);
         logger.info("백엔드에 댓글 저장 완료", { commentId: savedComment?.id });
       } catch (apiError) {
-        logger.warn("백엔드 댓글 저장 실패 (트랜잭션은 성공)", { error: apiError });
+        logger.warn("백엔드 댓글 저장 실패 (트랜잭션은 성공)", {
+          error: apiError,
+        });
       }
 
       // 댓글 목록 새로고침
@@ -142,7 +147,16 @@ export function CommentSection() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [newComment, commentImageUrl, isConnected, address, connect, ensureNetwork, activeGameInfo, refetch]);
+  }, [
+    newComment,
+    commentImageUrl,
+    isConnected,
+    address,
+    connect,
+    ensureNetwork,
+    activeGameInfo,
+    refetch,
+  ]);
 
   return (
     <div className="squid-comment-section" data-testid="squid-comment-section">
@@ -151,7 +165,7 @@ export function CommentSection() {
         <span className="squid-comment-count">{comments.length}</span>
       </div>
 
-      <div className="squid-wallet-actions">
+      {/* <div className="squid-wallet-actions">
         <WalletConnectionUI
           isConnected={isConnected}
           address={address}
@@ -161,7 +175,40 @@ export function CommentSection() {
           onDisconnect={disconnect}
         />
         <TokenBalanceChecker />
-      </div>
+      </div> */}
+
+      {/* 펀딩 섹션 */}
+      {activeGameInfo && (
+        <div className="squid-funding-section">
+          <div className="squid-funding-header">
+            <span className="squid-funding-title">FUND PRIZE POOL</span>
+            <p className="squid-funding-desc">
+              Earn comment fees based on your funding share
+            </p>
+          </div>
+          <div className="squid-funding-form">
+            <input
+              type="number"
+              className="squid-funding-input"
+              placeholder="Amount to fund"
+              value={fundingAmount}
+              onChange={(e) => setFundingAmount(e.target.value)}
+              disabled={isFunding}
+              min="0"
+              step="any"
+            />
+            <button
+              type="button"
+              className="squid-funding-button"
+              disabled={
+                isFunding || !fundingAmount || Number(fundingAmount) <= 0
+              }
+            >
+              {isFunding ? "FUNDING..." : "FUND"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <CommentForm
         value={newComment}

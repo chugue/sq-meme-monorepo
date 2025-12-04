@@ -182,14 +182,12 @@ export function useTokenContract() {
         queryTokenAddress,
       });
 
-      let backendGame: GameInfo | null = null;
       let hasSetInitialState = false;
 
       // 백엔드 API 호출 (빠름 - 먼저 완료되면 즉시 UI 업데이트)
       const backendPromise = backgroundApi
         .getActiveGameByToken(queryTokenAddress)
         .then((result) => {
-          backendGame = result;
           if (result) {
             logger.info("백엔드 활성 게임 발견, UI 즉시 반영", {
               gameId: result.gameId,
@@ -246,15 +244,6 @@ export function useTokenContract() {
           setGameState(gameInfo, blockchainGame.isEnded);
           hasSetInitialState = true;
 
-          // 백엔드에 없거나 다른 게임이면 등록
-          const isSameGame = backendGame?.gameId === blockchainGameIdStr;
-          if (!isSameGame) {
-            logger.info("새 게임 백엔드 등록", { gameId: blockchainGameIdStr });
-            backgroundApi.registerGame(blockchainGame).catch((err) => {
-              logger.error("백엔드 게임 등록 실패 (무시)", err);
-            });
-          }
-
           return blockchainGame;
         })
         .catch((err) => {
@@ -264,7 +253,10 @@ export function useTokenContract() {
 
       try {
         // 둘 다 완료될 때까지 대기 (하지만 UI는 이미 업데이트됨)
-        await Promise.all([backendPromise, blockchainPromise]);
+        const [backendResult] = await Promise.all([
+          backendPromise,
+          blockchainPromise,
+        ]);
 
         // 둘 다 게임이 없는 경우
         if (!hasSetInitialState) {
@@ -272,7 +264,7 @@ export function useTokenContract() {
           setGameState(null, false);
         }
 
-        return backendGame;
+        return backendResult;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "게임 조회 실패";

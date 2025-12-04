@@ -51,7 +51,7 @@ export type BackgroundMessage =
   | { type: "GET_ACTIVE_GAME_BY_TOKEN"; tokenAddress: string }
   | { type: "SAVE_COMMENT"; data: CreateCommentRequest }
   | { type: "SAVE_GAME"; data: CreateGameRequest }
-  | { type: "REGISTER_CLAIM_PRIZE"; gameAddress: string; txHash: string }
+  | { type: "REGISTER_CLAIM_PRIZE"; gameId: string; txHash: string }
   | { type: "WALLET_CONNECT" }
   | { type: "WALLET_GET_ACCOUNT" }
   | { type: "MEMEX_LOGIN"; triggerLogin?: boolean }
@@ -75,6 +75,7 @@ export type BackgroundMessage =
   | { type: "LOGOUT" }
   | { type: "WALLET_DISCONNECT" }
   | { type: "REGISTER_GAME"; data: SerializedGameInfo }
+  | { type: "CREATE_GAME_BY_TX"; txHash: string; tokenImageUrl?: string }
   | {
       type: "UPLOAD_IMAGE";
       fileData: string;

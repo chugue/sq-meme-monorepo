@@ -99,31 +99,31 @@ export function CommentForm({
                     </div>
                 )}
 
-                {/* 하단 액션 바 */}
-                <div className="squid-comment-actions">
-                    {onImageChange && (
-                        <button
-                            type="button"
-                            className="squid-comment-add-image"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isDisabled || isUploading}
-                        >
-                            {isUploading ? (
-                                <span className="squid-upload-spinner" />
-                            ) : (
-                                <ImagePlus size={20} />
-                            )}
-                        </button>
-                    )}
+                {/* 이미지 추가 버튼 - 텍스트필드 아래 왼쪽 */}
+                {onImageChange && (
                     <button
-                        type="submit"
-                        className="squid-comment-submit"
-                        disabled={!value.trim() || isSubmitting || isSigning || !isConnected || disabled}
+                        type="button"
+                        className="squid-comment-add-image-inline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isDisabled || isUploading}
                     >
-                        {getButtonText()}
+                        {isUploading ? (
+                            <span className="squid-upload-spinner" />
+                        ) : (
+                            <ImagePlus size={18} />
+                        )}
                     </button>
-                </div>
+                )}
             </div>
+
+            {/* Submit 버튼 - block */}
+            <button
+                type="submit"
+                className="squid-comment-submit-block"
+                disabled={!value.trim() || isSubmitting || isSigning || !isConnected || disabled}
+            >
+                {getButtonText()}
+            </button>
         </form>
     );
 }
