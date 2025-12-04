@@ -477,34 +477,86 @@ export function createMessageHandler() {
               userTag: string;
             };
             try {
-              const { browser } = await import("wxt/browser");
-              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+              // Background에서 직접 fetch (CORS 제약 없음, 페이지 이동 불필요)
+              const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
+              console.log("🔍 [Background] 프로필 정보 fetch 시작:", profileUrl);
 
-              const memexTabs = await tabs.query({
-                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
-              });
-
-              if (memexTabs.length === 0 || !memexTabs[0]?.id) {
-                result = {
-                  success: true,
-                  data: {
-                    profileImageUrl: null,
-                    tokenAddr: null,
-                    tokenSymbol: null,
-                    tokenImageUrl: null,
-                    memexWalletAddress: null,
-                  },
-                };
-                break;
+              const response = await fetch(profileUrl);
+              if (!response.ok) {
+                throw new Error(`Fetch failed: ${response.status}`);
               }
 
-              const response = await tabs.sendMessage(memexTabs[0].id, {
-                type: "FETCH_MEMEX_PROFILE_INFO",
-                username,
-                userTag,
-              });
+              const html = await response.text();
 
-              result = { success: true, data: response };
+              let profileImageUrl: string | null = null;
+              let tokenAddr: string | null = null;
+              let tokenSymbol: string | null = null;
+              let memexWalletAddress: string | null = null;
+
+              // tokenAddress 패턴 (이스케이프된 JSON 내부)
+              const tokenMatch = html.match(
+                /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+              );
+              if (tokenMatch && tokenMatch[1]) {
+                tokenAddr = tokenMatch[1];
+                console.log("✅ [Background] tokenAddr 발견:", tokenAddr);
+              }
+
+              // walletAddress 패턴
+              const walletMatch = html.match(
+                /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+              );
+              if (walletMatch && walletMatch[1]) {
+                memexWalletAddress = walletMatch[1];
+                console.log("✅ [Background] memexWalletAddress 발견:", memexWalletAddress);
+              }
+
+              // profileImage 패턴 - 디버그
+              const profileImageIndex = html.indexOf("profileImage");
+              if (profileImageIndex !== -1) {
+                console.log("🔍 [Background] profileImage 컨텍스트:", html.substring(profileImageIndex, profileImageIndex + 150));
+              }
+
+              // profileImage 패턴 (여러 가지 시도)
+              let profileImgMatch = html.match(
+                /\\?"profileImage\\?"\\?:\s*\\?"(https?:[^"\\]+)\\?"/
+              );
+              // 패턴 2: \"profileImage\":\"https:\/\/...\"
+              if (!profileImgMatch) {
+                profileImgMatch = html.match(
+                  /"profileImage":"(https?:\/\/[^"]+)"/
+                );
+              }
+              // 패턴 3: 이스케이프된 URL (https:\\/\\/)
+              if (!profileImgMatch) {
+                profileImgMatch = html.match(
+                  /profileImage[^:]*:\s*[\\"]*(https?:\\?\/\\?\/[^"\\,\}]+)/
+                );
+              }
+              if (profileImgMatch && profileImgMatch[1]) {
+                profileImageUrl = profileImgMatch[1].replace(/\\\//g, "/");
+                console.log("✅ [Background] profileImageUrl 발견:", profileImageUrl);
+              }
+
+              // tokenSymbol 패턴
+              const symbolMatch = html.match(
+                /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/
+              );
+              if (symbolMatch && symbolMatch[1]) {
+                tokenSymbol = symbolMatch[1];
+                console.log("✅ [Background] tokenSymbol 발견:", tokenSymbol);
+              }
+
+              result = {
+                success: true,
+                data: {
+                  profileImageUrl,
+                  tokenAddr,
+                  tokenSymbol,
+                  tokenImageUrl: null,
+                  memexWalletAddress,
+                },
+              };
             } catch (error: any) {
               console.error("❌ FETCH_MEMEX_PROFILE_INFO 오류:", error);
               result = {

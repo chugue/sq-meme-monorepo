@@ -38,56 +38,10 @@ async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
         console.log("🔍 [Content] 프로필 URL:", profileUrl);
         const isCurrentProfile = currentUrl.includes(profileUrl.replace('https://app.memex.xyz', ''));
 
-        // 방법 1: fetch로 HTML 가져와서 self.__next_f.push 스크립트에서 정보 추출
-        // 현재 페이지가 해당 프로필이 아닌 경우 필수 (예: 홈에서 MEMEX LOGIN 시)
-        try {
-            console.log("🔍 [Content] fetch로 HTML 가져와서 파싱 시도...");
-            const response = await fetch(profileUrl);
-            if (response.ok) {
-                const html = await response.text();
+        // NOTE: fetch는 Background에서 직접 수행 (CORS 제약 없음)
+        // Content Script에서는 현재 페이지가 프로필 페이지인 경우에만 DOM에서 파싱
 
-                // tokenAddress 패턴 (이스케이프된 JSON 내부)
-                const tokenMatch = html.match(
-                    /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
-                );
-                if (tokenMatch && tokenMatch[1]) {
-                    tokenAddr = tokenMatch[1];
-                    console.log("✅ [Content] fetch HTML에서 tokenAddr 발견:", tokenAddr);
-                }
-
-                // walletAddress 패턴
-                const walletMatch = html.match(
-                    /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
-                );
-                if (walletMatch && walletMatch[1]) {
-                    memexWalletAddress = walletMatch[1];
-                    console.log("✅ [Content] fetch HTML에서 memexWalletAddress 발견:", memexWalletAddress);
-                }
-
-                // profileImage 패턴
-                const profileImgMatch = html.match(
-                    /\\?"profileImage\\?"\\?:\s*\\?"(https?:[^"\\]+)\\?"/
-                );
-                if (profileImgMatch && profileImgMatch[1]) {
-                    // 이스케이프된 슬래시 복원
-                    profileImageUrl = profileImgMatch[1].replace(/\\\//g, '/');
-                    console.log("✅ [Content] fetch HTML에서 profileImageUrl 발견:", profileImageUrl);
-                }
-
-                // tokenSymbol 패턴
-                const symbolMatch = html.match(
-                    /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/
-                );
-                if (symbolMatch && symbolMatch[1]) {
-                    tokenSymbol = symbolMatch[1];
-                    console.log("✅ [Content] fetch HTML에서 tokenSymbol 발견:", tokenSymbol);
-                }
-            }
-        } catch (fetchErr) {
-            console.warn("⚠️ [Content] fetch로 HTML 가져오기 실패:", fetchErr);
-        }
-
-        // 방법 2: DOM에서 직접 프로필 이미지 및 토큰 심볼 추출 (현재 페이지가 프로필인 경우 또는 백업)
+        // DOM에서 직접 프로필 이미지 및 토큰 심볼 추출 (현재 페이지가 프로필인 경우)
         if (!profileImageUrl) {
             const profileImg = document.querySelector('img[alt="Profile"]') as HTMLImageElement;
             if (profileImg && profileImg.src) {
