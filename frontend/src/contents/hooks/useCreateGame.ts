@@ -18,6 +18,7 @@ import {
 import { createContractClient } from "../lib/contract/contractClient";
 import { logger } from "../lib/injected/logger";
 import { injectedApi } from "../lib/injectedApi";
+import { isGameEndedByTime } from "../utils/gameTime";
 import { useWallet } from "./useWallet";
 
 // 테스트용 MockERC20 주소 (Insectarium 테스트넷에 배포됨)
@@ -166,16 +167,20 @@ export function useCreateGame(): UseCreateGameReturn {
 
         const gameInfo = gameInfoResult.data;
 
+        // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
+        const isEnded = isGameEndedByTime(gameInfo.endTime);
+
         const existingGameInfo: ExistingGameInfo = {
           gameId: gameInfo.id,
           tokenSymbol: gameInfo.tokenSymbol,
-          isEnded: gameInfo.isEnded,
+          isEnded: isEnded, // 컨트랙트 값 대신 시간 비교 결과 사용
         };
 
         logger.info("기존 게임 발견 (V2)", {
           gameId: gameInfo.id.toString(),
           tokenSymbol: gameInfo.tokenSymbol,
-          isEnded: gameInfo.isEnded,
+          isEndedByTime: isEnded,
+          isEndedFromContract: gameInfo.isEnded,
           endTime: gameInfo.endTime.toString(),
         });
 

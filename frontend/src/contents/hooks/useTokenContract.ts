@@ -29,6 +29,7 @@ import {
 } from "../lib/contract/abis/commentGameV2";
 import { createContractClient } from "../lib/contract/contractClient";
 import { logger } from "../lib/injected/logger";
+import { isGameEndedByTime } from "../utils/gameTime";
 
 // 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
 const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS ||
@@ -195,8 +196,14 @@ export function useTokenContract() {
         .getActiveGameByToken(queryTokenAddress)
         .then((result) => {
           if (result) {
+            // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
+            const isEnded = isGameEndedByTime(result.endTime);
+
             logger.info("백엔드 활성 게임 발견, UI 즉시 반영", {
               gameId: result.gameId,
+              endTime: result.endTime,
+              isEndedByTime: isEnded,
+              isEndedFromDB: result.isEnded,
             });
 
             const backendGameInfo: ActiveGameInfo = {
@@ -210,12 +217,12 @@ export function useTokenContract() {
               lastCommentor: result.lastCommentor,
               prizePool: result.prizePool,
               isClaimed: result.isClaimed,
-              isEnded: result.isEnded,
+              isEnded: isEnded, // DB 값 대신 시간 비교 결과 사용
               totalFunding: result.totalFunding || "0",
               funderCount: result.funderCount || "0",
             };
 
-            setGameState(backendGameInfo, result.isEnded);
+            setGameState(backendGameInfo, isEnded);
             hasSetInitialState = true;
             setIsLoading(false); // 백엔드 결과로 로딩 해제
           }
@@ -226,11 +233,17 @@ export function useTokenContract() {
           return null;
         });
 
-      // 블록체인 조회 (느림 - 백그라운드에서 처리)
+      // 블록체인 조회 (느림 - 백그라운드에서 처리, 더 정확한 정보)
       const blockchainPromise = fetchActiveGameId(queryTokenAddress)
         .then(async (gameId) => {
           if (!gameId) {
             logger.info("블록체인에 활성 게임 없음");
+            // 블록체인에 활성 게임이 없으면 게임이 끝난 것으로 처리
+            // 백엔드 DB가 아직 업데이트되지 않았을 수 있으므로 블록체인 결과를 신뢰
+            if (hasSetInitialState) {
+              logger.info("백엔드 데이터가 있었지만 블록체인에 활성 게임 없음 - 게임 종료로 처리");
+              setGameState(null, true);
+            }
             return null;
           }
 
@@ -238,16 +251,24 @@ export function useTokenContract() {
           const blockchainGame = await fetchGameInfoById(gameId);
           if (!blockchainGame) return null;
 
+          // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
+          const isEnded = isGameEndedByTime(blockchainGame.endTime);
+
           const gameInfo = toActiveGameInfo(blockchainGame);
+          // 시간 비교 결과로 isEnded 덮어쓰기
+          gameInfo.isEnded = isEnded;
+
           const blockchainGameIdStr = blockchainGame.id.toString();
 
           logger.info("블록체인 게임 정보로 UI 업데이트", {
             blockchainGameId: blockchainGameIdStr,
-            isEnded: blockchainGame.isEnded,
+            endTime: blockchainGame.endTime.toString(),
+            isEndedByTime: isEnded,
+            isEndedFromContract: blockchainGame.isEnded,
           });
 
-          // 블록체인 결과로 UI 업데이트 (더 정확한 정보)
-          setGameState(gameInfo, blockchainGame.isEnded);
+          // 블록체인 결과로 UI 업데이트 (시간 비교 결과 사용)
+          setGameState(gameInfo, isEnded);
           hasSetInitialState = true;
 
           return blockchainGame;

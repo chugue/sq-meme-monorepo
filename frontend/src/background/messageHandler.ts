@@ -1263,11 +1263,11 @@ export function createMessageHandler() {
 
           case "GET_LIVE_GAMES": {
             try {
-              const response = await apiCall<{
-                success: boolean;
-                data: { liveGames: any[] };
-              }>("/v1/games/live");
-              result = { success: true, data: response.data };
+              // 백엔드가 { liveGames: [...] }를 직접 반환 (Result.ok 패턴 미사용)
+              const response = await apiCall<{ liveGames: any[] }>(
+                "/v1/games/live"
+              );
+              result = { success: true, data: response };
             } catch (error: any) {
               console.error("❌ 라이브 게임 조회 오류:", error);
               result = {
