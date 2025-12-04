@@ -10,9 +10,10 @@ const mockUserData = {
 
 interface MyAssetsPageProps {
   onBack: () => void;
+  onNavigateToProfile?: () => void;
 }
 
-export function MyAssetsPage({ onBack }: MyAssetsPageProps) {
+export function MyAssetsPage({ onBack, onNavigateToProfile }: MyAssetsPageProps) {
   const { username, profileImageUrl, tokenSymbol } = useMemexLogin();
   const { assets, isLoading, error, refetch } = useWalletAssets();
 
@@ -38,6 +39,8 @@ export function MyAssetsPage({ onBack }: MyAssetsPageProps) {
             src={profileImageUrl || mockUserData.profileImage}
             alt="Profile"
             className="header-profile-image"
+            onClick={onNavigateToProfile}
+            style={{ cursor: onNavigateToProfile ? "pointer" : "default" }}
           />
         </div>
       </header>

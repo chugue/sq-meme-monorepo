@@ -18,9 +18,10 @@ type TabType = "games" | "prizeRank" | "quest";
 
 interface LeaderboardPageProps {
   onBack: () => void;
+  onNavigateToProfile?: () => void;
 }
 
-export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
+export function LeaderboardPage({ onBack, onNavigateToProfile }: LeaderboardPageProps) {
   const { username, profileImageUrl } = useMemexLogin();
   const [activeTab, setActiveTab] = useState<TabType>("games");
 
@@ -153,6 +154,8 @@ export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
             src={profileImageUrl || mockUserData.profileImage}
             alt="Profile"
             className="header-profile-image"
+            onClick={onNavigateToProfile}
+            style={{ cursor: onNavigateToProfile ? "pointer" : "default" }}
           />
         </div>
       </header>

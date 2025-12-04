@@ -50,13 +50,28 @@ export function SidePanelApp() {
       );
     }
     if (currentPage === "leaderboard") {
-      return <LeaderboardPage onBack={() => setCurrentPage("dashboard")} />;
+      return (
+        <LeaderboardPage
+          onBack={() => setCurrentPage("dashboard")}
+          onNavigateToProfile={() => setCurrentPage("profile")}
+        />
+      );
     }
     if (currentPage === "liveGames") {
-      return <LiveGamesPage onBack={() => setCurrentPage("dashboard")} />;
+      return (
+        <LiveGamesPage
+          onBack={() => setCurrentPage("dashboard")}
+          onNavigateToProfile={() => setCurrentPage("profile")}
+        />
+      );
     }
     if (currentPage === "myAssets") {
-      return <MyAssetsPage onBack={() => setCurrentPage("dashboard")} />;
+      return (
+        <MyAssetsPage
+          onBack={() => setCurrentPage("dashboard")}
+          onNavigateToProfile={() => setCurrentPage("profile")}
+        />
+      );
     }
     return (
       <Dashboard

@@ -12,6 +12,7 @@ const mockUserData = {
 
 interface LiveGamesPageProps {
   onBack: () => void;
+  onNavigateToProfile?: () => void;
 }
 
 // wei를 ETH로 변환 (정수)
@@ -48,7 +49,7 @@ function formatTimeLeft(endTime: string | null): string {
   }
 }
 
-export function LiveGamesPage({ onBack }: LiveGamesPageProps) {
+export function LiveGamesPage({ onBack, onNavigateToProfile }: LiveGamesPageProps) {
   const { username, profileImageUrl } = useMemexLogin();
   const [liveGames, setLiveGames] = useState<LiveGameItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +85,8 @@ export function LiveGamesPage({ onBack }: LiveGamesPageProps) {
             src={profileImageUrl || mockUserData.profileImage}
             alt="Profile"
             className="header-profile-image"
+            onClick={onNavigateToProfile}
+            style={{ cursor: onNavigateToProfile ? "pointer" : "default" }}
           />
         </div>
       </header>
