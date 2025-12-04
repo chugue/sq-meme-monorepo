@@ -4,6 +4,8 @@ import { defineConfig } from 'wxt';
 // See https://wxt.dev/api/config.html
 export default defineConfig({
     modules: ['@wxt-dev/module-react'],
+    // entrypoints 폴더 위치 지정 (src 안으로 이동)
+    entrypointsDir: 'src/entrypoints',
     // WXT 개발 서버 포트 (백엔드 3000과 충돌 방지)
     dev: {
         server: {
@@ -19,6 +21,7 @@ export default defineConfig({
                 '@/sidepanel': path.resolve(__dirname, './src/sidepanel'),
                 '@/shared': path.resolve(__dirname, './src/shared'),
                 '@/contents': path.resolve(__dirname, './src/contents'),
+                '@/entrypoints': path.resolve(__dirname, './src/entrypoints'),
             },
         },
     }),
@@ -27,8 +30,23 @@ export default defineConfig({
         name: 'Squid Meme',
         description: 'MemeX 프로필 페이지에 댓글 기능을 추가하는 확장 프로그램',
         version: '1.0.0',
+        // 아이콘 설정 (public 디렉토리가 확장 프로그램 루트로 복사됨)
+        icons: {
+            '16': 'icon/logo_16.png',
+            '32': 'icon/logo_32.png',
+            '48': 'icon/logo_64.png', // 48 대신 64 사용
+            '64': 'icon/logo_64.png',
+            '128': 'icon/logo_128.png',
+        },
         action: {
             default_title: 'Squid Meme',
+            default_icon: {
+                '16': 'icon/logo_16.png',
+                '32': 'icon/logo_32.png',
+                '48': 'icon/logo_64.png',
+                '64': 'icon/logo_64.png',
+                '128': 'icon/logo_128.png',
+            },
         },
         // 외부 서비스 접근을 위한 권한
         permissions: [

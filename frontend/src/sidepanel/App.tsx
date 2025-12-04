@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { ComingSoon } from './ComingSoon';
 import { Dashboard } from './Dashboard';
-import { ProfilePage } from './ProfilePage';
 import { LeaderboardPage } from './LeaderboardPage';
-import { MyGamesPage } from './MyGamesPage';
 import { MyAssetsPage } from './MyAssetsPage';
-import { useSidepanelWallet } from './hooks/useSidepanelWallet';
+import { MyGamesPage } from './MyGamesPage';
+import { ProfilePage } from './ProfilePage';
 import { useMemexLogin } from './hooks/useMemexLogin';
+import { useSidepanelWallet } from './hooks/useSidepanelWallet';
 
 type Page = 'dashboard' | 'profile' | 'leaderboard' | 'myGames' | 'myAssets';
 
@@ -75,6 +75,14 @@ export function SidePanelApp() {
                 onNavigateToLeaderboard={() => setCurrentPage('leaderboard')}
                 onNavigateToMyGames={() => setCurrentPage('myGames')}
                 onNavigateToMyAssets={() => setCurrentPage('myAssets')}
+                onNavigateToHowToPlay={() => {
+                    // TODO: How to Play 페이지 구현
+                    console.log('How to Play clicked');
+                }}
+                onNavigateToQuest={() => {
+                    // TODO: Quest 페이지 구현
+                    console.log('Quest clicked');
+                }}
             />
         );
     }

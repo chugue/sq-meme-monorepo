@@ -1,135 +1,137 @@
-import { backgroundApi } from "../contents/lib/backgroundApi";
 import "./Dashboard.css";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 
+// Assets imports
+import homeBg from "../../assets/home.png";
+import homeBanner from "../../assets/home_banner.png";
+import homeFloor from "../../assets/home_floor.png";
+import howToPlayIcon from "../../assets/how_to_play.png";
+import logoIcon from "../../assets/logo.png";
+import moneyIcon from "../../assets/money.png";
+import profileBanner from "../../assets/profile_banner.png";
+import profileBox from "../../assets/profile_box.png";
+import questIcon from "../../assets/quest.png";
+import tropyIcon from "../../assets/tropy.png";
+
+import { useAtomValue } from "jotai";
+import { sessionAtom } from "./atoms/sessionAtoms";
+import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
+
 // Mock data
 const mockUserData = {
-  profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
-  walletAddress: "0x13a90df0418e2a2c7e5801cb75d0a0e00319bdd1",
+    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
+    walletAddress: "0x13a90df0418e2a2c7e5801cb75d0a0e00319bdd1",
+    asset: "1,000,000$M",
 };
 
-const mockCharacters = [
-  {
-    id: 1,
-    name: "Squid #1",
-    image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid1",
-  },
-  {
-    id: 2,
-    name: "Squid #2",
-    image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid2",
-  },
-  {
-    id: 3,
-    name: "Squid #3",
-    image: "https://api.dicebear.com/7.x/bottts/svg?seed=squid3",
-  },
-];
-
 interface DashboardProps {
-  walletAddress?: string;
-  onNavigateToProfile?: () => void;
-  onNavigateToLeaderboard?: () => void;
-  onNavigateToMyGames?: () => void;
-  onNavigateToMyAssets?: () => void;
+    walletAddress?: string;
+    onNavigateToProfile?: () => void;
+    onNavigateToLeaderboard?: () => void;
+    onNavigateToMyGames?: () => void;
+    onNavigateToMyAssets?: () => void;
+    onNavigateToHowToPlay?: () => void;
+    onNavigateToQuest?: () => void;
 }
 
 export function Dashboard({
-  walletAddress,
-  onNavigateToProfile,
-  onNavigateToLeaderboard,
-  onNavigateToMyGames,
-  onNavigateToMyAssets,
+    walletAddress: walletAddressProp,
+    onNavigateToProfile,
+    onNavigateToLeaderboard,
+    onNavigateToMyGames,
+    onNavigateToMyAssets,
+    onNavigateToHowToPlay,
+    onNavigateToQuest,
 }: DashboardProps) {
-  const { username, userTag, profileImageUrl, logout } = useMemexLogin();
+    const { username, userTag, profileImageUrl, logout, tokenSymbol } = useMemexLogin();
+    const { address: walletAddressFromHook } = useSidepanelWallet();
+    const session = useAtomValue(sessionAtom);
+    const { user } = session;
 
-  const handleProfileClick = async () => {
-    if (username && userTag) {
-      // MEMEX 프로필 페이지로 이동 (backgroundApi를 통해 탭 URL 변경)
-      try {
-        await backgroundApi.navigateToUrl(
-          `https://app.memex.xyz/profile/${username}/${userTag}`
-        );
-      } catch (err) {
-        console.error("프로필 이동 실패:", err);
-      }
-    }
-  };
+    // 지갑 주소 우선순위: props > hook > null
+    const walletAddress = walletAddressProp || walletAddressFromHook || null;
 
-  const shortenAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
+    const shortenAddress = (address: string | null) => {
+        if (!address) return "Not Connected";
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
 
-  return (
-    <div className="dashboard-container">
-      {/* Header */}
-      <header className="dashboard-header">
-        <button className="profile-link-btn" onClick={handleProfileClick}>
-          <span className="link-icon">🔗</span>
-          <span>MemeX Profile</span>
-        </button>
-        <div
-          className="user-info"
-          onClick={onNavigateToProfile}
-          style={{ cursor: "pointer" }}
-        >
-          <span className="user-name">{username || "User"}</span>
-          <img
-            src={profileImageUrl || mockUserData.profileImage}
-            alt="Profile"
-            className="profile-image"
-          />
-        </div>
-      </header>
-
-      {/* Character Display */}
-      <section className="characters-section">
-        <div className="characters-grid">
-          <div className="character-item character-main">
-            <img src={mockCharacters[0].image} alt={mockCharacters[0].name} />
-          </div>
-          <div className="character-row">
-            <div className="character-item">
-              <img src={mockCharacters[1].image} alt={mockCharacters[1].name} />
+    return (
+        <div className="dashboard-container">
+            {/* Background Images */}
+            <div className="dashboard-background">
+                <img src={homeBg} alt="Background" className="bg-image" />
+                <img src={homeFloor} alt="Floor" className="floor-image" />
             </div>
-            <div className="character-item">
-              <img src={mockCharacters[2].image} alt={mockCharacters[2].name} />
+
+            {/* Left Top: Profile Box with Image */}
+            <button className="profile-btn" onClick={onNavigateToProfile}>
+                <div className="profile-box-container">
+                    <img src={profileBox} alt="Profile Box" className="profile-box-frame" />
+                    <img
+                        src={mockUserData.profileImage}
+                        alt="Profile"
+                        className="profile-box-image"
+                    />
+                </div>
+                <img src={profileBanner} alt="Profile Banner" className="profile-banner" />
+            </button>
+
+            {/* Right: Menu Icons (Vertical) */}
+            <div className="menu-icons-vertical">
+                <button className="menu-icon-btn" onClick={onNavigateToHowToPlay} title="How to Play">
+                    <img src={howToPlayIcon} alt="How toPlay" />
+                    <span className="menu-icon-btn-text">How to<br />Play</span>
+                </button>
+                <button className="menu-icon-btn" onClick={onNavigateToQuest} title="Quest">
+                    <img src={questIcon} alt="Quest" />
+                    <span className="menu-icon-btn-text">Quest</span>
+                </button>
+                <button className="menu-icon-btn" onClick={onNavigateToLeaderboard} title="Leader Board">
+                    <img src={tropyIcon} alt="Leader Board" />
+                    <span className="menu-icon-btn-text">
+                        <span>Leader</span>
+                        <span>Board</span>
+                    </span>
+                </button>
+                <button className="menu-icon-btn" onClick={onNavigateToMyAssets} title="My Memecoins">
+                    <img src={moneyIcon} alt="My Memecoins" />
+                    <span className="menu-icon-btn-text">
+                        My<br />Memecoins
+                    </span>
+                </button>
             </div>
-          </div>
+
+            {/* Main Content: Squid Character and Asset Display */}
+            <section className="main-content">
+                <div className="squid-character-container">
+                    {/* <img src={squidoGif} alt="Squid Character-main" className="squid-character-main" /> */}
+                    <div className="asset-display-main">
+                        <span className="asset-label-main">ASSET</span>
+                        <span className="asset-amount-main">{mockUserData.asset}</span>
+                    </div>
+                </div>
+            </section>
+
+            {/* Bottom: Logo and Live Game Banner */}
+            <div className="bottom-section">
+                <img src={logoIcon} alt="Logo" className="logo-image" />
+                <button className="live-game-banner" onClick={onNavigateToMyGames}>
+                    <img src={homeBanner} alt="Live Games" className="banner-image" />
+                    <span className="live-game-banner-text">Live Games</span>
+                </button>
+            </div>
+
+            {/* Footer */}
+            <footer className="dashboard-footer">
+                <span className="wallet-label">Connected:</span>
+                <span className="wallet-address">
+                    {shortenAddress(walletAddress)}
+                </span>
+                <button className="logout-btn" onClick={logout}>
+                    Logout
+                </button>
+            </footer>
         </div>
-      </section>
-
-      {/* Menu Sections */}
-      <section className="menu-section">
-        <button className="menu-item" onClick={onNavigateToMyGames}>
-          <span className="menu-icon">🎮</span>
-          <span className="menu-text">내가 참여하고 있는 게임</span>
-          <span className="menu-arrow">▶</span>
-        </button>
-
-        <button className="menu-item" onClick={onNavigateToLeaderboard}>
-          <span className="menu-icon">🏆</span>
-          <span className="menu-text">리더 보드</span>
-          <span className="menu-arrow">▶</span>
-        </button>
-
-        <button className="menu-item" onClick={onNavigateToMyAssets}>
-          <span className="menu-icon">💰</span>
-          <span className="menu-text">나의 보유 자산 확인</span>
-          <span className="menu-arrow">▶</span>
-        </button>
-      </section>
-
-      {/* Wallet Address Footer */}
-      <footer className="dashboard-footer">
-        <span className="wallet-label">Connected:</span>
-        <span className="wallet-address">
-          {shortenAddress(walletAddress || mockUserData.walletAddress)}
-        </span>
-        <button className="logout-btn" onClick={logout}>
-          Logout
-        </button>
-      </footer>
-    </div>
-  );
+    );
 }

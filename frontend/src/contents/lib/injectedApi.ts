@@ -8,7 +8,7 @@
  * - 테스트 가능한 구조
  */
 
-import { encodeFunctionData, decodeFunctionResult, type Abi } from 'viem';
+import { decodeFunctionResult, encodeFunctionData, type Abi } from 'viem';
 import { INJECTED_CONFIG } from './injected/config';
 import { logger } from './injected/logger';
 import { isInjectedScriptReadyMessage, isInjectedScriptResponse } from './injected/messageValidator';
@@ -542,85 +542,6 @@ export async function getBlockTimestamp(): Promise<bigint> {
     return block.timestamp;
 }
 
-/**
- * Next.js __next_f 데이터에서 프로필 정보 가져오기
- * MEMEX 프로필 페이지에서 tokenAddress, tokenSymbol, profileImageUrl, memexWalletAddress를 추출
- */
-export interface NextFProfileData {
-    profileImageUrl: string | null;
-    tokenAddr: string | null;
-    tokenSymbol: string | null;
-    memexWalletAddress: string | null;
-}
-
-export async function getNextFData(): Promise<NextFProfileData> {
-    return sendNextFDataRequest();
-}
-
-/**
- * __next_f 데이터 요청 전송
- */
-function sendNextFDataRequest(): Promise<NextFProfileData> {
-    return new Promise((resolve, reject) => {
-        const id = requestIdManager.generateId();
-        const timeout = INJECTED_CONFIG.REQUEST_TIMEOUT;
-        let timeoutId: NodeJS.Timeout | null = null;
-        let messageListener: ((event: MessageEvent) => void) | null = null;
-
-        const cleanup = () => {
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-                timeoutId = null;
-            }
-            if (messageListener) {
-                window.removeEventListener('message', messageListener);
-                messageListener = null;
-            }
-        };
-
-        // 타임아웃 설정
-        timeoutId = setTimeout(() => {
-            cleanup();
-            logger.warn('GET_NEXT_F_DATA 타임아웃', { id });
-            reject(new InjectedScriptErrorClass('GET_NEXT_F_DATA timeout', ERROR_CODES.TIMEOUT));
-        }, timeout);
-
-        // 응답 리스너
-        messageListener = (event: MessageEvent) => {
-            if (!isInjectedScriptResponse(event, id)) {
-                return;
-            }
-
-            cleanup();
-
-            const response = event.data as InjectedScriptResponse;
-            if (response.error) {
-                reject(new InjectedScriptErrorClass(response.error, ERROR_CODES.UNKNOWN_ERROR));
-            } else {
-                resolve(response.result as NextFProfileData);
-            }
-        };
-
-        window.addEventListener('message', messageListener);
-
-        // 메시지 전송
-        try {
-            window.postMessage(
-                {
-                    source: 'CONTENT_SCRIPT',
-                    method: 'GET_NEXT_F_DATA',
-                    payload: { id },
-                },
-                '*'
-            );
-
-            logger.debug('GET_NEXT_F_DATA 요청 전송', { id });
-        } catch (error) {
-            cleanup();
-            reject(new InjectedScriptErrorClass('Failed to send GET_NEXT_F_DATA message', ERROR_CODES.UNKNOWN_ERROR, error));
-        }
-    });
-}
 
 /**
  * MetaMask 지갑 연결 해제 (권한 해제)
@@ -838,7 +759,6 @@ export const injectedApi = {
     getTransactionReceipt,
     waitForTransaction,
     revokePermissions,
-    getNextFData,
     sendLogoutToInjectedScript,
     getLogs,
 } as const;

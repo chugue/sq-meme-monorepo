@@ -8,7 +8,12 @@ import type {
 import type { JoinResponse } from "../../types/response.types";
 
 // Re-export types for convenience
-export type { CreateCommentRequest, CreateGameRequest, JoinRequest, JoinResponse };
+export type {
+  CreateCommentRequest,
+  CreateGameRequest,
+  JoinRequest,
+  JoinResponse,
+};
 
 // BlockchainGameInfo의 직렬화된 버전 (bigint → string)
 export interface SerializedGameInfo {
@@ -46,18 +51,36 @@ export type BackgroundMessage =
   | { type: "GET_ACTIVE_GAME_BY_TOKEN"; tokenAddress: string }
   | { type: "SAVE_COMMENT"; data: CreateCommentRequest }
   | { type: "SAVE_GAME"; data: CreateGameRequest }
-  | { type: "REGISTER_CLAIM_PRIZE"; gameId: string; txHash: string }
+  | { type: "REGISTER_CLAIM_PRIZE"; gameAddress: string; txHash: string }
   | { type: "WALLET_CONNECT" }
   | { type: "WALLET_GET_ACCOUNT" }
   | { type: "MEMEX_LOGIN"; triggerLogin?: boolean }
   | { type: "NAVIGATE_TO_URL"; url: string }
   | { type: "FETCH_MEMEX_PROFILE_INFO"; username: string; userTag: string }
+  | {
+      type: "PROFILE_URL_CHANGED";
+      username: string;
+      userTag: string;
+      profileInfo: {
+        profileImageUrl: string | null;
+        tokenAddr: string | null;
+        tokenSymbol: string | null;
+        tokenImageUrl: string | null;
+        memexWalletAddress: string | null;
+      };
+      currentUsername?: string | null;
+      currentUserTag?: string | null;
+    }
   | { type: "JOIN"; data: JoinRequest }
   | { type: "LOGOUT" }
   | { type: "WALLET_DISCONNECT" }
   | { type: "REGISTER_GAME"; data: SerializedGameInfo }
-  | { type: "CREATE_GAME_BY_TX"; txHash: string; tokenImageUrl?: string }
-  | { type: "UPLOAD_IMAGE"; fileData: string; fileName: string; mimeType: string }
+  | {
+      type: "UPLOAD_IMAGE";
+      fileData: string;
+      fileName: string;
+      mimeType: string;
+    }
   | { type: "REFRESH_MEMEX_TAB" };
 
 export type BackgroundResponse<T = any> =
@@ -274,20 +297,13 @@ export const backgroundApi = {
     });
   },
 
-  // URL로 이동 (MEMEX 탭에서)
-  navigateToUrl: async (url: string) => {
-    return sendToBackground<{ success: boolean }>({
-      type: "NAVIGATE_TO_URL",
-      url,
-    });
-  },
-
-  // MEMEX 프로필 정보 가져오기 (이미지, 토큰 주소, 토큰 심볼, MEMEX 지갑 주소)
+  // MEMEX 프로필 정보 가져오기 (이미지, 토큰 주소, 토큰 심볼, 토큰 이미지, MEMEX 지갑 주소)
   fetchMemexProfileInfo: async (username: string, userTag: string) => {
     return sendToBackground<{
       profileImageUrl: string | null;
       tokenAddr: string | null;
       tokenSymbol: string | null;
+      tokenImageUrl: string | null;
       memexWalletAddress: string | null;
     }>({
       type: "FETCH_MEMEX_PROFILE_INFO",

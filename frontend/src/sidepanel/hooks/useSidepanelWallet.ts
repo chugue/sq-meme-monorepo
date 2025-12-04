@@ -40,9 +40,19 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
 
     // 초기 상태 확인 중복 방지
     const initialCheckDone = useRef(false);
+    // 지갑 상태 확인 중복 방지
+    const checkAccountInProgress = useRef(false);
 
     // 지갑 상태 확인 함수
     const checkAccount = useCallback(async () => {
+        // 중복 요청 방지
+        if (checkAccountInProgress.current) {
+            console.log('🔐 [SidePanel] checkAccount 진행 중, 스킵');
+            return false;
+        }
+
+        checkAccountInProgress.current = true;
+
         try {
             const result = await backgroundApi.walletGetAccount();
             console.log('🔐 [SidePanel] checkAccount 결과:', result);
@@ -56,6 +66,8 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
             setLoading(false);
             setError(null); // 초기 로드 에러는 표시하지 않음
             return false;
+        } finally {
+            checkAccountInProgress.current = false;
         }
     }, [setWalletConnected, setLoading, setError]);
 
