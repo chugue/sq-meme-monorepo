@@ -4,6 +4,7 @@ import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
+import { FundersRepository } from '../funders/funders.repository';
 import { WinnersService } from '../winners/winners.service';
 import { GameRepository } from './game.repository';
 
@@ -27,6 +28,7 @@ export class GameService {
         private readonly gameRepository: GameRepository,
         private readonly winnersService: WinnersService,
         private readonly commentRepository: CommentRepository,
+        private readonly fundersRepository: FundersRepository,
     ) {
         this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
         this.gameCreatedIface = new ethers.Interface([GAME_CREATED_EVENT]);
@@ -262,6 +264,19 @@ export class GameService {
             return Result.fail(
                 '게임 저장에 실패했습니다.',
                 HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+
+        // 초기 펀더 저장 (initiator가 첫 번째 펀더)
+        if (totalFunding && totalFunding !== '0') {
+            await this.fundersRepository.create({
+                gameId,
+                funderAddress: initiator,
+                totalFunding,
+                txHash,
+            });
+            this.logger.log(
+                `✅ 초기 펀더 저장: gameId=${gameId}, funder=${initiator}, totalFunding=${totalFunding}`,
             );
         }
 

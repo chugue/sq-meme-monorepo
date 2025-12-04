@@ -100,14 +100,37 @@ export class FundersService {
                 `💰 PrizePoolFunded 확인: gameId=${gameId}, funder=${funder}, amount=${amount}, totalFunding=${totalFunding}`,
             );
 
-            // 펀딩 정보 저장
-            const result = await this.fundersRepository.create({
-                gameId,
-                funderAddress: funder,
-                amount,
-                totalFunding,
-                txHash,
-            });
+            // 기존 펀더 조회
+            const existingFunder =
+                await this.fundersRepository.findByGameIdAndFunder(
+                    gameId,
+                    funder,
+                );
+
+            let result: { id: number } | null;
+
+            if (existingFunder) {
+                // 기존 펀더가 있으면 업데이트 (txHash 배열에 추가)
+                result = await this.fundersRepository.update(
+                    existingFunder.id,
+                    {
+                        totalFunding,
+                        txHash,
+                    },
+                );
+                this.logger.log(
+                    `🔄 기존 펀더 업데이트: id=${existingFunder.id}, funder=${funder}`,
+                );
+            } else {
+                // 새 펀더 생성
+                result = await this.fundersRepository.create({
+                    gameId,
+                    funderAddress: funder,
+                    totalFunding,
+                    txHash,
+                });
+                this.logger.log(`➕ 새 펀더 생성: funder=${funder}`);
+            }
 
             if (!result) {
                 return Result.fail(
