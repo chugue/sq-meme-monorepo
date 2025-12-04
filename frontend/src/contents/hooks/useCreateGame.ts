@@ -77,7 +77,6 @@ export interface ExistingGameInfo {
   gameId: bigint;
   gameAddress: Address; // V2에서는 컨트랙트 주소가 동일하지만 호환성을 위해 유지
   tokenSymbol: string;
-  tokenName: string;
   isEnded: boolean;
 }
 
@@ -87,7 +86,6 @@ export interface UseCreateGameReturn {
   error: string | null;
   txHash: string | null;
   gameId: string | null;
-  gameAddress: string | null; // 호환성을 위해 유지 (V2에서는 컨트랙트 주소)
   existingGame: ExistingGameInfo | null;
   createGame: (settings: GameSettings) => Promise<string | null>;
   checkExistingGame: (
@@ -106,7 +104,6 @@ export function useCreateGame(): UseCreateGameReturn {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [gameId, setGameId] = useState<string | null>(null);
-  const [gameAddress, setGameAddress] = useState<string | null>(null);
   const [existingGame, setExistingGame] = useState<ExistingGameInfo | null>(
     null
   );
@@ -120,7 +117,6 @@ export function useCreateGame(): UseCreateGameReturn {
     setError(null);
     setTxHash(null);
     setGameId(null);
-    setGameAddress(null);
     setExistingGame(null);
   }, []);
 
@@ -175,7 +171,6 @@ export function useCreateGame(): UseCreateGameReturn {
           gameId: gameInfo.id,
           gameAddress: COMMENT_GAME_V2_ADDRESS as Address,
           tokenSymbol: gameInfo.tokenSymbol,
-          tokenName: "", // V2에서는 tokenName이 없음
           isEnded: gameInfo.isEnded,
         };
 
@@ -343,8 +338,6 @@ export function useCreateGame(): UseCreateGameReturn {
         const createdGameId = createGameResult.gameId;
 
         setGameId(createdGameId);
-        // TODO: address말고 setActiveGameInfo로 변경
-        setGameAddress(v2ContractAddress);
 
         logger.info("게임 생성 완료", { gameId: createdGameId });
 
@@ -420,7 +413,6 @@ export function useCreateGame(): UseCreateGameReturn {
     error,
     txHash,
     gameId,
-    gameAddress,
     existingGame,
     createGame,
     checkExistingGame,

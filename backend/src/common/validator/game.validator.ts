@@ -26,7 +26,6 @@ export const CreateGameDtoSchema = z.object({
     gameAddr: ethereumAddressSchema,
     gameTokenAddr: ethereumAddressSchema,
     tokenSymbol: z.string().min(1),
-    tokenName: z.string().min(1),
     initiator: ethereumAddressSchema,
     gameTime: numericStringSchema,
     endTime: numericStringSchema,

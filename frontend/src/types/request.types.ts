@@ -12,7 +12,6 @@ export interface CreateGameRequest {
   gameAddr: string;
   gameTokenAddr: string;
   tokenSymbol: string;
-  tokenName: string;
   initiator: string;
   gameTime: string;
   endTime: string;

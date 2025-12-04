@@ -389,7 +389,6 @@ export interface GameInfo {
   gameAddress: string;
   gameToken: string;
   tokenSymbol: string | null;
-  tokenName: string | null;
   initiator: string;
   gameTime: string;
   endTime: string;

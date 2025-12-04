@@ -29,7 +29,6 @@ export interface GameCreatedEvent {
     gameAddr: Address;
     gameTokenAddr: Address;
     tokenSymbol: string;
-    tokenName: string;
     initiator: Address;
     gameTime: bigint;
     endTime: bigint;

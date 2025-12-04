@@ -123,7 +123,6 @@ export class GameRepository {
                     gameAddress: dto.gameAddr,
                     gameToken: dto.gameTokenAddr,
                     tokenSymbol: dto.tokenSymbol,
-                    tokenName: dto.tokenName,
                     initiator: dto.initiator,
                     gameTime: dto.gameTime,
                     endTime: new Date(Number(dto.endTime) * 1000),
