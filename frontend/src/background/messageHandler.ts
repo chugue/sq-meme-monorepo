@@ -1289,6 +1289,26 @@ export function createMessageHandler() {
             break;
           }
 
+          case "GET_LIVE_GAMES": {
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { liveGames: any[] };
+              }>("/v1/games/live");
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              console.error("❌ 라이브 게임 조회 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "라이브 게임 조회 실패",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,

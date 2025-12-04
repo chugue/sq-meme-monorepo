@@ -89,7 +89,8 @@ export type BackgroundMessage =
   | { type: "GET_GAME_RANKING" }
   | { type: "GET_PRIZE_RANKING" }
   | { type: "GET_QUESTS" }
-  | { type: "GET_MY_ACTIVE_GAMES" };
+  | { type: "GET_MY_ACTIVE_GAMES" }
+  | { type: "GET_LIVE_GAMES" };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -456,6 +457,13 @@ export const backgroundApi = {
   getMyActiveGames: async () => {
     return sendToBackground<import("../../types/response.types").MyActiveGamesResponse>({
       type: "GET_MY_ACTIVE_GAMES",
+    });
+  },
+
+  // 현재 진행 중인 전체 활성 게임 목록 조회 (Live Games)
+  getLiveGames: async () => {
+    return sendToBackground<import("../../types/response.types").LiveGamesResponse>({
+      type: "GET_LIVE_GAMES",
     });
   },
 };

@@ -342,6 +342,45 @@ export class GameRepository {
     }
 
     /**
+     * @description 전체 활성 게임 목록 조회 (isEnded = false, isClaimed = false)
+     * 상금순으로 정렬
+     */
+    async findAllActiveGames(limit: number = 50): Promise<ActiveGameDto[]> {
+        try {
+            const games = await this.db
+                .select({
+                    gameId: schema.games.gameId,
+                    tokenImageUrl: schema.games.tokenImageUrl,
+                    tokenAddress: schema.games.gameToken,
+                    tokenSymbol: schema.games.tokenSymbol,
+                    prizePool: schema.games.prizePool,
+                    endTime: schema.games.endTime,
+                })
+                .from(schema.games)
+                .where(
+                    and(
+                        eq(schema.games.isEnded, false),
+                        eq(schema.games.isClaimed, false),
+                    ),
+                )
+                .orderBy(desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`))
+                .limit(limit);
+
+            return games.map((game) => ({
+                gameId: game.gameId,
+                tokenImageUrl: game.tokenImageUrl,
+                tokenAddress: game.tokenAddress,
+                tokenSymbol: game.tokenSymbol,
+                currentPrizePool: game.prizePool,
+                endTime: game.endTime,
+            }));
+        } catch (error) {
+            this.logger.error(`❌ 전체 활성 게임 조회 실패: ${error.message}`);
+            return [];
+        }
+    }
+
+    /**
      * @description 토큰별 총 상금 랭킹 조회 (claim된 게임 기준, 상위 N개)
      */
     async getGameRankingByToken(

@@ -96,4 +96,14 @@ export class GameController {
     async getGamesInPlaying(@WalletAddress() walletAddress: string) {
         return this.gameService.getGamesInPlaying(walletAddress);
     }
+
+    /**
+     * 현재 진행 중인 전체 활성 게임 목록 조회
+     * (isEnded = false, isClaimed = false, 상금순 정렬)
+     */
+    @Get('live')
+    async getLiveGames() {
+        const games = await this.gameRepository.findAllActiveGames();
+        return { liveGames: games };
+    }
 }

@@ -111,3 +111,18 @@ export interface MyActiveGameItem {
 export interface MyActiveGamesResponse {
   myActiveGames: MyActiveGameItem[];
 }
+
+// Live Game 아이템 (현재 진행 중인 게임)
+export interface LiveGameItem {
+  gameId: string;
+  tokenImageUrl: string | null;
+  tokenAddress: string;
+  tokenSymbol: string | null;
+  currentPrizePool: string | null;
+  endTime: string | null;
+}
+
+// Live Games API 응답 타입
+export interface LiveGamesResponse {
+  liveGames: LiveGameItem[];
+}
