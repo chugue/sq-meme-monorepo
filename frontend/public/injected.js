@@ -160,33 +160,108 @@
 
       const html = await response.text();
 
-      // self.__next_f.push 스크립트에서 tokenAddress 추출
+      // userNameTag를 기준으로 해당 사용자의 tokenAddress 찾기
       let tokenAddress = null;
       let tokenSymbol = null;
+      let tokenImageUrl = null;
 
-      // HTML에서 tokenAddress 패턴 찾기
-      const tokenMatch = html.match(
-        /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
-      );
-      if (tokenMatch && tokenMatch[1]) {
-        tokenAddress = tokenMatch[1];
+      // 방법 1: userNameTag 근처에서 tokenAddress 찾기 (정확한 매칭)
+      const fieldNames = ["userNameTag", "userTag", "usertag"];
+      for (const fieldName of fieldNames) {
+        if (tokenAddress) break;
+
+        // 대소문자 무시하고 userTag 찾기
+        const userTagRegex = new RegExp(
+          `"${fieldName}"\\s*:\\s*"(${userTag})"`,
+          "i"
+        );
+        const userTagMatch = html.match(userTagRegex);
+
+        if (userTagMatch) {
+          const actualUserTag = userTagMatch[1];
+          const userTagIndex = html.indexOf(
+            `"${fieldName}":"${actualUserTag}"`
+          );
+
+          if (userTagIndex !== -1) {
+            // userTag 앞뒤 1000자에서 토큰 정보 찾기 (범위 확장)
+            const startIdx = Math.max(0, userTagIndex - 1000);
+            const endIdx = Math.min(html.length, userTagIndex + 1000);
+            const chunk = html.substring(startIdx, endIdx);
+
+            const tokenMatch = chunk.match(
+              /"tokenAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/i
+            );
+            if (tokenMatch && tokenMatch[1]) {
+              tokenAddress = tokenMatch[1];
+              log.info("fetch에서 userNameTag로 tokenAddress 찾음", {
+                fieldName,
+                tokenAddress,
+              });
+            }
+
+            // tokenSymbol도 같은 청크에서 찾기
+            const symbolMatch = chunk.match(/"tokenSymbol"\s*:\s*"([^"]+)"/);
+            if (symbolMatch && symbolMatch[1]) {
+              tokenSymbol = symbolMatch[1];
+            }
+
+            // profileImageUrl을 tokenImageUrl로 매핑 (이스케이프된 형식도 지원)
+            const profileImageMatch = chunk.match(
+              /\\?"profileImageUrl\\?"\s*:\s*\\?"(https?:[^"\\]+)\\?"/
+            );
+            if (profileImageMatch && profileImageMatch[1]) {
+              tokenImageUrl = profileImageMatch[1].replace(/\\\//g, "/");
+            }
+          }
+        }
       }
 
-      // tokenSymbol도 추출
-      const symbolMatch = html.match(
-        /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/
-      );
-      if (symbolMatch && symbolMatch[1]) {
-        tokenSymbol = symbolMatch[1];
+      // 방법 2: 폴백 - 첫 번째 tokenAddress (정확도 낮음)
+      if (!tokenAddress) {
+        const tokenMatch = html.match(
+          /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+        );
+        if (tokenMatch && tokenMatch[1]) {
+          tokenAddress = tokenMatch[1];
+          log.warn("fetch 폴백으로 tokenAddress 찾음 (정확도 낮음)", {
+            tokenAddress,
+          });
+        }
+      }
+
+      // tokenSymbol 폴백
+      if (!tokenSymbol) {
+        const symbolMatch = html.match(
+          /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/
+        );
+        if (symbolMatch && symbolMatch[1]) {
+          tokenSymbol = symbolMatch[1];
+        }
+      }
+
+      // tokenImageUrl 폴백 - 전체 HTML에서 profileImageUrl 찾기
+      if (!tokenImageUrl) {
+        const imageMatch = html.match(
+          /\\?"profileImageUrl\\?"\s*:\s*\\?"(https?:[^"\\]+)\\?"/
+        );
+        if (imageMatch && imageMatch[1]) {
+          tokenImageUrl = imageMatch[1].replace(/\\\//g, "/");
+        }
       }
 
       if (tokenAddress) {
-        log.info("fetch로 토큰 정보 추출 성공", { tokenAddress, tokenSymbol });
+        log.info("fetch로 토큰 정보 추출 성공", {
+          tokenAddress,
+          tokenSymbol,
+          tokenImageUrl,
+        });
         return {
           contractAddress: tokenAddress,
           username,
           userTag,
           symbol: tokenSymbol,
+          tokenImageUrl,
           timestamp: Date.now(),
         };
       }
@@ -558,6 +633,138 @@
             source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
             id: payload.id,
             error: error?.message || "Logout failed",
+          },
+          "*"
+        );
+      }
+    }
+
+    // FETCH_PROFILE_INFO 메서드 처리 (Content Script에서 프로필 정보 요청)
+    if (method === "FETCH_PROFILE_INFO") {
+      try {
+        const { url } = payload;
+        log.info("🖼️ FETCH_PROFILE_INFO 요청 수신", { url });
+
+        // URL에서 username, userTag 추출
+        const profileMatch = url.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+        if (!profileMatch) {
+          throw new Error("Invalid profile URL");
+        }
+
+        const [, username, userTag] = profileMatch;
+
+        // fetch로 프로필 정보 가져오기
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Fetch failed: ${response.status}`);
+        }
+
+        const html = await response.text();
+
+        let tokenAddress = null;
+        let tokenSymbol = null;
+        let tokenImageUrl = null;
+        let profileImageUrl = null;
+        let memexWalletAddress = null;
+
+        // userNameTag를 기준으로 해당 사용자의 tokenAddress 찾기
+        const fieldNames = ["userNameTag", "userTag", "usertag"];
+        for (const fieldName of fieldNames) {
+          if (tokenAddress) break;
+
+          const userTagRegex = new RegExp(
+            `"${fieldName}"\\s*:\\s*"(${userTag})"`,
+            "i"
+          );
+          const userTagMatch = html.match(userTagRegex);
+
+          if (userTagMatch) {
+            const actualUserTag = userTagMatch[1];
+            const userTagIndex = html.indexOf(
+              `"${fieldName}":"${actualUserTag}"`
+            );
+
+            if (userTagIndex !== -1) {
+              const startIdx = Math.max(0, userTagIndex - 500);
+              const chunk = html.substring(startIdx, userTagIndex + 100);
+
+              const tokenMatch = chunk.match(
+                /"tokenAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/i
+              );
+              if (tokenMatch && tokenMatch[1]) {
+                tokenAddress = tokenMatch[1];
+              }
+
+              const symbolMatch = chunk.match(/"tokenSymbol"\s*:\s*"([^"]+)"/);
+              if (symbolMatch && symbolMatch[1]) {
+                tokenSymbol = symbolMatch[1];
+              }
+
+              // profileImageUrl을 tokenImageUrl로 매핑 (이스케이프된 형식도 지원)
+              const profileImgMatch = chunk.match(
+                /\\?"profileImageUrl\\?"\s*:\s*\\?"(https?:[^"\\]+)\\?"/
+              );
+              if (profileImgMatch && profileImgMatch[1]) {
+                tokenImageUrl = profileImgMatch[1].replace(/\\\//g, "/");
+              }
+            }
+          }
+        }
+
+        // profileImageUrl 추출 (이스케이프된 형식도 지원)
+        const profileImageMatch = html.match(
+          /\\?"profileImageUrl\\?"\s*:\s*\\?"(https?:[^"\\]+)\\?"/
+        );
+        if (profileImageMatch && profileImageMatch[1]) {
+          profileImageUrl = profileImageMatch[1].replace(/\\\//g, "/");
+        }
+
+        // tokenImageUrl 폴백
+        if (!tokenImageUrl && profileImageUrl) {
+          tokenImageUrl = profileImageUrl;
+        }
+
+        // memexWalletAddress 추출 (walletAddress 필드)
+        const walletMatch = html.match(
+          /"walletAddress"\s*:\s*"(0x[a-fA-F0-9]{40})"/
+        );
+        if (walletMatch && walletMatch[1]) {
+          memexWalletAddress = walletMatch[1];
+        }
+
+        log.info("✅ FETCH_PROFILE_INFO 완료", {
+          tokenAddress,
+          tokenSymbol,
+          profileImageUrl,
+        });
+
+        window.postMessage(
+          {
+            source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
+            id: payload.id,
+            result: {
+              profileImageUrl,
+              tokenAddr: tokenAddress,
+              tokenSymbol,
+              tokenImageUrl,
+              memexWalletAddress,
+            },
+          },
+          "*"
+        );
+      } catch (error) {
+        log.error("❌ FETCH_PROFILE_INFO 실패", error);
+        window.postMessage(
+          {
+            source: MESSAGE_SOURCE.INJECTED_SCRIPT_RESPONSE,
+            id: payload.id,
+            result: {
+              profileImageUrl: null,
+              tokenAddr: null,
+              tokenSymbol: null,
+              tokenImageUrl: null,
+              memexWalletAddress: null,
+            },
           },
           "*"
         );

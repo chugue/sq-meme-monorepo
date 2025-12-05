@@ -17,136 +17,8 @@ function isProfilePage(url: string): boolean {
 // NOTE: fetch 비활성화로 인해 미사용 - injected.js에서 토큰 추출
 // import { extractProfileData } from '@/shared/lib/profileExtractor';
 
-// 프로필 페이지에서 정보 가져오기 (여러 방법 시도)
-async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
-    profileImageUrl: string | null;
-    tokenAddr: string | null;
-    tokenSymbol: string | null;
-    tokenImageUrl: string | null;
-    memexWalletAddress: string | null;
-} | null> {
-    let profileImageUrl: string | null = null;
-    let tokenAddr: string | null = null;
-    let tokenSymbol: string | null = null;
-    let tokenImageUrl: string | null = null;
-    let memexWalletAddress: string | null = null;
-
-    try {
-        console.log("🖼️ [Content] 프로필 정보 가져오기 시작:", profileUrl);
-        const currentUrl = window.location.href;
-        console.log("🔍 [Content] 현재 URL:", currentUrl);
-        console.log("🔍 [Content] 프로필 URL:", profileUrl);
-        const isCurrentProfile = currentUrl.includes(profileUrl.replace('https://app.memex.xyz', ''));
-
-        // NOTE: fetch는 Background에서 직접 수행 (CORS 제약 없음)
-        // Content Script에서는 현재 페이지가 프로필 페이지인 경우에만 DOM에서 파싱
-
-        // DOM에서 직접 프로필 이미지 및 토큰 심볼 추출 (현재 페이지가 프로필인 경우)
-        if (!profileImageUrl) {
-            const profileImg = document.querySelector('img[alt="Profile"]') as HTMLImageElement;
-            if (profileImg && profileImg.src) {
-                if (profileImg.src.includes("_next/image")) {
-                    const urlParams = new URL(profileImg.src).searchParams;
-                    const encodedUrl = urlParams.get("url");
-                    if (encodedUrl) {
-                        profileImageUrl = decodeURIComponent(encodedUrl);
-                    }
-                } else {
-                    profileImageUrl = profileImg.src;
-                }
-                console.log("✅ [Content] DOM에서 프로필 이미지 발견:", profileImageUrl);
-            }
-        }
-
-        // DOM에서 토큰 심볼 추출 (injected.js와 동일한 방식)
-        if (!tokenSymbol) {
-            try {
-                const symbolElement = document.querySelector('.Profile_symbol__TEC9N');
-                if (symbolElement) {
-                    tokenSymbol = symbolElement.textContent?.trim() || null;
-                    console.log("✅ [Content] DOM에서 토큰 심볼 발견:", tokenSymbol);
-                }
-            } catch (e) {
-                console.warn("⚠️ [Content] DOM에서 토큰 심볼 추출 실패:", e);
-            }
-        }
-
-        // self.__next_f.push 스크립트에서 tokenAddr, memexWalletAddress, tokenImageUrl 추출
-        if (!tokenAddr || !memexWalletAddress || !tokenImageUrl) {
-            try {
-                const scripts = document.querySelectorAll("script");
-                for (const script of scripts) {
-                    const content = script.textContent || "";
-
-                    // self.__next_f.push 형태의 스크립트에서 추출
-                    if (content.includes("self.__next_f.push")) {
-                        // tokenAddress 패턴 (이스케이프된 JSON 내부)
-                        if (!tokenAddr) {
-                            const tokenMatch = content.match(
-                                /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
-                            );
-                            if (tokenMatch && tokenMatch[1]) {
-                                tokenAddr = tokenMatch[1];
-                                console.log("✅ [Content] __next_f에서 tokenAddr 발견:", tokenAddr);
-                            }
-                        }
-
-                        // memexWalletAddress 패턴 (walletAddress 또는 address 필드)
-                        if (!memexWalletAddress) {
-                            // 방법 1: walletAddress 필드
-                            const walletMatch = content.match(
-                                /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
-                            );
-                            if (walletMatch && walletMatch[1]) {
-                                memexWalletAddress = walletMatch[1];
-                                console.log("✅ [Content] __next_f에서 memexWalletAddress 발견:", memexWalletAddress);
-                            }
-                        }
-
-                        // tokenImageUrl - profileImageUrl 사용 (화질이 더 좋음)
-                        // 실제 형태: \"profileImageUrl\":\\\"https://...\\\"
-                        if (!tokenImageUrl) {
-                            const tokenImgMatch = content.match(
-                                /\\"profileImageUrl\\":\s*\\"(https?:[^"\\]+)\\"/
-                            );
-                            if (tokenImgMatch && tokenImgMatch[1]) {
-                                tokenImageUrl = tokenImgMatch[1].replace(/\\\//g, "/");
-                                console.log("✅ [Content] __next_f에서 tokenImageUrl (profileImageUrl) 발견:", tokenImageUrl);
-                            }
-                        }
-
-                        // 모두 찾았으면 중단
-                        if (tokenAddr && memexWalletAddress && tokenImageUrl) {
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn("⚠️ [Content] __next_f에서 토큰/지갑 주소 추출 실패:", e);
-            }
-        }
-
-        const result = {
-            profileImageUrl,
-            tokenAddr,
-            tokenSymbol,
-            tokenImageUrl,
-            memexWalletAddress,
-        };
-
-        console.log("✅ [Content] 프로필 정보 최종 결과:", result);
-        return result;
-    } catch (error) {
-        console.error("❌ [Content] 프로필 정보 가져오기 실패:", error);
-        return {
-            profileImageUrl: null,
-            tokenAddr: null,
-            tokenSymbol: null,
-            tokenImageUrl: null,
-            memexWalletAddress: null,
-        };
-    }
-}
+// NOTE: 토큰 정보 추출은 injected.js에서 fetch로 수행
+// content.ts는 TOKEN_CONTRACT_CACHED 메시지를 수신하여 백엔드로 전달
 
 // 현재 로그인한 사용자 정보 가져오기
 function getCurrentLoggedInUser(): { username: string | null; userTag: string | null } {
@@ -165,73 +37,6 @@ function getCurrentLoggedInUser(): { username: string | null; userTag: string | 
         console.warn("⚠️ [Content] gtm_user_identifier 파싱 실패:", e);
     }
     return { username: null, userTag: null };
-}
-
-// 프로필 URL 변경 시 자동으로 정보 가져오기 및 background로 전송
-async function handleProfileUrlChange(username: string, userTag: string) {
-    if (profileFetchInProgress) {
-        console.log("🖼️ [Content] 프로필 정보 가져오기 진행 중, 스킵");
-        return;
-    }
-
-    profileFetchInProgress = true;
-
-    try {
-        const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
-        const currentUrl = window.location.href;
-        const isCurrentProfile = currentUrl.includes(`/profile/${username}/${userTag}`);
-
-        let profileInfo: {
-            profileImageUrl: string | null;
-            tokenAddr: string | null;
-            tokenSymbol: string | null;
-            memexWalletAddress: string | null;
-        } | null = null;
-
-        // 현재 페이지가 해당 프로필 페이지인 경우 injectedApi 사용 (더 정확)
-        if (isCurrentProfile) {
-            console.log("🖼️ [Content] 현재 프로필 페이지에서 정보 가져오기");
-            profileInfo = await fetchProfileDataFromUrl(profileUrl);
-        } else {
-            // 다른 페이지인 경우 fetch 사용
-            console.log("🖼️ [Content] 다른 페이지에서 fetch로 정보 가져오기");
-            profileInfo = await fetchProfileDataFromUrl(profileUrl);
-        }
-
-        if (profileInfo) {
-            // 현재 로그인한 사용자 정보 가져오기
-            const currentUser = getCurrentLoggedInUser();
-            console.log("🖼️ [Content] 현재 로그인 사용자:", currentUser);
-
-            // Background script로 프로필 정보 전송
-            const { browser } = await import("wxt/browser");
-            const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
-
-            if (runtime) {
-                runtime.sendMessage(
-                    {
-                        type: "PROFILE_URL_CHANGED",
-                        username,
-                        userTag,
-                        profileInfo,
-                        currentUsername: currentUser.username,
-                        currentUserTag: currentUser.userTag,
-                    },
-                    (response: any) => {
-                        if (runtime.lastError) {
-                            console.error("❌ [Content] 프로필 정보 전송 실패:", runtime.lastError);
-                        } else {
-                            console.log("✅ [Content] 프로필 정보 전송 완료");
-                        }
-                    }
-                );
-            }
-        }
-    } catch (error) {
-        console.error("❌ [Content] 프로필 URL 변경 처리 실패:", error);
-    } finally {
-        profileFetchInProgress = false;
-    }
 }
 
 // URL에서 토큰 주소 추출 (마지막 경로 부분)
@@ -653,16 +458,9 @@ export default defineContentScript({
         currentPath = window.location.pathname;
 
         // 초기 로드 시 프로필 페이지인 경우 프로필 정보 가져오기
+        // NOTE: 초기 로드 시 프로필 정보는 injected.js의 TOKEN_CONTRACT_CACHED 메시지로 수신
         if (isProfilePage(window.location.href)) {
-            const match = window.location.href.match(/\/profile\/([^/]+)\/([^/]+)/);
-            if (match) {
-                const [, username, userTag] = match;
-                console.log("🖼️ [Content] 초기 로드 시 프로필 페이지 감지:", {
-                    username,
-                    userTag,
-                });
-                handleProfileUrlChange(username, userTag);
-            }
+            console.log("🖼️ [Content] 초기 로드 시 프로필 페이지 감지 - injected.js에서 토큰 정보 대기");
         }
 
         // 마운트 후 Search bar 아래로 위치 조정 (약간의 딜레이 후)
@@ -769,17 +567,10 @@ export default defineContentScript({
                 isProfilePage: isProfile,
             });
 
-            // 프로필 페이지로 변경된 경우 자동으로 프로필 정보 가져오기
+            // NOTE: 프로필 정보는 injected.js의 TOKEN_CONTRACT_CACHED 메시지로 수신
+            // SPA 네비게이션 시 injected.js가 fetch로 정확한 토큰 정보를 추출함
             if (isProfile && newPath !== currentPath) {
-                const match = window.location.href.match(/\/profile\/([^/]+)\/([^/]+)/);
-                if (match) {
-                    const [, username, userTag] = match;
-                    console.log("🖼️ [Content] 프로필 페이지 변경 감지, 정보 가져오기 시작:", {
-                        username,
-                        userTag,
-                    });
-                    handleProfileUrlChange(username, userTag);
-                }
+                console.log("🖼️ [Content] 프로필 페이지 변경 감지 - injected.js에서 토큰 정보 대기");
             }
 
             currentPath = newPath;
@@ -792,15 +583,58 @@ export default defineContentScript({
             console.log("🦑 SPA 네비게이션 감지 - React 내부에서 상태 업데이트 처리");
         };
 
-        // Injected Script로부터 SPA 네비게이션 메시지 수신
-        const spaNavigationListener = (event: MessageEvent) => {
+        // Injected Script로부터 메시지 수신 (SPA 네비게이션 + 토큰 정보)
+        const injectedMessageListener = async (event: MessageEvent) => {
             if (event.data?.source === "SPA_NAVIGATION") {
                 console.log("🦑 SPA_NAVIGATION 메시지 수신:", event.data);
                 handleUrlChange();
             }
+
+            // injected.js에서 fetch로 추출한 토큰 정보 수신
+            if (event.data?.source === "TOKEN_CONTRACT_CACHED") {
+                const tokenData = event.data.data;
+                if (tokenData?.contractAddress) {
+                    console.log("🖼️ [Content] TOKEN_CONTRACT_CACHED 수신:", tokenData);
+
+                    // 현재 로그인한 사용자 정보 가져오기
+                    const currentUser = getCurrentLoggedInUser();
+
+                    // Background script로 프로필 정보 전송
+                    const { browser } = await import("wxt/browser");
+                    const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+
+                    if (runtime) {
+                        const profileInfo = {
+                            profileImageUrl: tokenData.tokenImageUrl || null,
+                            tokenAddr: tokenData.contractAddress,
+                            tokenSymbol: tokenData.symbol || null,
+                            tokenImageUrl: tokenData.tokenImageUrl || null,
+                            memexWalletAddress: null, // injected.js에서 추출 안 함
+                        };
+
+                        runtime.sendMessage(
+                            {
+                                type: "PROFILE_URL_CHANGED",
+                                username: tokenData.username,
+                                userTag: tokenData.userTag,
+                                profileInfo,
+                                currentUsername: currentUser.username,
+                                currentUserTag: currentUser.userTag,
+                            },
+                            (response: any) => {
+                                if (runtime.lastError) {
+                                    console.error("❌ [Content] 프로필 정보 전송 실패:", runtime.lastError);
+                                } else {
+                                    console.log("✅ [Content] 프로필 정보 전송 완료 (injected.js 데이터)");
+                                }
+                            }
+                        );
+                    }
+                }
+            }
         };
 
-        window.addEventListener("message", spaNavigationListener);
+        window.addEventListener("message", injectedMessageListener);
 
         // Background script로부터의 메시지 처리 (sidepanel -> background -> content)
         const { browser } = await import("wxt/browser");
@@ -966,29 +800,22 @@ export default defineContentScript({
                             userTag
                         );
 
-                        // 비동기 함수로 처리 - 여러 방법 시도
+                        // injected script를 통해 프로필 정보 가져오기
                         (async () => {
                             try {
                                 const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
-                                const profileInfo = await fetchProfileDataFromUrl(profileUrl);
+                                const { fetchProfileInfo } = await import("@/contents/lib/injectedApi");
+                                const profileInfo = await fetchProfileInfo(profileUrl);
 
-                                if (profileInfo) {
-                                    sendResponse(profileInfo);
-                                } else {
-                                    console.warn("⚠️ [Content] 프로필 정보를 가져올 수 없음");
-                                    sendResponse({
-                                        profileImageUrl: null,
-                                        tokenAddr: null,
-                                        tokenSymbol: null,
-                                        memexWalletAddress: null,
-                                    });
-                                }
+                                console.log("✅ [Content] 프로필 정보 수신:", profileInfo);
+                                sendResponse(profileInfo);
                             } catch (e) {
                                 console.error("❌ [Content] FETCH_MEMEX_PROFILE_INFO 오류:", e);
                                 sendResponse({
                                     profileImageUrl: null,
                                     tokenAddr: null,
                                     tokenSymbol: null,
+                                    tokenImageUrl: null,
                                     memexWalletAddress: null,
                                 });
                             }
@@ -1078,7 +905,7 @@ export default defineContentScript({
 
         // 클린업 함수 등록
         ctx.onInvalidated(() => {
-            window.removeEventListener("message", spaNavigationListener);
+            window.removeEventListener("message", injectedMessageListener);
             containerWatcher.disconnect();
             console.log("🦑 Content script 클린업 완료");
         });

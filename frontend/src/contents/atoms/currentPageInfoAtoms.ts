@@ -7,6 +7,7 @@ export interface CurrentPageInfo {
     username: string;            // 프로필 사용자명
     userTag: string;             // 프로필 태그
     symbol: string | null;       // 토큰 심볼
+    tokenImageUrl: string | null; // 토큰 이미지 URL
     timestamp: number;           // 캐싱 시점
 }
 

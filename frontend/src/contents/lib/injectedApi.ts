@@ -648,6 +648,106 @@ export async function waitForTransaction(
 }
 
 /**
+ * Injected script에서 프로필 정보 가져오기
+ * @param url - 프로필 URL
+ * @returns 프로필 정보 (profileImageUrl, tokenAddr, tokenSymbol, tokenImageUrl, memexWalletAddress)
+ */
+export async function fetchProfileInfo(url: string): Promise<{
+    profileImageUrl: string | null;
+    tokenAddr: string | null;
+    tokenSymbol: string | null;
+    tokenImageUrl: string | null;
+    memexWalletAddress: string | null;
+}> {
+    return new Promise((resolve) => {
+        const id = requestIdManager.generateId();
+        const timeout = INJECTED_CONFIG.REQUEST_TIMEOUT;
+        let timeoutId: NodeJS.Timeout | null = null;
+        let messageListener: ((event: MessageEvent) => void) | null = null;
+
+        const cleanup = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            if (messageListener) {
+                window.removeEventListener('message', messageListener);
+                messageListener = null;
+            }
+        };
+
+        // 타임아웃 설정
+        timeoutId = setTimeout(() => {
+            cleanup();
+            logger.warn('FETCH_PROFILE_INFO 타임아웃', { id, url });
+            resolve({
+                profileImageUrl: null,
+                tokenAddr: null,
+                tokenSymbol: null,
+                tokenImageUrl: null,
+                memexWalletAddress: null,
+            });
+        }, timeout);
+
+        // 응답 리스너
+        messageListener = (event: MessageEvent) => {
+            if (!isInjectedScriptResponse(event, id)) {
+                return;
+            }
+
+            cleanup();
+
+            const response = event.data as InjectedScriptResponse;
+            if (response.error) {
+                logger.warn('FETCH_PROFILE_INFO 응답 에러', { error: response.error });
+                resolve({
+                    profileImageUrl: null,
+                    tokenAddr: null,
+                    tokenSymbol: null,
+                    tokenImageUrl: null,
+                    memexWalletAddress: null,
+                });
+            } else {
+                logger.info('✅ FETCH_PROFILE_INFO 완료', { url });
+                resolve(response.result as {
+                    profileImageUrl: string | null;
+                    tokenAddr: string | null;
+                    tokenSymbol: string | null;
+                    tokenImageUrl: string | null;
+                    memexWalletAddress: string | null;
+                });
+            }
+        };
+
+        window.addEventListener('message', messageListener);
+
+        // 메시지 전송
+        try {
+            window.postMessage(
+                {
+                    source: 'CONTENT_SCRIPT',
+                    method: 'FETCH_PROFILE_INFO',
+                    payload: { id, url },
+                },
+                '*'
+            );
+
+            logger.debug('FETCH_PROFILE_INFO 요청 전송', { id, url });
+        } catch (error) {
+            cleanup();
+            logger.warn('FETCH_PROFILE_INFO 메시지 전송 실패', { error: String(error) });
+            resolve({
+                profileImageUrl: null,
+                tokenAddr: null,
+                tokenSymbol: null,
+                tokenImageUrl: null,
+                memexWalletAddress: null,
+            });
+        }
+    });
+}
+
+/**
  * Injected script에 로그아웃 요청 전송
  * 토큰 캐시 및 세션 데이터를 초기화합니다.
  */
@@ -761,6 +861,7 @@ export const injectedApi = {
     revokePermissions,
     sendLogoutToInjectedScript,
     getLogs,
+    fetchProfileInfo,
 } as const;
 
 // 타입 export

@@ -462,7 +462,8 @@ export function createMessageHandler() {
               // 다른 사람 프로필은 더 이상 local storage에 캐시하지 않음
 
               // 토큰 정보가 있으면 백엔드 API에 저장 (upsert)
-              if (profileInfo.tokenAddr) {
+              // tokenImageUrl이 있어야만 저장 (null이면 스킵)
+              if (profileInfo.tokenAddr && profileInfo.tokenImageUrl) {
                 try {
                   await apiCall("/v1/tokens", {
                     method: "POST",
@@ -484,6 +485,10 @@ export function createMessageHandler() {
                     tokenError.message
                   );
                 }
+              } else if (profileInfo.tokenAddr && !profileInfo.tokenImageUrl) {
+                console.log(
+                  `⚠️ [Background] tokenImageUrl 없음, 토큰 저장 스킵: ${profileInfo.tokenAddr}`
+                );
               }
 
               result = { success: true, data: { success: true } };
