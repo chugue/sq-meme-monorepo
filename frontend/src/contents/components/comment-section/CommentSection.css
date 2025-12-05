@@ -65,7 +65,7 @@
     background: #060722;
     flex-direction: column;
     align-items: center;
-    height: 400px;
+    height: 305px;
     position: relative;
     z-index: 1;
 }
@@ -136,7 +136,7 @@
     width: 100%;
     max-width: 253px;
     gap: 2px;
-    margin-top: -10px;
+    margin-top: 36px;
     background: rgba(0, 0, 0, 0.6);
     border: 2px dashed #003c26;
     border-radius: 10px;
@@ -309,31 +309,33 @@
 }
 
 .squid-funding-token-badge {
+    box-sizing: border-box;
     display: flex;
-    flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 4px 8px;
-    gap: 10px;
+    padding: 3px 8px;
     border-radius: 100px;
     background: transparent;
+    border: 1.5px solid #b9a7ff;
 }
 
 .squid-funding-token-badge span {
     font-family: "Pretendard", sans-serif;
-    font-weight: 400;
+    font-weight: 500;
     font-size: 12px;
-    line-height: 14px;
     color: #b9a7ff;
 }
 
-.squid-funding-value {
+/* .squid-funding-input {
     font-family: "Pretendard", sans-serif;
     font-weight: 700;
     font-size: 20px;
     line-height: 150%;
     color: #b9a7ff;
-}
+    background-color: transparent;
+    border: none;
+    outline: none;
+} */
 
 .squid-funding-button {
     display: flex;
@@ -387,6 +389,7 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+    color: #b9a7ff;
     padding: 0px;
     gap: 2px;
     width: 100%;
@@ -394,17 +397,18 @@
 
 .squid-my-share-label {
     font-family: "Pretendard", sans-serif;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 14px;
     line-height: 150%;
     color: #b9a7ff;
 }
 
 .squid-my-share-value {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 0px;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 150%;
+    color: #b9a7ff;
 }
 
 .squid-my-share-value span {
@@ -843,7 +847,7 @@
 .squid-funding-input {
     flex: 1;
     padding: 8px 12px;
-    background: #222222;
+    background: transparent;
     border: none;
     border-radius: 10px;
     font-family: "Pretendard", sans-serif;

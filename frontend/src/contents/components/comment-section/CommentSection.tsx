@@ -570,39 +570,83 @@ export function CommentSection() {
 
                     {/* 펀딩 섹션 */}
                     <div className="squid-funding-section">
-                        <div className="squid-funding-header">
-                            <span className="squid-funding-title">
-                                FUND this Prize Pool
-                            </span>
-                            <p className="squid-funding-desc">
-                                Earn comment fees based on your funding share
-                            </p>
+                        <div className="squid-funding-card">
+                            <div className="squid-funding-header">
+                                <span className="squid-funding-title">
+                                    Fund this Prize Pool
+                                </span>
+                                <p className="squid-funding-desc">
+                                    Earn comment fees based on your share
+                                </p>
+                            </div>
+                            <form className="squid-funding-form">
+                                <div className="squid-funding-amount-row">
+                                    <div className="squid-funding-token-badge">
+                                        <span>
+                                            $
+                                            {activeGameInfo?.tokenSymbol ||
+                                                "SQM"}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        className="squid-funding-input"
+                                        value={fundingAmount}
+                                        onChange={(e) =>
+                                            setFundingAmount(
+                                                e.target.valueAsNumber,
+                                            )
+                                        }
+                                        placeholder="fill in amount"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    className="squid-funding-button"
+                                    onClick={handleFund}
+                                    disabled={isFunding}
+                                >
+                                    <svg
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            d="M12 2L2 7L12 12L22 7L12 2Z"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        <path
+                                            d="M2 17L12 22L22 17"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        <path
+                                            d="M2 12L12 17L22 12"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                </button>
+                            </form>
                         </div>
-                        <div className="squid-funding-form">
-                            <input
-                                type="number"
-                                className="squid-funding-input"
-                                placeholder="Amount to fund"
-                                value={fundingAmount}
-                                onChange={(e) =>
-                                    setFundingAmount(e.target.value)
-                                }
-                                disabled={isFunding}
-                                min="0"
-                                step="any"
-                            />
-                            <button
-                                type="button"
-                                className="squid-funding-button"
-                                onClick={handleFund}
-                                disabled={
-                                    isFunding ||
-                                    !fundingAmount ||
-                                    Number(fundingAmount) <= 0
-                                }
-                            >
-                                {isFunding ? "FUNDING..." : "FUND"}
-                            </button>
+                        <div className="squid-my-share-card">
+                            <div className="squid-my-share-row">
+                                <span className="squid-my-share-label">
+                                    My Share
+                                </span>
+                                <span className="squid-my-share-value">
+                                    12.8%
+                                </span>
+                            </div>
                         </div>
                     </div>
 
