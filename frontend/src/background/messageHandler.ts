@@ -461,6 +461,31 @@ export function createMessageHandler() {
               }
               // 다른 사람 프로필은 더 이상 local storage에 캐시하지 않음
 
+              // 토큰 정보가 있으면 백엔드 API에 저장 (upsert)
+              if (profileInfo.tokenAddr) {
+                try {
+                  await apiCall("/v1/tokens", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      tokenAddress: profileInfo.tokenAddr,
+                      tokenUsername: username,
+                      tokenUsertag: userTag,
+                      tokenImageUrl: profileInfo.tokenImageUrl,
+                      tokenSymbol: profileInfo.tokenSymbol,
+                    }),
+                  });
+                  console.log(
+                    `✅ [Background] 토큰 정보 저장 완료: ${profileInfo.tokenAddr}`
+                  );
+                } catch (tokenError: any) {
+                  // 토큰 저장 실패는 무시 (주요 기능에 영향 없음)
+                  console.warn(
+                    "⚠️ [Background] 토큰 정보 저장 실패:",
+                    tokenError.message
+                  );
+                }
+              }
+
               result = { success: true, data: { success: true } };
             } catch (error: any) {
               console.error("❌ PROFILE_URL_CHANGED 오류:", error);

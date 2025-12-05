@@ -51,4 +51,37 @@ export class TokenService {
             );
         }
     }
+
+    /**
+     * 토큰 정보 생성 또는 업데이트 (upsert)
+     */
+    async upsertToken(data: {
+        tokenAddress: string;
+        tokenUsername: string;
+        tokenUsertag: string;
+        tokenImageUrl?: string;
+        tokenSymbol?: string;
+    }): Promise<Result<{ token: Token }>> {
+        try {
+            const token = await this.tokenRepository.upsert({
+                tokenAddress: data.tokenAddress,
+                tokenUsername: data.tokenUsername,
+                tokenUsertag: data.tokenUsertag,
+                tokenImageUrl: data.tokenImageUrl,
+                tokenSymbol: data.tokenSymbol,
+            });
+
+            this.logger.log(
+                `Token upserted: ${data.tokenAddress} (${data.tokenUsername}/${data.tokenUsertag})`,
+            );
+
+            return Result.ok({ token });
+        } catch (error) {
+            this.logger.error(`upsertToken failed: ${error.message}`);
+            return Result.fail(
+                '토큰 저장에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 }

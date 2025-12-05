@@ -1,11 +1,29 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { TokenService } from './token.service';
+
+class UpsertTokenDto {
+    tokenAddress: string;
+    tokenUsername: string;
+    tokenUsertag: string;
+    tokenImageUrl?: string;
+    tokenSymbol?: string;
+}
 
 @ApiTags('Tokens')
 @Controller('/v1/tokens')
 export class TokenController {
     constructor(private readonly tokenService: TokenService) {}
+
+    /**
+     * 토큰 정보 생성 또는 업데이트
+     */
+    @Post()
+    @ApiOperation({ summary: '토큰 정보 생성/업데이트 (upsert)' })
+    @ApiBody({ type: UpsertTokenDto })
+    async upsertToken(@Body() body: UpsertTokenDto) {
+        return this.tokenService.upsertToken(body);
+    }
 
     /**
      * 토큰 주소로 조회
