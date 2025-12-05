@@ -10,6 +10,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Address } from 'viem';
+import { GameEndedModal } from '../components/sub-components/GameEndedModal';
 import { backgroundApi, type CreateCommentRequest } from '../lib/backgroundApi';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { erc20ABI } from '../lib/contract/abis/erc20';
@@ -17,6 +18,9 @@ import { createContractClient } from '../lib/contract/contractClient';
 import { parseCommentAddedEvent } from '../lib/contract/eventParser';
 import { logger } from '../lib/injected/logger';
 import { injectedApi } from '../lib/injectedApi';
+
+// GameEndedModal 컴포넌트를 re-export
+export { GameEndedModal };
 
 export interface UseCommentContractReturn {
     // 댓글 작성
@@ -32,6 +36,8 @@ export interface UseCommentContractReturn {
     isSubmitting: boolean;
     isApproving: boolean;
     error: string | null;
+    // 게임 종료 모달 상태
+    showGameEndedModal: boolean;
 }
 
 export interface GameInfo {
@@ -56,6 +62,7 @@ export function useCommentContract(
     const [isApproving, setIsApproving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [gameToken, setGameToken] = useState<Address | null>(null);
+    const [showGameEndedModal, setShowGameEndedModal] = useState(false);
 
     // CommentGame 컨트랙트 클라이언트 생성
     const contractClient = useMemo(() => {
@@ -100,6 +107,19 @@ export function useCommentContract(
             setError(null);
 
             try {
+                // 게임 종료 여부 확인 (endTime < now)
+                const endTimeResult = await contractClient.read<bigint>({ functionName: 'endTime' });
+                const endTimeMs = Number(endTimeResult.data) * 1000;
+                if (Date.now() >= endTimeMs) {
+                    logger.warn('게임이 종료됨', { endTime: endTimeMs, now: Date.now() });
+                    setShowGameEndedModal(true);
+                    // 3초 후 새로고침
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                    throw new Error('게임이 종료되었습니다.');
+                }
+
                 logger.info('댓글 작성 시작', {
                     gameAddress,
                     userAddress,
@@ -348,5 +368,6 @@ export function useCommentContract(
         isSubmitting,
         isApproving,
         error,
+        showGameEndedModal,
     };
 }
