@@ -13,6 +13,9 @@ export function createMessageHandler() {
     sender: any,
     sendResponse: (response: BackgroundResponse) => void
   ): boolean => {
+    // 디버그: 모든 메시지 로깅
+    console.log("📨 [Background] 메시지 수신:", message.type);
+
     // 비동기 응답 처리
     (async () => {
       try {
@@ -249,6 +252,31 @@ export function createMessageHandler() {
             break;
           }
 
+          case "GET_ACTIVE_GAME_BY_ID": {
+            try {
+              const response = await apiCall<{
+                success: boolean;
+                data: { gameId: string; endTime: string; isClaimed: boolean };
+              }>(`/v1/games/active/${encodeURIComponent(message.gameId)}`);
+              result = { success: true, data: response.data };
+            } catch (error: any) {
+              const errorMsg = error.message || "";
+              if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                result = { success: true, data: null };
+              } else {
+                console.error("❌ 활성 게임 조회 (ID) 오류:", error);
+                result = {
+                  success: false,
+                  error:
+                    error instanceof Error
+                      ? error.message
+                      : "활성 게임 조회 실패",
+                };
+              }
+            }
+            break;
+          }
+
           case "SAVE_COMMENT": {
             try {
               const response = await apiCall<{
@@ -462,7 +490,8 @@ export function createMessageHandler() {
               // 다른 사람 프로필은 더 이상 local storage에 캐시하지 않음
 
               // 토큰 정보가 있으면 백엔드 API에 저장 (upsert)
-              // tokenImageUrl이 있어야만 저장 (null이면 스킵)
+              // tokenImageUrl이 있어야만 저장 (빈 값이면 스킵)
+              console.log("🔍 [Background] profileInfo:", profileInfo);
               if (profileInfo.tokenAddr && profileInfo.tokenImageUrl) {
                 try {
                   await apiCall("/v1/tokens", {

@@ -107,11 +107,10 @@ export function useCommentContract(
             setError(null);
 
             try {
-                // 게임 종료 여부 확인 (endTime < now)
-                const endTimeResult = await contractClient.read<bigint>({ functionName: 'endTime' });
-                const endTimeMs = Number(endTimeResult.data) * 1000;
-                if (Date.now() >= endTimeMs) {
-                    logger.warn('게임이 종료됨', { endTime: endTimeMs, now: Date.now() });
+                // 백엔드 API로 게임 종료 여부 확인
+                const activeGame = await backgroundApi.getActiveGameByToken(gameAddress);
+                if (!activeGame) {
+                    logger.warn('게임이 종료됨 (백엔드 확인)', { gameAddress });
                     setShowGameEndedModal(true);
                     // 3초 후 새로고침
                     setTimeout(() => {

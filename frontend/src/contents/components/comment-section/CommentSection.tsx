@@ -22,6 +22,7 @@ import { erc20ABI } from "../../lib/contract/abis/erc20";
 import { createContractClient } from "../../lib/contract/contractClient";
 import { logger } from "../../lib/injected/logger";
 import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
+import { GameEndedModal } from "../sub-components/GameEndedModal";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
@@ -56,6 +57,7 @@ export function CommentSection() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [fundingAmount, setFundingAmount] = useState("");
     const [isFunding, setIsFunding] = useState(false);
+    const [showGameEndedModal, setShowGameEndedModal] = useState(false);
 
     // 펀딩 핸들러
     const handleFund = useCallback(async () => {
@@ -265,11 +267,39 @@ export function CommentSection() {
         try {
             await ensureNetwork();
 
-            const gameId = BigInt(activeGameInfo.id);
+            const gameIdStr = activeGameInfo.id;
             const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
 
+            // 백엔드 API로 게임 정보 조회 후 클라이언트에서 시간 비교
+            const gameInfo = await backgroundApi.getActiveGameById(gameIdStr);
+            if (!gameInfo) {
+                logger.warn("게임을 찾을 수 없음", { gameId: gameIdStr });
+                setShowGameEndedModal(true);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+                return;
+            }
+
+            // 클라이언트 시간과 endTime 비교
+            const endTimeMs = new Date(gameInfo.endTime).getTime();
+            const isGameEnded = Date.now() >= endTimeMs || gameInfo.isClaimed;
+            if (isGameEnded) {
+                logger.warn("게임이 종료됨 (클라이언트 시간 비교)", {
+                    gameId: gameIdStr,
+                    endTime: gameInfo.endTime,
+                    isClaimed: gameInfo.isClaimed,
+                    now: new Date().toISOString(),
+                });
+                setShowGameEndedModal(true);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+                return;
+            }
+
             logger.info("댓글 작성 시작 (V2)", {
-                gameId: gameId.toString(),
+                gameId: gameIdStr,
                 userAddress: address,
                 messageLength: newComment.trim().length,
             });
@@ -279,6 +309,7 @@ export function CommentSection() {
                 address: v2ContractAddress,
                 abi: commentGameV2ABI,
             });
+            const gameId = BigInt(gameIdStr);
 
             // addComment(gameId, message) 호출
             const result = await v2Client.write(
@@ -463,6 +494,9 @@ export function CommentSection() {
                     </p>
                 </div>
             )}
+
+            {/* 게임 종료 모달 */}
+            <GameEndedModal isOpen={showGameEndedModal} />
         </div>
     );
 }

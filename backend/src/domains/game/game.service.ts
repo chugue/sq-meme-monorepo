@@ -334,6 +334,22 @@ export class GameService {
     }
 
     /**
+     * @description gameId로 게임 정보 조회 (클라이언트에서 endTime 비교)
+     */
+    async getActiveGameById(gameId: string) {
+        const game = await this.gameRepository.findFullByGameId(gameId);
+        if (!game) {
+            return Result.fail('게임을 찾을 수 없습니다.', HttpStatus.NOT_FOUND);
+        }
+
+        return Result.ok({
+            gameId: game.gameId,
+            endTime: game.endTime,
+            isClaimed: game.isClaimed,
+        });
+    }
+
+    /**
      * @description 현재 진행 중인 전체 활성 게임 목록 조회
      */
     async getLiveGames(): Promise<Result<ActiveGameDto[]>> {

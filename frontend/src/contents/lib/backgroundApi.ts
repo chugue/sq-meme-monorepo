@@ -49,6 +49,7 @@ export type BackgroundMessage =
   | { type: "REMOVE_STORAGE"; key: string; area?: "session" | "local" }
   | { type: "GET_GAME_BY_TOKEN"; tokenAddress: string }
   | { type: "GET_ACTIVE_GAME_BY_TOKEN"; tokenAddress: string }
+  | { type: "GET_ACTIVE_GAME_BY_ID"; gameId: string }
   | { type: "SAVE_COMMENT"; data: CreateCommentRequest }
   | { type: "SAVE_GAME"; data: CreateGameRequest }
   | { type: "REGISTER_CLAIM_PRIZE"; gameId: string; txHash: string }
@@ -475,6 +476,14 @@ export const backgroundApi = {
       type: "TOGGLE_COMMENT_LIKE",
       commentId,
       walletAddress,
+    });
+  },
+
+  // gameId로 활성 게임 조회
+  getActiveGameById: async (gameId: string) => {
+    return sendToBackground<{ gameId: string; endTime: string; isClaimed: boolean } | null>({
+      type: "GET_ACTIVE_GAME_BY_ID",
+      gameId,
     });
   },
 };

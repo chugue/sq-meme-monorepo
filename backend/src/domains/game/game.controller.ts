@@ -67,6 +67,11 @@ export class GameController {
         return Result.ok(game);
     }
 
+    @Get('active/:gameId')
+    async getActiveGameById(@Param('gameId') gameId: string) {
+        return this.gameService.getActiveGameById(gameId);
+    }
+
     @Post('register')
     @ApiRegisterGame('블록체인에서 조회한 게임 등록')
     async registerGame(@Body() body: unknown) {
