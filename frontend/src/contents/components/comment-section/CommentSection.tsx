@@ -4,7 +4,7 @@
  */
 
 import { useAtom } from "jotai";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { formatUnits, parseUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
@@ -22,6 +22,7 @@ import { erc20ABI } from "../../lib/contract/abis/erc20";
 import { createContractClient } from "../../lib/contract/contractClient";
 import { logger } from "../../lib/injected/logger";
 import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
+import { getExtensionImageUrl } from "../../utils/get-extension-image-url";
 import { GameEndedModal } from "../sub-components/GameEndedModal";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
@@ -30,7 +31,44 @@ import { WalletConnectionUI } from "./WalletConnectionUI";
 import characterBg from "./assets/character-bg.svg";
 import legionBg from "./assets/legion-bg.svg";
 
+// 로컬 폰트 로드 (Chrome extension용)
+function loadFont() {
+    if (document.getElementById("press-start-2p-font-style")) return;
+
+    let fontUrl = "font/PressStart2P.ttf";
+    try {
+        const chromeGlobal = globalThis as typeof globalThis & {
+            chrome?: { runtime?: { getURL?: (path: string) => string } };
+        };
+        if (chromeGlobal.chrome?.runtime?.getURL) {
+            fontUrl = chromeGlobal.chrome.runtime.getURL(
+                "font/PressStart2P.ttf",
+            );
+        }
+    } catch {
+        // 무시
+    }
+
+    const style = document.createElement("style");
+    style.id = "press-start-2p-font-style";
+    style.textContent = `
+        @font-face {
+            font-family: 'Press Start 2P';
+            src: url('${fontUrl}') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 export function CommentSection() {
+    // 폰트 로드
+    useEffect(() => {
+        loadFont();
+    }, []);
+
     logger.debug("CommentSection 렌더링", {
         timestamp: new Date().toISOString(),
         location: window.location.href,
@@ -60,6 +98,40 @@ export function CommentSection() {
     const [fundingAmount, setFundingAmount] = useState("");
     const [isFunding, setIsFunding] = useState(false);
     const [showGameEndedModal, setShowGameEndedModal] = useState(false);
+    const [scrollbarOpacity, setScrollbarOpacity] = useState(0);
+    const [scrollTop, setScrollTop] = useState(0);
+    const [scrollHeight, setScrollHeight] = useState(0);
+    const [clientHeight, setClientHeight] = useState(0);
+    const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // 스크롤 이벤트 핸들러 - 스크롤 시 스크롤바 표시
+    const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.currentTarget;
+        setScrollTop(target.scrollTop);
+        setScrollHeight(target.scrollHeight);
+        setClientHeight(target.clientHeight);
+        setScrollbarOpacity(1);
+
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = setTimeout(() => {
+            setScrollbarOpacity(0);
+        }, 1000);
+    }, []);
+
+    // 스크롤바 위치 및 크기 계산
+    const scrollbarHeight =
+        scrollHeight > 0
+            ? Math.max((clientHeight / scrollHeight) * clientHeight, 30)
+            : 0;
+    const scrollbarTop =
+        scrollHeight > clientHeight
+            ? (scrollTop / (scrollHeight - clientHeight)) *
+              (clientHeight - scrollbarHeight)
+            : 0;
+    const showScrollbar = scrollHeight > clientHeight;
 
     // 펀딩 핸들러
     const handleFund = useCallback(async () => {
@@ -418,7 +490,21 @@ export function CommentSection() {
         <div
             className="squid-comment-section"
             data-testid="squid-comment-section"
+            onScroll={handleScroll}
+            ref={containerRef}
         >
+            {/* 커스텀 스크롤바 */}
+            {showScrollbar && (
+                <div
+                    className="squid-custom-scrollbar"
+                    style={{
+                        opacity: scrollbarOpacity,
+                        top: scrollbarTop,
+                        height: scrollbarHeight,
+                    }}
+                />
+            )}
+
             {/* 배경 레이어들 */}
             <img src={legionBg} alt="" className="squid-bg-legion" />
             <img src={characterBg} alt="" className="squid-bg-character" />
@@ -440,28 +526,47 @@ export function CommentSection() {
                 <>
                     {/* 게임 헤더 섹션 */}
                     <div className="squid-game-header">
+                        <img
+                            src={getExtensionImageUrl("icon/pig.png")}
+                            alt=""
+                            className="squid-bg-pig"
+                        />
                         <div className="squid-game-title">
-                            <span>Last commentor</span>
-                            <span>will win the prize</span>
+                            <span className="squid-title-yellow">
+                                LAST COMMENTOR
+                            </span>
+                            <span className="squid-title-purple">
+                                WILL WIN THE PRIZE!
+                            </span>
                         </div>
-                        <div className="squid-game-timer">
-                            <span className="squid-timer-label">ENDS IN</span>
-                            <span className="squid-timer-value">--:--:--</span>
+                        <div className="squid-timer-wrapper">
+                            <img
+                                src={getExtensionImageUrl("icon/legion.png")}
+                                alt=""
+                                className="squid-timer-bg"
+                            />
+                            <div className="squid-prize-display">
+                                <span className="squid-prize-value">
+                                    {activeGameInfo?.totalFunding
+                                        ? formatUnits(
+                                              BigInt(
+                                                  activeGameInfo.totalFunding,
+                                              ),
+                                              18,
+                                          )
+                                        : "0"}{" "}
+                                    ${activeGameInfo?.tokenSymbol || "TOKEN"}
+                                </span>
+                            </div>
+                            <div className="squid-game-timer">
+                                <span className="squid-timer-label">
+                                    ENDS IN
+                                </span>
+                                <span className="squid-timer-value">
+                                    --:--:--
+                                </span>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* 상금 표시 */}
-                    <div className="squid-prize-display">
-                        <span className="squid-prize-label">PRIZE POOL</span>
-                        <span className="squid-prize-value">
-                            {activeGameInfo?.totalFunding
-                                ? formatUnits(
-                                      BigInt(activeGameInfo.totalFunding),
-                                      18,
-                                  )
-                                : "0"}{" "}
-                            ${activeGameInfo?.tokenSymbol || "TOKEN"}
-                        </span>
                     </div>
 
                     {/* 펀딩 섹션 */}

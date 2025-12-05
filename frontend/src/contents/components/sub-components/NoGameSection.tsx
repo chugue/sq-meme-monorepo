@@ -6,6 +6,7 @@
  */
 
 import { getExtensionImageUrl } from "@/contents/utils/get-extension-image-url";
+import { formatAddress } from "@/contents/utils/messageFormatter";
 import { motion } from "framer-motion";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
@@ -19,7 +20,6 @@ import {
     commentGameV2ABI,
 } from "../../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../../lib/injectedApi";
-import { formatAddress } from "../../utils/messageFormatter";
 import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
 import "./NoGameSection.css";
 import { TransactionSuccessModal } from "./TransactionSuccessModal";
@@ -307,7 +307,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                         <div className="no-game-winner-content">
                             <div className="no-game-winner-title-box">
                                 <span className="no-game-winner-title">
-                                    YOU WON THE LAST GAME
+                                    YOU WON THE <br /> LAST GAME
                                 </span>
                             </div>
                             <div className="no-game-winner-prize">

@@ -24,18 +24,22 @@ export const PG_POOL = 'PG_POOL';
                     connectionString,
                     // Supabase Transaction mode pooler 호환 설정
                     max: 5, // 최대 연결 수 제한 (Supabase 무료 티어 고려)
-                    min: 0, // 유휴 시 연결 유지 안함
-                    idleTimeoutMillis: 10000, // 10초 유휴 타임아웃 (빠르게 반환)
+                    min: 1, // 최소 1개 연결 유지 (cold start 방지)
+                    idleTimeoutMillis: 30000, // 30초 유휴 타임아웃
                     connectionTimeoutMillis: 10000, // 10초 연결 타임아웃
-                    allowExitOnIdle: true, // 유휴 시 연결 종료 허용
+                    allowExitOnIdle: false, // 유휴 시 연결 유지
+                    keepAlive: true, // TCP keepalive 활성화
+                    keepAliveInitialDelayMillis: 10000, // 10초마다 heartbeat
                 });
 
                 // Pool 에러 핸들러 등록 (unhandled error 방지)
                 pool.on('error', (err) => {
-                    logger.warn(
-                        `⚠️ PostgreSQL Pool 연결 끊김 (자동 재연결됨): ${err.message}`,
-                    );
                     // Supabase pooler가 유휴 연결을 종료하는 것은 정상 동작
+                    // 'DbHandler exited' 메시지는 무시 (Supabase pooler 특성)
+                    if (err.message?.includes('DbHandler exited')) {
+                        return; // 로그 출력 안함
+                    }
+                    logger.warn(`PostgreSQL Pool 에러: ${err.message}`);
                 });
 
                 // 연결 테스트

@@ -14,6 +14,12 @@ function isProfilePage(url: string): boolean {
     return profilePattern.test(url);
 }
 
+// 홈 페이지 패턴 확인 함수
+function isHomePage(url: string): boolean {
+    const homePattern = /^https?:\/\/app\.memex\.xyz\/home/;
+    return homePattern.test(url);
+}
+
 // NOTE: fetch 비활성화로 인해 미사용 - injected.js에서 토큰 추출
 // import { extractProfileData } from '@/shared/lib/profileExtractor';
 
@@ -470,14 +476,6 @@ export default defineContentScript({
             console.log("🖼️ [Content] 초기 로드 시 프로필 페이지 감지 - injected.js에서 토큰 정보 대기");
         }
 
-        // 마운트 후 Search bar 아래로 위치 조정 (약간의 딜레이 후)
-        setTimeout(() => {
-            const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
-            if (container && targetElement) {
-                insertAfterSearchBar(container, targetElement);
-            }
-        }, 100);
-
         // UI 표시/숨김 함수 (unmount 대신 CSS로 처리하여 React 상태 유지)
         const setUIVisibility = (visible: boolean) => {
             const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
@@ -487,14 +485,22 @@ export default defineContentScript({
             }
         };
 
-        // 프로필 페이지 여부에 따라 UI 표시/숨김 처리
+        // 프로필 또는 홈 페이지 여부에 따라 UI 표시/숨김 처리
         const updateUIVisibility = () => {
             const isProfile = isProfilePage(window.location.href);
-            setUIVisibility(isProfile);
+            const isHome = isHomePage(window.location.href);
+            setUIVisibility(isProfile || isHome);
         };
 
-        // 초기 visibility 설정
-        updateUIVisibility();
+        // 마운트 후 Search bar 아래로 위치 조정 및 visibility 설정 (약간의 딜레이 후)
+        setTimeout(() => {
+            const container = document.querySelector("#squid-meme-comment-root") as HTMLElement;
+            if (container && targetElement) {
+                insertAfterSearchBar(container, targetElement);
+            }
+            // 초기 visibility 설정
+            updateUIVisibility();
+        }, 100);
 
         // UI 컨테이너 참조 저장 (React 상태 유지를 위해)
         let uiContainer: HTMLElement | null = document.querySelector("#squid-meme-comment-root") as HTMLElement;
