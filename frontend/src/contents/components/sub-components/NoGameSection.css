@@ -7,6 +7,7 @@
     position: relative;
     width: 366px;
     min-height: 600px;
+    max-height: 90vh;
     padding: 40px 20px;
     background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
     box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
@@ -17,21 +18,38 @@
     align-items: center;
     justify-content: flex-start;
     gap: 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.no-game-container::-webkit-scrollbar {
+    display: none;
 }
 
 /* NO GAME YET! 타이틀 */
 .no-game-title {
-    font-family: "Press Start 2P", "Courier New", monospace;
-    font-weight: 400;
-    font-size: 18px;
-    line-height: 150%;
-    letter-spacing: 2px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+    height: 32px;
     margin: 0;
-    background: linear-gradient(180deg, #ffffff 0%, #f9d0ff 100%);
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 21.35px;
+    line-height: 150%;
+    background: linear-gradient(207.55deg, #ffffff 29.55%, #f9d0ff 112.89%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    filter: drop-shadow(0px 0px 14px rgba(62, 15, 173, 1));
+    filter: drop-shadow(0px 0px 14.344px #3e0ead);
+    -webkit-text-stroke: 1.304px #6541ff;
 }
 
 /* 오징어 캐릭터 이미지 */
@@ -194,7 +212,8 @@
 
 .no-game-create-button:hover {
     transform: scale(1.02);
-    box-shadow: 0px 0px 10px rgba(31, 156, 255, 1);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
 }
 
 .no-game-create-button:active {
@@ -239,78 +258,179 @@
     max-width: 280px;
 }
 
-/* 우승자 섹션 */
+/* 우승자 섹션 - 새 디자인 */
 .no-game-winner-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px;
-    background: rgba(255, 215, 0, 0.1);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 12px;
+    padding: 0;
+    gap: 0;
+    max-width: none;
+    position: relative;
+    margin-left: -20px;
+    margin-right: -20px;
+    margin-bottom: -40px;
+    margin-top: 30px;
+    width: calc(100% + 40px);
+    background: #7805b7;
+}
+
+/* 배경 이미지 컨테이너 */
+.no-game-winner-bg {
+    position: relative;
     width: 100%;
-    max-width: 320px;
+    height: auto;
+    background: #7805b7;
+    display: flex;
+    justify-content: center;
 }
 
-.no-game-winner-icon {
-    font-size: 32px;
-    margin-bottom: 8px;
+.no-game-winner-character {
+    position: relative;
+    width: 288px;
+    height: auto;
+    top: 0;
+    object-fit: contain;
+    aspect-ratio: auto;
 }
 
-.no-game-winner-text {
-    text-align: center;
-    color: #f8f8f8;
-    font-family: "Pretendard", sans-serif;
-    font-size: 12px;
-    line-height: 1.5;
+.no-game-winner-bottom-bar {
+    position: absolute;
+    width: 304px;
+    height: 50px;
+    left: 0;
+    top: 422px;
+    background: #7905b7;
+    border-radius: 0 0 12px 12px;
 }
 
-.no-game-winner-text strong {
-    color: #ffd700;
-    font-size: 13px;
+/* 트로피 아이콘 */
+.no-game-winner-trophy {
+    position: absolute;
+    width: 73px;
+    height: 76px;
+    object-fit: contain;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 0;
 }
 
-.no-game-winner-text p {
-    margin: 8px 0;
-    color: #8181a5;
+/* 텍스트 섹션 - 이미지 위에 오버레이 */
+.no-game-winner-content {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    gap: 6px;
+    width: 100%;
+    z-index: 1;
 }
 
-.no-game-winner-prize {
-    color: #4ade80;
-    font-weight: 600;
-    margin: 12px 0;
-}
-
-/* Claim 버튼 */
-.no-game-claim-button {
+/* YOU WON 타이틀 */
+.no-game-winner-title-box {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 10px 24px;
-    width: 200px;
-    height: 48px;
-    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-    border-radius: 24px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: "Press Start 2P", "Courier New", monospace;
-    font-weight: 400;
-    font-size: 11px;
-    color: #1a1a46;
-    margin-top: 12px;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
 }
 
-.no-game-claim-button:hover {
-    transform: scale(1.02);
-    box-shadow: 0px 0px 10px rgba(255, 215, 0, 0.5);
+.no-game-winner-title {
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 150%;
+    text-align: center;
+    letter-spacing: 0.08em;
+    color: #ffe082;
+    text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000,
+        2px 2px 4px #000, 0 4px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* 상금 표시 */
+.no-game-winner-prize {
+    width: 100%;
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 150%;
+    text-align: center;
+    letter-spacing: 0.08em;
+    color: #ffe082;
+    text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000,
+        2px 2px 4px #000, 0 4px 40px rgba(0, 0, 0, 0.5);
+    margin: 0;
+}
+
+/* Claim 버튼 - 새 디자인 */
+.no-game-claim-button {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    margin-top: 100px;
+    transform: translateX(-50%);
+    z-index: 2;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 50px;
+    gap: 14px;
+    width: 286px;
+    background: linear-gradient(
+        93.05deg,
+        rgba(255, 177, 33, 0.88) 6.33%,
+        rgba(255, 217, 73, 0.88) 94.86%
+    );
+    border: 1px solid #ffffff;
+    border-radius: 125px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.no-game-claim-button:hover:not(:disabled) {
+    transform: translateX(-50%) scale(1.02);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
 }
 
 .no-game-claim-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
+    transform: translateX(-50%);
+}
+
+.no-game-claim-button-text {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 27px;
+    color: #ffffff;
+    text-shadow: 0px 0px 12px rgba(84, 57, 0, 0.5);
+}
+
+/* 숨김 요소 */
+.no-game-winner-icon {
+    display: none;
+}
+
+.no-game-winner-text {
+    display: none;
+}
+
+.no-game-winner-text strong {
+    display: none;
+}
+
+.no-game-winner-text p {
+    display: none;
 }
 
 /* 트랜잭션 해시 */

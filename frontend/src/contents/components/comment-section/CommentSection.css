@@ -10,12 +10,28 @@
     position: relative;
     width: 366px;
     min-height: 600px;
+    max-height: 90vh;
     background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
     box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
         0 0 10px rgba(121, 63, 149, 0.2);
     border-radius: 12px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 스크롤바 스타일 */
+.squid-comment-section::-webkit-scrollbar {
+    width: 4px;
+}
+
+.squid-comment-section::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.squid-comment-section::-webkit-scrollbar-thumb {
+    background: #793f95;
+    border-radius: 2px;
 }
 
 /* 배경 레이어 */

@@ -296,45 +296,63 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             {/* 우승자 Claim 안내 */}
             {isWinner && endedGameInfo && (
                 <div className="no-game-winner-section">
-                    <div className="no-game-winner-icon">🏆</div>
-                    <div className="no-game-winner-text">
-                        <strong>
-                            Congratulations! You won the last game!
-                        </strong>
-                        <p>Claim your prize before starting a new game.</p>
-                        <div className="no-game-winner-prize">
-                            Prize Pool:{" "}
-                            {(
-                                BigInt(endedGameInfo.prizePool) /
-                                BigInt(10 ** 18)
-                            ).toString()}{" "}
-                            {tokenSymbol}
+                    {/* 배경 이미지 컨테이너 */}
+                    <div className="no-game-winner-bg">
+                        <img
+                            src={getExtensionImageUrl("icon/winner.png")}
+                            alt="Winner"
+                            className="no-game-winner-character"
+                        />
+                        {/* 텍스트 콘텐츠 - 이미지 위에 오버레이 */}
+                        <div className="no-game-winner-content">
+                            <div className="no-game-winner-title-box">
+                                <span className="no-game-winner-title">
+                                    YOU WON THE LAST GAME
+                                </span>
+                            </div>
+                            <div className="no-game-winner-prize">
+                                prize :{" "}
+                                {(
+                                    BigInt(endedGameInfo.prizePool) /
+                                    BigInt(10 ** 18)
+                                ).toString()}
+                                {tokenSymbol}
+                            </div>
                         </div>
+                        <img
+                            src={getExtensionImageUrl("icon/trophy.png")}
+                            alt="Trophy"
+                            className="no-game-winner-trophy"
+                        />
+                        {/* Claim 버튼 - 이미지 위에 오버레이 */}
                         <button
                             type="button"
                             onClick={handleClaimPrize}
                             className="no-game-claim-button"
                             disabled={isClaiming}
                         >
-                            {isClaiming ? "CLAIMING..." : "CLAIM PRIZE"}
+                            <span className="no-game-claim-button-text">
+                                {isClaiming ? "CLAIMING..." : "CLAIM PRIZE >>>"}
+                            </span>
                         </button>
-                        {claimTxHash && (
-                            <div className="no-game-tx-hash">
-                                TX:{" "}
-                                <a
-                                    href={`https://explorer.memecore.org/tx/${claimTxHash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    {claimTxHash.slice(0, 10)}...
-                                    {claimTxHash.slice(-8)}
-                                </a>
-                            </div>
-                        )}
-                        {claimError && (
-                            <div className="no-game-error">{claimError}</div>
-                        )}
                     </div>
+
+                    {claimTxHash && (
+                        <div className="no-game-tx-hash">
+                            TX:{" "}
+                            <a
+                                href={`https://explorer.memecore.org/tx/${claimTxHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {claimTxHash.slice(0, 10)}...
+                                {claimTxHash.slice(-8)}
+                            </a>
+                        </div>
+                    )}
+                    {claimError && (
+                        <div className="no-game-error">{claimError}</div>
+                    )}
                 </div>
             )}
 
