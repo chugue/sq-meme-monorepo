@@ -572,7 +572,7 @@ export function CommentSection() {
                     <div className="squid-funding-section">
                         <div className="squid-funding-header">
                             <span className="squid-funding-title">
-                                FUND PRIZE POOL
+                                FUND this Prize Pool
                             </span>
                             <p className="squid-funding-desc">
                                 Earn comment fees based on your funding share

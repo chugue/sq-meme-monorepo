@@ -156,7 +156,7 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 8px 20px;
+    padding: 4px 20px;
     margin-top: 27px;
     gap: 8px;
     width: fit-content;
@@ -181,14 +181,13 @@
 
 .squid-prize-value {
     font-family: "Press Start 2P", cursive;
-    font-weight: 200;
-    font-size: 8px;
-    line-height: 100%;
+    font-weight: 400;
+    font-size: 11.5px;
+    line-height: 150%;
     background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0px 0px 7.24px #1f0e00;
 }
 
 .squid-prize-amount {
@@ -196,7 +195,7 @@
     font-weight: 400;
     font-size: 11.5px;
     line-height: 150%;
-    background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
+    background: linear-gradient(112.47deg, #fff4d6 37.39%, #f0c97a 81.42%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -220,9 +219,9 @@
 .squid-timer-label {
     font-family: "Press Start 2P", cursive;
     font-weight: 400;
-    font-size: 9.68px;
+    font-size: 9px;
     line-height: 150%;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.1em;
     color: #7b3534;
     text-shadow: 0px 0px 6px #1f0e00;
 }
