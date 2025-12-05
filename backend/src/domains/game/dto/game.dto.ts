@@ -4,9 +4,8 @@
 export interface ActiveGameBaseDto {
     gameId: string;
     tokenAddress: string;
-    tokenSymbol: string | null;
-    currentPrizePool: string | null;
-    endTime: Date | null;
+    currentPrizePool: string;
+    endTime: Date;
 }
 
 /**
@@ -15,6 +14,8 @@ export interface ActiveGameBaseDto {
 export interface ActiveGameDto extends ActiveGameBaseDto {
     tokenUsername: string | null;
     tokenUsertag: string | null;
+    tokenImageUrl: string | null;
+    tokenSymbol: string | null;
 }
 
 /**

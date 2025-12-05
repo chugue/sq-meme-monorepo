@@ -115,8 +115,10 @@ export interface MyActiveGamesResponse {
 // Live Game 아이템 (현재 진행 중인 게임)
 export interface LiveGameItem {
   gameId: string;
-  tokenImageUrl: string | null;
   tokenAddress: string;
+  tokenUsername: string | null;
+  tokenUsertag: string | null;
+  tokenImageUrl: string | null;
   tokenSymbol: string | null;
   currentPrizePool: string | null;
   endTime: string | null;

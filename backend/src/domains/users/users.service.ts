@@ -389,7 +389,7 @@ export class UsersService {
                         gameId: game.gameId,
                         tokenImage: token?.tokenImageUrl ?? null,
                         tokenAddress: game.tokenAddress,
-                        tokenSymbol: game.tokenSymbol,
+                        tokenSymbol: token?.tokenSymbol ?? null,
                         currentPrizePool: game.currentPrizePool,
                         endTime: game.endTime?.toISOString() ?? null,
                     };

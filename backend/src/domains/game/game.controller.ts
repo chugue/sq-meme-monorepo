@@ -96,7 +96,6 @@ export class GameController {
      */
     @Get('live')
     async getLiveGames() {
-        const games = await this.gameService.getLiveGames();
-        return { liveGames: games };
+        return this.gameService.getLiveGames();
     }
 }

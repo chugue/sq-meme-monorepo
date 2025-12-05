@@ -1355,11 +1355,33 @@ export function createMessageHandler() {
 
           case "GET_LIVE_GAMES": {
             try {
-              // 백엔드가 { liveGames: [...] }를 직접 반환 (Result.ok 패턴 미사용)
-              const response = await apiCall<{ liveGames: any[] }>(
-                "/v1/games/live"
-              );
-              result = { success: true, data: response };
+              const response = await apiCall<{
+                success: boolean;
+                data: Array<{
+                  gameId: string;
+                  tokenAddress: string;
+                  tokenUsername: string | null;
+                  tokenUsertag: string | null;
+                  tokenImageUrl: string | null;
+                  tokenSymbol: string | null;
+                  currentPrizePool: string;
+                  endTime: string;
+                }>;
+              }>("/v1/games/live");
+
+              // 백엔드 응답을 LiveGameItem 형식으로 매핑
+              const liveGames = (response.data || []).map((game) => ({
+                gameId: game.gameId,
+                tokenAddress: game.tokenAddress,
+                tokenUsername: game.tokenUsername,
+                tokenUsertag: game.tokenUsertag,
+                tokenImageUrl: game.tokenImageUrl,
+                tokenSymbol: game.tokenSymbol,
+                currentPrizePool: game.currentPrizePool,
+                endTime: game.endTime,
+              }));
+
+              result = { success: true, data: { liveGames } };
             } catch (error: any) {
               console.error("❌ 라이브 게임 조회 오류:", error);
               result = {

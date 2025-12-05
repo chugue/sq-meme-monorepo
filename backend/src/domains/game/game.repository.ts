@@ -311,7 +311,6 @@ export class GameRepository {
                 .select({
                     gameId: schema.games.gameId,
                     tokenAddress: schema.games.gameToken,
-                    tokenSymbol: schema.games.tokenSymbol,
                     prizePool: schema.games.prizePool,
                     endTime: schema.games.endTime,
                 })
@@ -328,7 +327,6 @@ export class GameRepository {
             return games.map((game) => ({
                 gameId: game.gameId,
                 tokenAddress: game.tokenAddress,
-                tokenSymbol: game.tokenSymbol,
                 currentPrizePool: game.prizePool,
                 endTime: game.endTime,
             }));
@@ -348,7 +346,6 @@ export class GameRepository {
                 .select({
                     gameId: schema.games.gameId,
                     tokenAddress: schema.games.gameToken,
-                    tokenSymbol: schema.games.tokenSymbol,
                     prizePool: schema.games.prizePool,
                     endTime: schema.games.endTime,
                 })
@@ -365,7 +362,6 @@ export class GameRepository {
             return games.map((game) => ({
                 gameId: game.gameId,
                 tokenAddress: game.tokenAddress,
-                tokenSymbol: game.tokenSymbol,
                 currentPrizePool: game.prizePool,
                 endTime: game.endTime,
             }));

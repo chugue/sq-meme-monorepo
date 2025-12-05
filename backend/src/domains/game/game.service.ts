@@ -336,8 +336,35 @@ export class GameService {
     /**
      * @description 현재 진행 중인 전체 활성 게임 목록 조회
      */
-    async getLiveGames() {
-        return this.gameRepository.findAllActiveGames();
+    async getLiveGames(): Promise<Result<ActiveGameDto[]>> {
+        // 1. 활성 게임 목록 조회
+        const games = await this.gameRepository.findAllActiveGames();
+
+        if (games.length === 0) {
+            return Result.ok([]);
+        }
+
+        // 2. 토큰 정보 조회
+        const tokenAddresses = games.map((g) => g.tokenAddress);
+        const tokens =
+            await this.tokenRepository.findByTokenAddresses(tokenAddresses);
+        const tokenMap = new Map(
+            tokens.map((t) => [t.tokenAddress.toLowerCase(), t]),
+        );
+
+        // 3. 게임 + 토큰 정보 매핑
+        const result: ActiveGameDto[] = games.map((game) => {
+            const token = tokenMap.get(game.tokenAddress.toLowerCase());
+            return {
+                ...game,
+                tokenUsername: token?.tokenUsername ?? null,
+                tokenUsertag: token?.tokenUsertag ?? null,
+                tokenImageUrl: token?.tokenImageUrl ?? null,
+                tokenSymbol: token?.tokenSymbol ?? null,
+            };
+        });
+
+        return Result.ok(result);
     }
 
     /**
@@ -363,7 +390,7 @@ export class GameService {
             return Result.ok([]);
         }
 
-        // 3. 토큰 정보 조회 (tokenUsername, tokenUsertag)
+        // 3. 토큰 정보 조회
         const tokenAddresses = games.map((g) => g.tokenAddress);
         const tokens =
             await this.tokenRepository.findByTokenAddresses(tokenAddresses);
@@ -378,6 +405,8 @@ export class GameService {
                 ...game,
                 tokenUsername: token?.tokenUsername ?? null,
                 tokenUsertag: token?.tokenUsertag ?? null,
+                tokenImageUrl: token?.tokenImageUrl ?? null,
+                tokenSymbol: token?.tokenSymbol ?? null,
             };
         });
 
