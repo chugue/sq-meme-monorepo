@@ -59,16 +59,16 @@ export class TokenService {
         tokenAddress: string;
         tokenUsername: string;
         tokenUsertag: string;
-        tokenImageUrl?: string;
-        tokenSymbol?: string;
+        tokenImageUrl?: string | null;
+        tokenSymbol?: string | null;
     }): Promise<Result<{ token: Token }>> {
         try {
             const token = await this.tokenRepository.upsert({
                 tokenAddress: data.tokenAddress,
                 tokenUsername: data.tokenUsername,
                 tokenUsertag: data.tokenUsertag,
-                tokenImageUrl: data.tokenImageUrl,
-                tokenSymbol: data.tokenSymbol,
+                tokenImageUrl: data.tokenImageUrl ?? undefined,
+                tokenSymbol: data.tokenSymbol ?? undefined,
             });
 
             this.logger.log(

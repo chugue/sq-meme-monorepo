@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Result } from 'src/common/types';
+import { UpsertTokenDtoSchema } from 'src/common/validator/token.validator';
 import { TokenService } from './token.service';
 
-class UpsertTokenDto {
+class UpsertTokenSwaggerDto {
     tokenAddress: string;
     tokenUsername: string;
     tokenUsertag: string;
@@ -20,9 +22,14 @@ export class TokenController {
      */
     @Post()
     @ApiOperation({ summary: '토큰 정보 생성/업데이트 (upsert)' })
-    @ApiBody({ type: UpsertTokenDto })
-    async upsertToken(@Body() body: UpsertTokenDto) {
-        return this.tokenService.upsertToken(body);
+    @ApiBody({ type: UpsertTokenSwaggerDto })
+    async upsertToken(@Body() body: unknown) {
+        const parsed = UpsertTokenDtoSchema.safeParse(body);
+        if (!parsed.success) {
+            return Result.fail(parsed.error.message, HttpStatus.BAD_REQUEST);
+        }
+
+        return this.tokenService.upsertToken(parsed.data);
     }
 
     /**

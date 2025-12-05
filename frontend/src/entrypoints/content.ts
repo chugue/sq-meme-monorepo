@@ -71,8 +71,8 @@ async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
             }
         }
 
-        // self.__next_f.push 스크립트에서 tokenAddr, memexWalletAddress 추출
-        if (!tokenAddr || !memexWalletAddress) {
+        // self.__next_f.push 스크립트에서 tokenAddr, memexWalletAddress, tokenImageUrl 추출
+        if (!tokenAddr || !memexWalletAddress || !tokenImageUrl) {
             try {
                 const scripts = document.querySelectorAll("script");
                 for (const script of scripts) {
@@ -103,8 +103,20 @@ async function fetchProfileDataFromUrl(profileUrl: string): Promise<{
                             }
                         }
 
-                        // 둘 다 찾았으면 중단
-                        if (tokenAddr && memexWalletAddress) {
+                        // tokenImageUrl - profileImageUrl 사용 (화질이 더 좋음)
+                        // 실제 형태: \"profileImageUrl\":\\\"https://...\\\"
+                        if (!tokenImageUrl) {
+                            const tokenImgMatch = content.match(
+                                /\\"profileImageUrl\\":\s*\\"(https?:[^"\\]+)\\"/
+                            );
+                            if (tokenImgMatch && tokenImgMatch[1]) {
+                                tokenImageUrl = tokenImgMatch[1].replace(/\\\//g, "/");
+                                console.log("✅ [Content] __next_f에서 tokenImageUrl (profileImageUrl) 발견:", tokenImageUrl);
+                            }
+                        }
+
+                        // 모두 찾았으면 중단
+                        if (tokenAddr && memexWalletAddress && tokenImageUrl) {
                             break;
                         }
                     }

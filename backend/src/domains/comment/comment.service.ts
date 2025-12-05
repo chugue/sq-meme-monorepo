@@ -50,7 +50,7 @@ export class CommentService {
                 const commentsWithLiked = comments.map((comment) => ({
                     ...comment,
                     isLiked: likedMap.get(comment.id) ?? false,
-                    ㄴ,
+                    likeCount: comment.likeCount,
                 }));
 
                 return Result.ok({ comments: commentsWithLiked });
