@@ -73,7 +73,7 @@ export default defineConfig({
         // 웹 접근 가능 리소스 설정
         web_accessible_resources: [
             {
-                resources: ['injected.js'],
+                resources: ['injected.js', 'icon/*', 'font/*'],
                 matches: [
                     'https://app.memex.xyz/*',
                     'http://app.memex.xyz/*',
