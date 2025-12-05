@@ -8,7 +8,7 @@ import {
     RegisterGameDtoSchema,
 } from 'src/common/validator/game.validator';
 import {
-    ActiveGameDto,
+    ActiveGameBaseDto,
     TokenPrizeRankDto,
     UserPrizeRankDto,
 } from './dto/game.dto';
@@ -303,7 +303,7 @@ export class GameRepository {
      * @description 게임 ID 목록으로 활성 게임 정보 조회 (endTime > NOW(), isClaimed = false)
      * @returns API 응답 형식에 맞게 매핑된 게임 목록
      */
-    async findActiveGamesByIds(gameIds: string[]): Promise<ActiveGameDto[]> {
+    async findActiveGamesByIds(gameIds: string[]): Promise<ActiveGameBaseDto[]> {
         if (gameIds.length === 0) {
             return [];
         }
@@ -346,7 +346,7 @@ export class GameRepository {
      * @description 전체 활성 게임 목록 조회 (endTime > NOW(), isClaimed = false)
      * 상금순으로 정렬
      */
-    async findAllActiveGames(limit: number = 50): Promise<ActiveGameDto[]> {
+    async findAllActiveGames(limit: number = 50): Promise<ActiveGameBaseDto[]> {
         try {
             const games = await this.db
                 .select({

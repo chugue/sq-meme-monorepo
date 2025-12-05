@@ -3,6 +3,7 @@ import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
+import { TokenRepository } from '../token/token.repository';
 import { JoinDto } from './dto/join.dto';
 import { UsersRepository } from './users.repository';
 
@@ -64,6 +65,7 @@ export class UsersService {
         private readonly usersRepository: UsersRepository,
         private readonly commentRepository: CommentRepository,
         private readonly gameRepository: GameRepository,
+        private readonly tokenRepository: TokenRepository,
     ) {}
 
     /**
@@ -78,6 +80,8 @@ export class UsersService {
             );
 
             if (isNew) {
+                // 토큰 정보도 함께 저장
+                await this.saveTokenInfo(dto);
                 this.logger.log(`User created: ${dto.walletAddress}`);
                 return Result.ok({ user, isNew });
             }
@@ -92,6 +96,25 @@ export class UsersService {
                 '회원가입에 실패했습니다.',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
+        }
+    }
+
+    /**
+     * @description 토큰 정보 저장 (회원가입 시)
+     */
+    private async saveTokenInfo(dto: JoinDto): Promise<void> {
+        try {
+            await this.tokenRepository.upsert({
+                tokenAddress: dto.myTokenAddr,
+                tokenImageUrl: dto.profileImage,
+                tokenUsername: dto.userName,
+                tokenUsertag: dto.userTag,
+                tokenSymbol: dto.myTokenSymbol,
+            });
+            this.logger.log(`Token saved for user: ${dto.userName}/${dto.userTag}`);
+        } catch (error) {
+            // 토큰 저장 실패해도 회원가입은 계속 진행
+            this.logger.error(`Token save failed: ${error.message}`);
         }
     }
 

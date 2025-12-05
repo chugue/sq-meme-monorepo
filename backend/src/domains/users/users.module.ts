@@ -4,9 +4,10 @@ import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 import { CommentModule } from '../comment/comment.module';
 import { GameModule } from '../game/game.module';
+import { TokenModule } from '../token/token.module';
 
 @Module({
-    imports: [CommentModule, GameModule],
+    imports: [CommentModule, GameModule, TokenModule],
     controllers: [UsersController],
     providers: [UsersService, UsersRepository],
     exports: [UsersRepository, UsersService],

@@ -5,7 +5,9 @@ import { EthereumProvider } from 'src/common/providers';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { FundersRepository } from '../funders/funders.repository';
+import { TokenRepository } from '../token/token.repository';
 import { WinnersService } from '../winners/winners.service';
+import { ActiveGameDto } from './dto/game.dto';
 import { GameRepository } from './game.repository';
 
 // V2 컨트랙트 이벤트 시그니처
@@ -29,6 +31,7 @@ export class GameService {
         private readonly winnersService: WinnersService,
         private readonly commentRepository: CommentRepository,
         private readonly fundersRepository: FundersRepository,
+        private readonly tokenRepository: TokenRepository,
     ) {
         this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
         this.gameCreatedIface = new ethers.Interface([GAME_CREATED_EVENT]);
@@ -324,7 +327,9 @@ export class GameService {
     /**
      * @description 사용자가 참여 중인 활성 게임 목록 조회
      */
-    async getGamesInPlaying(walletAddress: string) {
+    async getGamesInPlaying(
+        walletAddress: string,
+    ): Promise<Result<ActiveGameDto[]>> {
         // 1. 사용자가 댓글을 단 게임 ID 목록 조회
         const gameIds =
             await this.commentRepository.findGameIdsByWalletAddress(
@@ -335,8 +340,31 @@ export class GameService {
             return Result.ok([]);
         }
 
-        // 2. 해당 게임들 중 활성 상태인 게임 정보 조회 (레파지토리에서 매핑 완료)
+        // 2. 해당 게임들 중 활성 상태인 게임 정보 조회
         const games = await this.gameRepository.findActiveGamesByIds(gameIds);
-        return Result.ok(games);
+
+        if (games.length === 0) {
+            return Result.ok([]);
+        }
+
+        // 3. 토큰 정보 조회 (tokenUsername, tokenUsertag)
+        const tokenAddresses = games.map((g) => g.tokenAddress);
+        const tokens =
+            await this.tokenRepository.findByTokenAddresses(tokenAddresses);
+        const tokenMap = new Map(
+            tokens.map((t) => [t.tokenAddress.toLowerCase(), t]),
+        );
+
+        // 4. 게임 + 토큰 정보 매핑
+        const result: ActiveGameDto[] = games.map((game) => {
+            const token = tokenMap.get(game.tokenAddress.toLowerCase());
+            return {
+                ...game,
+                tokenUsername: token?.tokenUsername ?? null,
+                tokenUsertag: token?.tokenUsertag ?? null,
+            };
+        });
+
+        return Result.ok(result);
     }
 }
