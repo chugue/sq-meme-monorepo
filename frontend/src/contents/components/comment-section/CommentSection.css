@@ -687,10 +687,24 @@
 .squid-comment-header-row {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     padding: 0px;
     gap: 8px;
     width: 100%;
+}
+
+.squid-comment-username-row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    gap: 4px;
+}
+
+.squid-comment-username-colum {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
 }
 
 .squid-comment-username {
@@ -724,6 +738,7 @@
     line-height: 17px;
     color: #ffffff;
     word-break: break-word;
+    white-space: pre-wrap;
 }
 
 /* 댓글 이미지 */
@@ -751,11 +766,10 @@
 .squid-comment-like {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     padding: 0px;
     gap: 10px;
     width: 22px;
-    height: 36px;
     flex-shrink: 0;
     background: none;
     border: none;
@@ -1041,6 +1055,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    width: 100%;
 }
 
 .squid-comment-info {
@@ -1048,6 +1063,14 @@
     flex-direction: column;
     gap: 2px;
     flex: 1;
+}
+
+.squid-comment-info-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2px;
 }
 
 .squid-comment-date {
@@ -1064,4 +1087,18 @@
     gap: 8px;
     width: 100%;
     padding-left: 44px;
+}
+
+.squid-comment-heart-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.squid-comment-heart-count-value {
+    color: #b9a7ff;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 8px;
 }

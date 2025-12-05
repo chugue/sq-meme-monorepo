@@ -1,3 +1,4 @@
+import { Heart } from "lucide-react";
 import { Comment } from "../../types/comment";
 import {
     formatAddress,
@@ -61,47 +62,66 @@ export function CommentList({
                         </div>
                         <div className="squid-comment-info-container">
                             <div className="squid-comment-info">
-                                <span className="squid-comment-username">
-                                    @
-                                    {comment.username ||
-                                        formatAddress(comment.commentor)}
-                                </span>
-                                <span className="squid-comment-date">
-                                    {formatRelativeTime(comment.createdAt)}
-                                </span>
-                                <button
-                                    className={`squid-comment-like${
-                                        comment.isLiked ? " liked" : ""
-                                    }`}
-                                    onClick={() =>
-                                        !isTogglingLike &&
-                                        onToggleLike?.(comment.id)
-                                    }
-                                    disabled={isTogglingLike}
-                                    type="button"
-                                >
-                                    <span className="squid-comment-like-icon">
-                                        &#10084;
-                                    </span>
-                                    <span className="squid-comment-like-count">
-                                        {comment.likeCount ?? 0}
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
-                        <div className="squid-comment-body">
-                            <div className="squid-comment-content">
-                                {comment.message}
-                            </div>
-                            {comment.imageUrl && (
-                                <div className="squid-comment-image-wrapper">
-                                    <img
-                                        src={comment.imageUrl}
-                                        alt="Comment image"
-                                        className="squid-comment-image-preview"
-                                    />
+                                <div className="squid-comment-info-column">
+                                    <div className="squid-comment-info-row">
+                                        <div className="squid-comment-username-colum">
+                                            <div className="squid-comment-username-row">
+                                                <span className="squid-comment-username">
+                                                    @
+                                                    {comment.username ||
+                                                        formatAddress(
+                                                            comment.commentor,
+                                                        )}
+                                                </span>
+                                                <span className="squid-comment-date">
+                                                    {formatRelativeTime(
+                                                        comment.createdAt,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="squid-comment-content">
+                                                {comment.message}
+                                            </div>
+                                        </div>
+                                        <button
+                                            className={`squid-comment-like${
+                                                comment.isLiked ? " liked" : ""
+                                            }`}
+                                            onClick={() =>
+                                                !isTogglingLike &&
+                                                onToggleLike?.(comment.id)
+                                            }
+                                            disabled={isTogglingLike}
+                                            type="button"
+                                        >
+                                            <div className="squid-comment-heart-icon">
+                                                <Heart
+                                                    size={20}
+                                                    fill={
+                                                        comment.isLiked
+                                                            ? "#b9a7ff"
+                                                            : "none"
+                                                    }
+                                                    stroke="#b9a7ff"
+                                                    strokeWidth={1.5}
+                                                />
+                                                <span className="squid-comment-heart-count-value">
+                                                    {comment.likeCount}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    {comment.imageUrl && (
+                                        <div className="squid-comment-image-wrapper">
+                                            <img
+                                                src={comment.imageUrl}
+                                                alt="Comment image"
+                                                className="squid-comment-image-preview"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 </div>
