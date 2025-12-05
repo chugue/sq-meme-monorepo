@@ -3,6 +3,7 @@ import {
   formatAddress,
   formatRelativeTime,
 } from "../../utils/messageFormatter";
+import winnerBadge from "./assets/winner-badge.svg";
 
 interface CommentListProps {
   comments: Comment[];
@@ -29,8 +30,16 @@ export function CommentList({
 
   return (
     <>
-      {comments.map((comment) => (
+      {comments.map((comment, index) => (
         <div key={comment.id} className="squid-comment-item">
+          {/* 첫 번째 댓글에 우승자 뱃지 표시 */}
+          {index === 0 && (
+            <img
+              src={winnerBadge}
+              alt="Winner"
+              className="squid-winner-badge"
+            />
+          )}
           <div className="squid-comment-header-row">
             <div className="squid-comment-profile">
               {comment.profileImage ? (

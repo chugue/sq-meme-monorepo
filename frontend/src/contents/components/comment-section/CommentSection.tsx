@@ -27,6 +27,8 @@ import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
 import { WalletConnectionUI } from "./WalletConnectionUI";
+import characterBg from "./assets/character-bg.svg";
+import legionBg from "./assets/legion-bg.svg";
 
 export function CommentSection() {
     logger.debug("CommentSection 렌더링", {
@@ -417,11 +419,11 @@ export function CommentSection() {
             className="squid-comment-section"
             data-testid="squid-comment-section"
         >
-            <div className="squid-comment-header">
-                <h3 className="squid-comment-title">COMMENTS</h3>
-                <span className="squid-comment-count">{comments.length}</span>
-            </div>
+            {/* 배경 레이어들 */}
+            <img src={legionBg} alt="" className="squid-bg-legion" />
+            <img src={characterBg} alt="" className="squid-bg-character" />
 
+            {/* 지갑 연결 UI */}
             <div className="squid-wallet-actions">
                 <WalletConnectionUI
                     isConnected={isConnected}
@@ -436,6 +438,33 @@ export function CommentSection() {
             {/* hasValidGame일 때만 펀딩 섹션 + 댓글 폼/리스트 표시 */}
             {hasValidGame ? (
                 <>
+                    {/* 게임 헤더 섹션 */}
+                    <div className="squid-game-header">
+                        <div className="squid-game-title">
+                            <span>Last commentor</span>
+                            <span>will win the prize</span>
+                        </div>
+                        <div className="squid-game-timer">
+                            <span className="squid-timer-label">ENDS IN</span>
+                            <span className="squid-timer-value">--:--:--</span>
+                        </div>
+                    </div>
+
+                    {/* 상금 표시 */}
+                    <div className="squid-prize-display">
+                        <span className="squid-prize-label">PRIZE POOL</span>
+                        <span className="squid-prize-value">
+                            {activeGameInfo?.totalFunding
+                                ? formatUnits(
+                                      BigInt(activeGameInfo.totalFunding),
+                                      18,
+                                  )
+                                : "0"}{" "}
+                            ${activeGameInfo?.tokenSymbol || "TOKEN"}
+                        </span>
+                    </div>
+
+                    {/* 펀딩 섹션 */}
                     <div className="squid-funding-section">
                         <div className="squid-funding-header">
                             <span className="squid-funding-title">
@@ -473,6 +502,15 @@ export function CommentSection() {
                         </div>
                     </div>
 
+                    {/* 댓글 섹션 헤더 */}
+                    <div className="squid-comment-header">
+                        <h3 className="squid-comment-title">COMMENTS</h3>
+                        <span className="squid-comment-count">
+                            {comments.length}
+                        </span>
+                    </div>
+
+                    {/* 댓글 폼 */}
                     <CommentForm
                         value={newComment}
                         onChange={setNewComment}
@@ -494,6 +532,7 @@ export function CommentSection() {
                         }
                     />
 
+                    {/* 댓글 리스트 */}
                     <div className="squid-comments-list">
                         <CommentList
                             comments={comments}

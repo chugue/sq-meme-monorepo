@@ -5,16 +5,18 @@
 .no-game-container {
     box-sizing: border-box;
     position: relative;
-    width: 100%;
-    min-height: 400px;
+    width: 366px;
+    min-height: 600px;
     padding: 40px 20px;
-    background: linear-gradient(180deg, #1a1a46 10.88%, #000000 100%);
+    background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
     gap: 24px;
-    border-radius: 12px;
 }
 
 /* NO GAME YET! 타이틀 */
@@ -183,7 +185,8 @@
     border-radius: 33px;
     padding: 1px;
     background: linear-gradient(90deg, #ffbdbf 0%, #f0beff 100%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -338,10 +341,11 @@
     letter-spacing: 2px;
 }
 
-/* 모바일 최적화 */
+/* 모바일 최적화 - 고정 너비 유지 */
 @media (max-width: 480px) {
     .no-game-container {
-        min-height: 350px;
+        width: 366px;
+        min-height: 500px;
         padding: 30px 16px;
         gap: 20px;
     }
