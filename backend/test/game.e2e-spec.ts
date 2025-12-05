@@ -3,16 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { GameController } from '../src/domains/game/game.controller';
-import { GameRepository } from '../src/domains/game/game.repository';
 import { GameService } from '../src/domains/game/game.service';
 
 describe('GameController (e2e)', () => {
     let app: INestApplication<App>;
-
-    const mockGameRepository = {
-        findByTokenAddress: jest.fn(),
-        findActiveByTokenAddress: jest.fn(),
-    };
 
     const mockGameService = {
         createGame: jest.fn(),
@@ -25,10 +19,6 @@ describe('GameController (e2e)', () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
             controllers: [GameController],
             providers: [
-                {
-                    provide: GameRepository,
-                    useValue: mockGameRepository,
-                },
                 {
                     provide: GameService,
                     useValue: mockGameService,
@@ -61,14 +51,12 @@ describe('GameController (e2e)', () => {
             const mockGames = [
                 {
                     gameId: '1',
-                    tokenImageUrl: 'https://example.com/token.png',
                     tokenSymbol: 'MTK',
                     currentPrizePool: '1000000000000000000',
                     endTime: new Date('2025-12-31T23:59:59Z'),
                 },
                 {
                     gameId: '2',
-                    tokenImageUrl: null,
                     tokenSymbol: 'TEST',
                     currentPrizePool: '500000000000000000',
                     endTime: new Date('2025-12-30T12:00:00Z'),
@@ -85,14 +73,12 @@ describe('GameController (e2e)', () => {
             expect(response.body).toEqual([
                 {
                     gameId: '1',
-                    tokenImageUrl: 'https://example.com/token.png',
                     tokenSymbol: 'MTK',
                     currentPrizePool: '1000000000000000000',
                     endTime: '2025-12-31T23:59:59.000Z',
                 },
                 {
                     gameId: '2',
-                    tokenImageUrl: null,
                     tokenSymbol: 'TEST',
                     currentPrizePool: '500000000000000000',
                     endTime: '2025-12-30T12:00:00.000Z',

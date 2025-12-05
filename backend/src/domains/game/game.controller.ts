@@ -11,16 +11,12 @@ import {
 } from 'src/common/decorators';
 import { Result } from 'src/common/types';
 import { CreateGameByTxDtoSchema } from 'src/common/validator/game.validator';
-import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
 
 @ApiTags('Games')
 @Controller('/v1/games')
 export class GameController {
-    constructor(
-        private readonly gameRepository: GameRepository,
-        private readonly gameService: GameService,
-    ) {}
+    constructor(private readonly gameService: GameService) {}
 
     @Post()
     @ApiCreateGame('게임 생성')
@@ -43,7 +39,7 @@ export class GameController {
     @Get('by-token/:tokenAddress')
     @ApiGetGameByToken('토큰 주소로 게임 조회')
     async getGameByToken(@Param('tokenAddress') tokenAddress: string) {
-        const game = await this.gameRepository.findByTokenAddress(tokenAddress);
+        const game = await this.gameService.getGameByToken(tokenAddress);
 
         if (!game) {
             return Result.fail(
@@ -59,7 +55,7 @@ export class GameController {
     @ApiGetGameByToken('토큰 주소로 활성 게임 조회 (isEnded = false)')
     async getActiveGameByToken(@Param('tokenAddress') tokenAddress: string) {
         const game =
-            await this.gameRepository.findActiveByTokenAddress(tokenAddress);
+            await this.gameService.getActiveGameByToken(tokenAddress);
 
         if (!game) {
             return Result.fail(
@@ -85,10 +81,7 @@ export class GameController {
             return Result.fail(parsed.error.message, HttpStatus.BAD_REQUEST);
         }
 
-        return this.gameService.createGameByTx(
-            parsed.data.txHash,
-            parsed.data.tokenImageUrl,
-        );
+        return this.gameService.createGameByTx(parsed.data.txHash);
     }
 
     @Get('in-playing')
@@ -103,7 +96,7 @@ export class GameController {
      */
     @Get('live')
     async getLiveGames() {
-        const games = await this.gameRepository.findAllActiveGames();
+        const games = await this.gameService.getLiveGames();
         return { liveGames: games };
     }
 }

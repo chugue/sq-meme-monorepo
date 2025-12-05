@@ -3,6 +3,7 @@ import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
+import { TokenRepository } from '../token/token.repository';
 import { JoinDto } from './dto/join.dto';
 import { UsersRepository } from './users.repository';
 
@@ -64,6 +65,7 @@ export class UsersService {
         private readonly usersRepository: UsersRepository,
         private readonly commentRepository: CommentRepository,
         private readonly gameRepository: GameRepository,
+        private readonly tokenRepository: TokenRepository,
     ) {}
 
     /**
@@ -246,14 +248,26 @@ export class UsersService {
         try {
             const gameRankingRaw =
                 await this.gameRepository.getGameRankingByToken(5);
+
+            // 토큰 이미지 조회
+            const tokenAddresses = gameRankingRaw.map((r) => r.tokenAddress);
+            const tokens =
+                await this.tokenRepository.findByTokenAddresses(tokenAddresses);
+            const tokenMap = new Map(
+                tokens.map((t) => [t.tokenAddress.toLowerCase(), t]),
+            );
+
             const gameRanking: GameRankItem[] = gameRankingRaw.map(
-                (item, index) => ({
-                    rank: index + 1,
-                    tokenImage: item.tokenImageUrl,
-                    tokenAddress: item.tokenAddress,
-                    tokenSymbol: item.tokenSymbol,
-                    totalPrize: item.totalPrize,
-                }),
+                (item, index) => {
+                    const token = tokenMap.get(item.tokenAddress.toLowerCase());
+                    return {
+                        rank: index + 1,
+                        tokenImage: token?.tokenImageUrl ?? null,
+                        tokenAddress: item.tokenAddress,
+                        tokenSymbol: item.tokenSymbol,
+                        totalPrize: item.totalPrize,
+                    };
+                },
             );
 
             return Result.ok({ gameRanking });
@@ -356,15 +370,30 @@ export class UsersService {
             const activeGames =
                 await this.gameRepository.findActiveGamesByIds(gameIds);
 
+            if (activeGames.length === 0) {
+                return Result.ok({ myActiveGames: [] });
+            }
+
+            // 3. 토큰 이미지 조회
+            const tokenAddresses = activeGames.map((g) => g.tokenAddress);
+            const tokens =
+                await this.tokenRepository.findByTokenAddresses(tokenAddresses);
+            const tokenMap = new Map(
+                tokens.map((t) => [t.tokenAddress.toLowerCase(), t]),
+            );
+
             const myActiveGames: MyActiveGameItem[] = activeGames.map(
-                (game) => ({
-                    gameId: game.gameId,
-                    tokenImage: game.tokenImageUrl,
-                    tokenAddress: game.tokenAddress,
-                    tokenSymbol: game.tokenSymbol,
-                    currentPrizePool: game.currentPrizePool,
-                    endTime: game.endTime?.toISOString() ?? null,
-                }),
+                (game) => {
+                    const token = tokenMap.get(game.tokenAddress.toLowerCase());
+                    return {
+                        gameId: game.gameId,
+                        tokenImage: token?.tokenImageUrl ?? null,
+                        tokenAddress: game.tokenAddress,
+                        tokenSymbol: game.tokenSymbol,
+                        currentPrizePool: game.currentPrizePool,
+                        endTime: game.endTime?.toISOString() ?? null,
+                    };
+                },
             );
 
             return Result.ok({ myActiveGames });

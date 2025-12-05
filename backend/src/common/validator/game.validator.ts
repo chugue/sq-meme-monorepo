@@ -60,11 +60,9 @@ export type RegisterGameDto = z.infer<typeof RegisterGameDtoSchema>;
 /**
  * txHash로 게임 생성 스키마 (V2)
  * - 백엔드에서 txHash로 영수증을 가져와서 GameCreated 이벤트 파싱
- * - tokenImageUrl은 이벤트에 없는 정보이므로 프론트엔드에서 전달
  */
 export const CreateGameByTxDtoSchema = z.object({
     txHash: txHashSchema,
-    tokenImageUrl: z.string().optional(),
 });
 
 export type CreateGameByTxDto = z.infer<typeof CreateGameByTxDtoSchema>;

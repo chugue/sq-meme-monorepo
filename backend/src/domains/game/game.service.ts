@@ -176,12 +176,8 @@ export class GameService {
     /**
      * @description txHash로 GameCreated 이벤트를 파싱하여 게임 생성
      * @param txHash 트랜잭션 해시
-     * @param tokenImageUrl 토큰 이미지 URL (선택, 이벤트에 없는 정보)
      */
-    async createGameByTx(
-        txHash: string,
-        tokenImageUrl?: string,
-    ): Promise<Result<{ gameId: string }>> {
+    async createGameByTx(txHash: string): Promise<Result<{ gameId: string }>> {
         const receipt =
             await this.ethereumProvider.getTransactionReceipt(txHash);
 
@@ -266,7 +262,6 @@ export class GameService {
             endTime,
             lastCommentor,
             totalFunding,
-            tokenImageUrl,
         });
 
         if (!result) {
@@ -322,6 +317,27 @@ export class GameService {
         }
 
         return Result.ok(result);
+    }
+
+    /**
+     * @description 토큰 주소로 게임 조회
+     */
+    async getGameByToken(tokenAddress: string) {
+        return this.gameRepository.findByTokenAddress(tokenAddress);
+    }
+
+    /**
+     * @description 토큰 주소로 활성 게임 조회 (isEnded = false)
+     */
+    async getActiveGameByToken(tokenAddress: string) {
+        return this.gameRepository.findActiveByTokenAddress(tokenAddress);
+    }
+
+    /**
+     * @description 현재 진행 중인 전체 활성 게임 목록 조회
+     */
+    async getLiveGames() {
+        return this.gameRepository.findAllActiveGames();
     }
 
     /**

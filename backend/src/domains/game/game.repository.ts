@@ -201,7 +201,6 @@ export class GameRepository {
         endTime: string;
         lastCommentor: string;
         totalFunding: string;
-        tokenImageUrl?: string;
     }): Promise<{ gameId: string } | null> {
         // 중복 체크 (txHash)
         const existingByTx = await this.findByTxHash(data.txHash);
@@ -225,7 +224,6 @@ export class GameRepository {
                     gameId: data.gameId,
                     gameToken: data.gameToken.toLowerCase(),
                     tokenSymbol: data.tokenSymbol,
-                    tokenImageUrl: data.tokenImageUrl,
                     initiator: data.initiator.toLowerCase(),
                     gameTime: data.gameTime,
                     endTime: new Date(Number(data.endTime) * 1000),
@@ -312,7 +310,6 @@ export class GameRepository {
             const games = await this.db
                 .select({
                     gameId: schema.games.gameId,
-                    tokenImageUrl: schema.games.tokenImageUrl,
                     tokenAddress: schema.games.gameToken,
                     tokenSymbol: schema.games.tokenSymbol,
                     prizePool: schema.games.prizePool,
@@ -330,7 +327,6 @@ export class GameRepository {
 
             return games.map((game) => ({
                 gameId: game.gameId,
-                tokenImageUrl: game.tokenImageUrl,
                 tokenAddress: game.tokenAddress,
                 tokenSymbol: game.tokenSymbol,
                 currentPrizePool: game.prizePool,
@@ -351,7 +347,6 @@ export class GameRepository {
             const games = await this.db
                 .select({
                     gameId: schema.games.gameId,
-                    tokenImageUrl: schema.games.tokenImageUrl,
                     tokenAddress: schema.games.gameToken,
                     tokenSymbol: schema.games.tokenSymbol,
                     prizePool: schema.games.prizePool,
@@ -369,7 +364,6 @@ export class GameRepository {
 
             return games.map((game) => ({
                 gameId: game.gameId,
-                tokenImageUrl: game.tokenImageUrl,
                 tokenAddress: game.tokenAddress,
                 tokenSymbol: game.tokenSymbol,
                 currentPrizePool: game.prizePool,
@@ -392,7 +386,6 @@ export class GameRepository {
                 .select({
                     tokenAddress: schema.games.gameToken,
                     tokenSymbol: schema.games.tokenSymbol,
-                    tokenImageUrl: schema.games.tokenImageUrl,
                     totalPrize: sql<string>`COALESCE(SUM(CAST(${schema.games.prizePool} AS NUMERIC)), 0)::TEXT`,
                 })
                 .from(schema.games)
@@ -400,7 +393,6 @@ export class GameRepository {
                 .groupBy(
                     schema.games.gameToken,
                     schema.games.tokenSymbol,
-                    schema.games.tokenImageUrl,
                 )
                 .orderBy(
                     desc(sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`),

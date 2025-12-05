@@ -3,7 +3,6 @@
  */
 export interface ActiveGameBaseDto {
     gameId: string;
-    tokenImageUrl: string | null;
     tokenAddress: string;
     tokenSymbol: string | null;
     currentPrizePool: string | null;
@@ -24,7 +23,6 @@ export interface ActiveGameDto extends ActiveGameBaseDto {
 export interface TokenPrizeRankDto {
     tokenAddress: string;
     tokenSymbol: string | null;
-    tokenImageUrl: string | null;
     totalPrize: string;
 }
 
