@@ -559,11 +559,9 @@ export function CommentSection() {
                                 </span>
                             </div>
                             <div className="squid-game-timer">
-                                <span className="squid-timer-label">
-                                    ENDS IN
-                                </span>
+                                <span className="squid-timer-label">TIMER</span>
                                 <span className="squid-timer-value">
-                                    --:--:--
+                                    22:22:22
                                 </span>
                             </div>
                         </div>

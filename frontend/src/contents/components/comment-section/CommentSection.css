@@ -65,7 +65,7 @@
     background: #060722;
     flex-direction: column;
     align-items: center;
-    padding: 20px 20px 0;
+    /* padding: 20px 20px 0; */
     position: relative;
     z-index: 1;
 }
@@ -136,14 +136,16 @@
     align-items: center;
     padding: 14px 8px;
     width: 100%;
-    margin-top: 50px;
+    margin-top: 30px;
     max-width: 253px;
+    gap: 10px;
     background: rgba(0, 0, 0, 0.6);
     border: 2px dashed #003c26;
     border-radius: 10px;
     box-sizing: border-box;
     position: relative;
     z-index: 2;
+    white-space: nowrap;
 }
 
 .squid-timer-container {
@@ -181,9 +183,9 @@
 
 .squid-prize-value {
     font-family: "Press Start 2P", cursive;
-    font-weight: 400;
-    font-size: 11px;
-    line-height: 150%;
+    font-weight: 200;
+    font-size: 8px;
+    line-height: 100%;
     background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -230,7 +232,7 @@
 .squid-timer-value {
     font-family: "Press Start 2P", cursive;
     font-weight: 400;
-    font-size: 40px;
+    font-size: 24px;
     line-height: 100%;
     background: linear-gradient(180deg, #ff494d 42.24%, #c20004 92.35%);
     -webkit-background-clip: text;
