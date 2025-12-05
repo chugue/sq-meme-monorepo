@@ -539,12 +539,13 @@ export function CommentSection() {
                                 WILL WIN THE PRIZE!
                             </span>
                         </div>
+                        <img
+                            src={getExtensionImageUrl("icon/legion.png")}
+                            alt=""
+                            className="squid-timer-bg"
+                        />
+
                         <div className="squid-timer-wrapper">
-                            <img
-                                src={getExtensionImageUrl("icon/legion.png")}
-                                alt=""
-                                className="squid-timer-bg"
-                            />
                             <div className="squid-prize-display">
                                 <span className="squid-prize-value">
                                     {activeGameInfo?.totalFunding
