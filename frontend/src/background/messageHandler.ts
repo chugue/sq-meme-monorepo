@@ -1456,6 +1456,37 @@ export function createMessageHandler() {
             break;
           }
 
+          case "NAVIGATE_TO_URL": {
+            try {
+              const { browser } = await import("wxt/browser");
+              const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+
+              // 현재 활성 탭의 URL을 변경
+              const [activeTab] = await tabs.query({
+                active: true,
+                currentWindow: true,
+              });
+
+              if (activeTab?.id) {
+                await tabs.update(activeTab.id, { url: message.url });
+                result = { success: true, data: { success: true } };
+              } else {
+                result = {
+                  success: false,
+                  error: "활성 탭을 찾을 수 없습니다.",
+                };
+              }
+            } catch (error: any) {
+              console.error("❌ NAVIGATE_TO_URL 오류:", error);
+              result = {
+                success: false,
+                error:
+                  error instanceof Error ? error.message : "URL 이동 실패",
+              };
+            }
+            break;
+          }
+
           default:
             result = {
               success: false,

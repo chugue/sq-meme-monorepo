@@ -133,7 +133,7 @@ export function LiveGamesPage({
                                 <div
                                     key={game.gameId}
                                     className="game-card"
-                                    onClick={() => window.open(profileUrl, "_blank")}
+                                    onClick={() => backgroundApi.navigateToUrl(profileUrl)}
                                     style={{ cursor: "pointer" }}
                                 >
                                     <div className="game-card-left">

@@ -627,27 +627,24 @@
     padding: 8px 12px;
 }
 
-.squid-comment-add-image {
-    width: 36px;
-    height: 36px;
+.squid-modal-add-image {
     background: transparent;
     border: none;
-    border-radius: 50%;
     color: #888;
-    font-size: 18px;
+    font-size: 13px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
     transition: all 0.2s;
 }
 
-.squid-comment-add-image:hover:not(:disabled) {
-    background: rgba(255, 0, 110, 0.15);
+.squid-modal-add-image:hover:not(:disabled) {
     color: #ff006e;
 }
 
-.squid-comment-add-image:disabled {
+.squid-modal-add-image:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

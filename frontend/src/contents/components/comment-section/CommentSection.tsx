@@ -244,16 +244,14 @@ export function CommentSection() {
     ]);
 
     const handleSubmit = useCallback(async () => {
-        if (!newComment.trim()) {
-            return;
-        }
+        logger.debug("handleSubmit 호출됨", {
+            newComment: newComment.trim(),
+            activeGameInfo,
+            isConnected,
+            address,
+        });
 
-        if (!isConnected || !address) {
-            try {
-                await connect();
-            } catch (error) {
-                logger.error("지갑 연결 실패", error);
-            }
+        if (!newComment.trim()) {
             return;
         }
 
@@ -262,16 +260,13 @@ export function CommentSection() {
             return;
         }
 
-        setIsSubmitting(true);
+        const gameIdStr = activeGameInfo.id;
 
+        // 지갑 연결 전에 먼저 게임 유효성 체크
         try {
-            await ensureNetwork();
-
-            const gameIdStr = activeGameInfo.id;
-            const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
-
-            // 백엔드 API로 게임 정보 조회 후 클라이언트에서 시간 비교
+            logger.debug("게임 유효성 체크 시작", { gameIdStr });
             const gameInfo = await backgroundApi.getActiveGameById(gameIdStr);
+            logger.debug("게임 유효성 체크 결과", { gameInfo });
             if (!gameInfo) {
                 logger.warn("게임을 찾을 수 없음", { gameId: gameIdStr });
                 setShowGameEndedModal(true);
@@ -297,10 +292,40 @@ export function CommentSection() {
                 }, 3000);
                 return;
             }
+        } catch (error) {
+            logger.error("게임 정보 조회 실패", error);
+            alert("게임 정보를 확인할 수 없습니다. 다시 시도해주세요.");
+            return;
+        }
+
+        // 게임이 유효한 경우에만 지갑 연결 시도
+        let currentAddress = address;
+        if (!isConnected || !address) {
+            try {
+                const result = await backgroundApi.walletConnect();
+                currentAddress = result.address;
+                logger.info("지갑 연결 성공", { address: currentAddress });
+            } catch (error) {
+                logger.error("지갑 연결 실패", error);
+                return;
+            }
+        }
+
+        if (!currentAddress) {
+            logger.error("지갑 주소를 가져올 수 없음");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await ensureNetwork();
+
+            const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
 
             logger.info("댓글 작성 시작 (V2)", {
                 gameId: gameIdStr,
-                userAddress: address,
+                userAddress: currentAddress,
                 messageLength: newComment.trim().length,
             });
 
@@ -318,7 +343,7 @@ export function CommentSection() {
                     args: [gameId, newComment.trim()],
                     gas: 500000n,
                 },
-                address as Address,
+                currentAddress as Address,
             );
 
             logger.info("댓글 트랜잭션 전송됨", { hash: result.hash });

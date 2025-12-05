@@ -127,7 +127,7 @@ export function CommentForm({
             <button
                 type="submit"
                 className="squid-comment-submit-block"
-                disabled={!value.trim() || isSubmitting || isSigning || !isConnected || disabled}
+                disabled={!value.trim() || isSubmitting || isSigning || disabled}
             >
                 {getButtonText()}
             </button>

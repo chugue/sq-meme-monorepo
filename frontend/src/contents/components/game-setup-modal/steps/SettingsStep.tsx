@@ -2,6 +2,7 @@
  * 2단계: 게임 설정 입력 컴포넌트
  */
 
+import { ImagePlus } from "lucide-react";
 import { useRef, useState } from "react";
 import { backgroundApi } from "../../../lib/backgroundApi";
 import type { GameSettings } from "../types";
@@ -258,11 +259,15 @@ export function SettingsStep({
             <div className="squid-comment-actions">
               <button
                 type="button"
-                className="squid-comment-add-image"
+                className="squid-modal-add-image"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
               >
-                {isUploading ? "업로드 중..." : "📷 이미지 추가"}
+                {isUploading ? (
+                    <span className="squid-upload-spinner" />
+                  ) : (
+                    <ImagePlus size={20} />
+                  )}
               </button>
             </div>
           )}

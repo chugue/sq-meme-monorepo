@@ -486,6 +486,14 @@ export const backgroundApi = {
       gameId,
     });
   },
+
+  // URL로 현재 탭 이동
+  navigateToUrl: async (url: string) => {
+    return sendToBackground<{ success: boolean }>({
+      type: "NAVIGATE_TO_URL",
+      url,
+    });
+  },
 };
 
 // 게임 정보 타입 (ABI GameInfo 구조체 기준 + DB 필드)

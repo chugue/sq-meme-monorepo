@@ -5,7 +5,7 @@
  * - 3초 후 자동으로 페이지 새로고침
  */
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import "../game-setup-modal/GameSetupModal.css";
 
 interface GameEndedModalProps {
@@ -13,22 +13,14 @@ interface GameEndedModalProps {
 }
 
 export function GameEndedModal({ isOpen }: GameEndedModalProps) {
-  const [countdown, setCountdown] = useState(3);
-
   useEffect(() => {
     if (!isOpen) return;
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const timer = setTimeout(() => {
+      window.location.reload();
+    }, 3000);
 
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -64,19 +56,6 @@ export function GameEndedModal({ isOpen }: GameEndedModalProps) {
               current game status.
             </p>
 
-            {/* 카운트다운 */}
-            <div
-              className="squid-token-address-box"
-              style={{ textAlign: "center" }}
-            >
-              <span className="squid-label">REFRESHING IN</span>
-              <span
-                className="squid-value"
-                style={{ fontSize: "24px", fontWeight: "bold" }}
-              >
-                {countdown}s
-              </span>
-            </div>
           </div>
         </div>
       </div>
