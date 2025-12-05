@@ -10,6 +10,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Address } from 'viem';
+import { GameEndedModal } from '../components/sub-components/GameEndedModal';
 import { backgroundApi, type CreateCommentRequest } from '../lib/backgroundApi';
 import { commentGameABI } from '../lib/contract/abis/commentGame';
 import { erc20ABI } from '../lib/contract/abis/erc20';
@@ -17,6 +18,9 @@ import { createContractClient } from '../lib/contract/contractClient';
 import { parseCommentAddedEvent } from '../lib/contract/eventParser';
 import { logger } from '../lib/injected/logger';
 import { injectedApi } from '../lib/injectedApi';
+
+// GameEndedModal 컴포넌트를 re-export
+export { GameEndedModal };
 
 export interface UseCommentContractReturn {
     // 댓글 작성
@@ -32,6 +36,8 @@ export interface UseCommentContractReturn {
     isSubmitting: boolean;
     isApproving: boolean;
     error: string | null;
+    // 게임 종료 모달 상태
+    showGameEndedModal: boolean;
 }
 
 export interface GameInfo {
@@ -47,17 +53,16 @@ export interface GameInfo {
  * CommentGame 컨트랙트 훅
  * @param gameAddress CommentGame 컨트랙트 주소
  * @param userAddress 사용자 지갑 주소
- * @param gameId 게임 ID (백엔드 API용, V2 필수)
  */
 export function useCommentContract(
     gameAddress: Address | null,
-    userAddress: Address | null,
-    gameId?: string
+    userAddress: Address | null
 ): UseCommentContractReturn {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [gameToken, setGameToken] = useState<Address | null>(null);
+    const [showGameEndedModal, setShowGameEndedModal] = useState(false);
 
     // CommentGame 컨트랙트 클라이언트 생성
     const contractClient = useMemo(() => {
@@ -102,6 +107,18 @@ export function useCommentContract(
             setError(null);
 
             try {
+                // 백엔드 API로 게임 종료 여부 확인
+                const activeGame = await backgroundApi.getActiveGameByToken(gameAddress);
+                if (!activeGame) {
+                    logger.warn('게임이 종료됨 (백엔드 확인)', { gameAddress });
+                    setShowGameEndedModal(true);
+                    // 3초 후 새로고침
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                    throw new Error('게임이 종료되었습니다.');
+                }
+
                 logger.info('댓글 작성 시작', {
                     gameAddress,
                     userAddress,
@@ -147,22 +164,10 @@ export function useCommentContract(
                     prizePool: eventData.prizePool.toString(),
                 });
 
-                // 4. 백엔드 API 호출
-                if (!gameId) {
-                    logger.warn('gameId가 없어 백엔드 저장 건너뜀');
-                    return result.hash;
-                }
-
+                // 4. 백엔드 API 호출 (txHash로 이벤트 파싱)
                 const apiRequest: CreateCommentRequest = {
                     txHash: result.hash,
-                    gameId,
-                    gameAddress: gameAddress,
-                    commentor: eventData.commentor,
-                    message: eventData.message,
                     imageUrl,
-                    newEndTime: eventData.newEndTime.toString(),
-                    prizePool: eventData.prizePool.toString(),
-                    timestamp: eventData.timestamp.toString(),
                 };
 
                 try {
@@ -362,5 +367,6 @@ export function useCommentContract(
         isSubmitting,
         isApproving,
         error,
+        showGameEndedModal,
     };
 }

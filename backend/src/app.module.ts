@@ -4,10 +4,14 @@ import * as path from 'path';
 
 import { CommonModule } from './common/common.module';
 import { DbModule } from './common/db/db.module';
+import { TransactionModule } from './domains/transaction';
 import { GameModule } from './domains/game/game.module';
 import { CommentModule } from './domains/comment/comment.module';
 import { UsersModule } from './domains/users/users.module';
 import { UploadModule } from './domains/upload/upload.module';
+import { WinnersModule } from './domains/winners/winners.module';
+import { FundersModule } from './domains/funders/funders.module';
+import { TokenModule } from './domains/token/token.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -25,10 +29,14 @@ import { AppController } from './app.controller';
         }),
         CommonModule,
         DbModule,
+        TransactionModule,
         GameModule,
         CommentModule,
         UsersModule,
         UploadModule,
+        WinnersModule,
+        FundersModule,
+        TokenModule,
     ],
     controllers: [AppController],
     providers: [],

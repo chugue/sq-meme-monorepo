@@ -23,10 +23,8 @@ const numericStringSchema = z.string().regex(/^\d+$/, '숫자 문자열이어야
 export const CreateGameDtoSchema = z.object({
     txHash: txHashSchema,
     gameId: numericStringSchema,
-    gameAddr: ethereumAddressSchema,
     gameTokenAddr: ethereumAddressSchema,
     tokenSymbol: z.string().min(1),
-    tokenName: z.string().min(1),
     initiator: ethereumAddressSchema,
     gameTime: numericStringSchema,
     endTime: numericStringSchema,
@@ -58,3 +56,13 @@ export const RegisterGameDtoSchema = z.object({
 });
 
 export type RegisterGameDto = z.infer<typeof RegisterGameDtoSchema>;
+
+/**
+ * txHash로 게임 생성 스키마 (V2)
+ * - 백엔드에서 txHash로 영수증을 가져와서 GameCreated 이벤트 파싱
+ */
+export const CreateGameByTxDtoSchema = z.object({
+    txHash: txHashSchema,
+});
+
+export type CreateGameByTxDto = z.infer<typeof CreateGameByTxDtoSchema>;

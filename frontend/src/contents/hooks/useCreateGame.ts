@@ -18,6 +18,7 @@ import {
 import { createContractClient } from "../lib/contract/contractClient";
 import { logger } from "../lib/injected/logger";
 import { injectedApi } from "../lib/injectedApi";
+import { isGameEndedByTime } from "../utils/gameTime";
 import { useWallet } from "./useWallet";
 
 // 테스트용 MockERC20 주소 (Insectarium 테스트넷에 배포됨)
@@ -75,9 +76,7 @@ export interface GameSettings {
 
 export interface ExistingGameInfo {
   gameId: bigint;
-  gameAddress: Address; // V2에서는 컨트랙트 주소가 동일하지만 호환성을 위해 유지
   tokenSymbol: string;
-  tokenName: string;
   isEnded: boolean;
 }
 
@@ -87,7 +86,6 @@ export interface UseCreateGameReturn {
   error: string | null;
   txHash: string | null;
   gameId: string | null;
-  gameAddress: string | null; // 호환성을 위해 유지 (V2에서는 컨트랙트 주소)
   existingGame: ExistingGameInfo | null;
   createGame: (settings: GameSettings) => Promise<string | null>;
   checkExistingGame: (
@@ -106,7 +104,6 @@ export function useCreateGame(): UseCreateGameReturn {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [gameId, setGameId] = useState<string | null>(null);
-  const [gameAddress, setGameAddress] = useState<string | null>(null);
   const [existingGame, setExistingGame] = useState<ExistingGameInfo | null>(
     null
   );
@@ -120,7 +117,6 @@ export function useCreateGame(): UseCreateGameReturn {
     setError(null);
     setTxHash(null);
     setGameId(null);
-    setGameAddress(null);
     setExistingGame(null);
   }, []);
 
@@ -171,18 +167,20 @@ export function useCreateGame(): UseCreateGameReturn {
 
         const gameInfo = gameInfoResult.data;
 
+        // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
+        const isEnded = isGameEndedByTime(gameInfo.endTime);
+
         const existingGameInfo: ExistingGameInfo = {
           gameId: gameInfo.id,
-          gameAddress: COMMENT_GAME_V2_ADDRESS as Address,
           tokenSymbol: gameInfo.tokenSymbol,
-          tokenName: "", // V2에서는 tokenName이 없음
-          isEnded: gameInfo.isEnded,
+          isEnded: isEnded, // 컨트랙트 값 대신 시간 비교 결과 사용
         };
 
         logger.info("기존 게임 발견 (V2)", {
           gameId: gameInfo.id.toString(),
           tokenSymbol: gameInfo.tokenSymbol,
-          isEnded: gameInfo.isEnded,
+          isEndedByTime: isEnded,
+          isEndedFromContract: gameInfo.isEnded,
           endTime: gameInfo.endTime.toString(),
         });
 
@@ -332,37 +330,19 @@ export function useCreateGame(): UseCreateGameReturn {
           logsCount: createGameReceipt.logs.length,
         });
 
-        // getActiveGameId로 생성된 게임 ID 조회 후 getGameInfo로 전체 정보 가져오기
-        const activeGameIdResult = await v2Client.read<bigint>({
-          functionName: "getActiveGameId",
-          args: [actualTokenAddress],
-        });
+        // DB에 게임 정보 등록 (백엔드에서 txHash로 이벤트 파싱)
+        // TODO: tokenImageUrl은 실제 토큰 이미지 URL로 변경 필요
+        const createGameResult = await backgroundApi.createGameByTx(result.hash);
 
-        const createdGameId = activeGameIdResult.data;
-
-        if (!createdGameId || createdGameId === 0n) {
-          throw new Error("게임 ID를 조회할 수 없습니다.");
+        if (!createGameResult?.gameId) {
+          throw new Error("게임 생성에 실패했습니다.");
         }
 
-        // 게임 정보 조회
-        const gameInfoResult = await v2Client.read<GameInfo>({
-          functionName: "getGameInfo",
-          args: [createdGameId],
-        });
+        const createdGameId = createGameResult.gameId;
 
-        const gameInfo = gameInfoResult.data;
+        setGameId(createdGameId);
 
-        setGameId(createdGameId.toString());
-        // TODO: address말고 setActiveGameInfo로 변경
-        setGameAddress(v2ContractAddress);
-
-        logger.info("게임 생성 완료", { gameId: createdGameId.toString() });
-
-        // DB에 게임 정보 등록
-        await backgroundApi.registerGame(gameInfo);
-        logger.info("게임 정보 DB 등록 완료", {
-          gameId: createdGameId.toString(),
-        });
+        logger.info("게임 생성 완료", { gameId: createdGameId });
 
         // ============================================
         // Step 3: First Comment - 첫 댓글 작성 (V2)
@@ -395,24 +375,9 @@ export function useCreateGame(): UseCreateGameReturn {
           logsCount: commentReceipt.logs.length,
         });
 
-        // 트랜잭션 확정 후 즉시 게임 정보 조회하여 백엔드에 댓글 저장
-        const updatedGameInfoResult = await v2Client.read<GameInfo>({
-          functionName: "getGameInfo",
-          args: [createdGameId],
-        });
-
-        const updatedGameInfo = updatedGameInfoResult.data;
-
         const commentApiRequest: CreateCommentRequest = {
           txHash: commentResult.hash,
-          gameId: createdGameId.toString(),
-          gameAddress: v2ContractAddress,
-          commentor: userAddress,
-          message: settings.firstComment,
           imageUrl: settings.firstCommentImage,
-          newEndTime: updatedGameInfo.endTime.toString(),
-          prizePool: updatedGameInfo.prizePool.toString(),
-          timestamp: Math.floor(Date.now() / 1000).toString(),
         };
 
         const savedComment = await backgroundApi.saveComment(commentApiRequest);
@@ -451,7 +416,6 @@ export function useCreateGame(): UseCreateGameReturn {
     error,
     txHash,
     gameId,
-    gameAddress,
     existingGame,
     createGame,
     checkExistingGame,

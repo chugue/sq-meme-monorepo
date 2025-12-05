@@ -1,0 +1,1 @@
+ALTER TABLE "squid_meme"."games" DROP COLUMN "token_name";

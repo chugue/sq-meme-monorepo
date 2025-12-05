@@ -1645,6 +1645,14 @@
   dependencies:
     "@babel/types" "^7.28.2"
 
+"@types/chrome@^0.1.32":
+  version "0.1.32"
+  resolved "https://registry.npmjs.org/@types/chrome/-/chrome-0.1.32.tgz"
+  integrity sha512-n5Cqlh7zyAqRLQWLXkeV5K/1BgDZdVcO/dJSTa8x+7w+sx7m73UrDmduAptg4KorMtyTW2TNnPu8RGeaDMKNGg==
+  dependencies:
+    "@types/filesystem" "*"
+    "@types/har-format" "*"
+
 "@types/connect@^3.4.33":
   version "3.4.38"
   resolved "https://registry.npmjs.org/@types/connect/-/connect-3.4.38.tgz"

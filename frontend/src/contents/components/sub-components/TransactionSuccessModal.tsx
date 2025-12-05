@@ -5,6 +5,7 @@
  * - 익스플로러 링크 제공
  */
 
+import { EXPLORER_URL } from "../../config/wagmi";
 import "../game-setup-modal/GameSetupModal.css";
 
 interface TransactionSuccessModalProps {
@@ -14,9 +15,6 @@ interface TransactionSuccessModalProps {
   title?: string;
   description?: string;
 }
-
-// MemeCore Mainnet Explorer (Insectarium 테스트넷은 익스플로러 없음)
-const EXPLORER_URL = "https://memecorescan.io";
 
 export function TransactionSuccessModal({
   isOpen,

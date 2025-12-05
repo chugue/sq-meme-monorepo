@@ -52,14 +52,6 @@ export class UploadController {
         )
         file: Express.Multer.File,
     ) {
-        const result = await this.uploadService.uploadImage(file, 'game-images');
-
-        return {
-            success: true,
-            data: {
-                url: result.url,
-                path: result.path,
-            },
-        };
+        return this.uploadService.uploadImage(file, 'game-images');
     }
 }

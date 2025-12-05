@@ -29,7 +29,6 @@ export interface GameCreatedEvent {
     gameAddr: Address;
     gameTokenAddr: Address;
     tokenSymbol: string;
-    tokenName: string;
     initiator: Address;
     gameTime: bigint;
     endTime: bigint;
@@ -195,4 +194,45 @@ export async function getCommentsFromBlockchain(
     }
 
     return comments;
+}
+
+/**
+ * 블록체인 댓글 구조체 타입 (V2 컨트랙트 getCommentsByGameId 반환값)
+ */
+export interface BlockchainComment {
+    id: bigint;
+    commentor: Address;
+    message: string;
+    timestamp: bigint;
+    endTime: bigint;
+}
+
+/**
+ * 블록체인에서 getCommentsByGameId로 댓글 직접 조회 (V2 컨트랙트)
+ * @param gameId 게임 ID
+ * @returns BlockchainComment 배열
+ */
+export async function getCommentsByGameIdFromBlockchain(
+    gameId: string
+): Promise<BlockchainComment[]> {
+    const contractAddress = COMMENT_GAME_V2_ADDRESS;
+
+    if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
+        console.warn('CommentGameV2 컨트랙트 주소가 설정되지 않았습니다.');
+        return [];
+    }
+
+    try {
+        const result = await injectedApi.readContract({
+            address: contractAddress as Address,
+            abi: commentGameV2ABI,
+            functionName: 'getCommentsByGameId',
+            args: [BigInt(gameId)],
+        });
+
+        return result as BlockchainComment[];
+    } catch (error) {
+        console.error('getCommentsByGameId 호출 실패:', error);
+        return [];
+    }
 }

@@ -29,6 +29,7 @@ import {
 } from "../lib/contract/abis/commentGameV2";
 import { createContractClient } from "../lib/contract/contractClient";
 import { logger } from "../lib/injected/logger";
+import { isGameEndedByTime } from "../utils/gameTime";
 
 // 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
 const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS ||
@@ -44,7 +45,7 @@ export function useTokenContract() {
   const [currentPageInfo, setCurrentPageInfo] = useAtom(currentPageInfoAtom);
   const [isLoading, setIsLoading] = useAtom(isPageInfoLoadingAtom);
   const [error, setError] = useAtom(pageInfoErrorAtom);
-  const [, setActiveGameInfo] = useAtom(activeGameInfoAtom);
+  const [activeGameInfo, setActiveGameInfo] = useAtom(activeGameInfoAtom);
   const [, setIsGameEnded] = useAtom(isGameEndedAtom);
   const [, setEndedGameInfo] = useAtom(endedGameInfoAtom);
 
@@ -154,22 +155,27 @@ export function useTokenContract() {
   );
 
   /**
-   * 토큰 주소로 게임 정보 조회
+   * 토큰 주소로 게임 정보 조회 (최적화 버전)
    *
    * 흐름:
-   * 1. 백엔드 getActiveGameByToken + 블록체인 getActiveGameId 동시 요청
-   * 2. 백엔드 결과 먼저 UI 반영 (빠르니까)
-   * 3. 블록체인 gameId로 getGameInfo 조회
-   * 4. 블록체인 결과로 상태 대체
+   * 1. 백엔드 API와 블록체인 RPC를 병렬로 시작 (await 없이)
+   * 2. 백엔드 결과가 먼저 오면 즉시 UI 반영 (로딩 해제)
+   * 3. 블록체인 결과는 백그라운드에서 처리하여 UI 업데이트
    */
   const fetchGameByToken = useCallback(
     async (
       tokenAddress: string,
       forceRefresh = false
     ): Promise<GameInfo | null> => {
-      // 중복 조회 방지
-      if (!forceRefresh && lastTokenAddressRef.current === tokenAddress) {
-        logger.debug("이미 조회한 토큰 주소", { tokenAddress });
+      // 중복 조회 방지 (단, activeGameInfo가 null이면 재조회 허용)
+      if (
+        !forceRefresh &&
+        lastTokenAddressRef.current === tokenAddress &&
+        activeGameInfo
+      ) {
+        logger.debug("이미 조회한 토큰 주소 (게임 정보 있음)", {
+          tokenAddress,
+        });
         return null;
       }
 
@@ -177,97 +183,125 @@ export function useTokenContract() {
       setIsLoading(true);
       setError(null);
 
-      try {
-        const queryTokenAddress = MOCK_ERC20_ADDRESS;
-        logger.info("토큰 주소로 게임 조회 시작", {
-          tokenAddress,
-          queryTokenAddress,
-        });
+      const queryTokenAddress = MOCK_ERC20_ADDRESS;
+      logger.info("토큰 주소로 게임 조회 시작", {
+        tokenAddress,
+        queryTokenAddress,
+      });
 
-        // 1. 백엔드 getActiveGameByToken + 블록체인 getActiveGameId 동시 요청
-        const [backendGame, blockchainGameId] = await Promise.all([
-          backgroundApi.getActiveGameByToken(queryTokenAddress),
-          fetchActiveGameId(queryTokenAddress),
-        ]);
+      let hasSetInitialState = false;
 
-        // 2. 백엔드 결과 먼저 UI 반영 (빠르니까)
-        if (backendGame) {
-          logger.info("백엔드 활성 게임 발견, UI 먼저 반영", {
-            gameId: backendGame.gameId,
-          });
+      // 백엔드 API 호출 (빠름 - 먼저 완료되면 즉시 UI 업데이트)
+      const backendPromise = backgroundApi
+        .getActiveGameByToken(queryTokenAddress)
+        .then((result) => {
+          // gameId가 유효한 경우에만 처리 (null, undefined, 빈 문자열 제외)
+          if (result?.gameId) {
+            // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
+            const isEnded = isGameEndedByTime(result.endTime);
 
-          const backendGameInfo: ActiveGameInfo = {
-            id: backendGame.gameId,
-            initiator: backendGame.initiator,
-            gameToken: backendGame.gameToken,
-            cost: backendGame.cost,
-            gameTime: backendGame.gameTime,
-            tokenSymbol: backendGame.tokenSymbol || "",
-            endTime: backendGame.endTime,
-            lastCommentor: backendGame.lastCommentor,
-            prizePool: backendGame.prizePool,
-            isClaimed: backendGame.isClaimed,
-            isEnded: backendGame.isEnded,
-            totalFunding: backendGame.totalFunding || "0",
-            funderCount: backendGame.funderCount || "0",
-          };
-
-          setGameState(backendGameInfo, backendGame.isEnded);
-        }
-
-        // 3. 블록체인 gameId로 getGameInfo 조회
-        if (blockchainGameId) {
-          const blockchainGame = await fetchGameInfoById(blockchainGameId);
-
-          if (blockchainGame) {
-            const gameInfo = toActiveGameInfo(blockchainGame);
-            const blockchainGameIdStr = blockchainGame.id.toString();
-
-            logger.info("블록체인 게임 정보로 UI 대체", {
-              blockchainGameId: blockchainGameIdStr,
-              backendGameId: backendGame?.gameId || "없음",
-              isEnded: blockchainGame.isEnded,
+            logger.info("백엔드 활성 게임 발견, UI 즉시 반영", {
+              gameId: result.gameId,
+              endTime: result.endTime,
+              isEndedByTime: isEnded,
+              isEndedFromDB: result.isEnded,
             });
 
-            // 4. 블록체인 결과로 상태 대체
-            setGameState(gameInfo, blockchainGame.isEnded);
+            const backendGameInfo: ActiveGameInfo = {
+              id: result.gameId,
+              initiator: result.initiator,
+              gameToken: result.gameToken,
+              cost: result.cost,
+              gameTime: result.gameTime,
+              tokenSymbol: result.tokenSymbol || "",
+              endTime: result.endTime,
+              lastCommentor: result.lastCommentor,
+              prizePool: result.prizePool,
+              isClaimed: result.isClaimed,
+              isEnded: isEnded, // DB 값 대신 시간 비교 결과 사용
+              totalFunding: result.totalFunding || "0",
+              funderCount: result.funderCount || "0",
+            };
 
-            // 백엔드에 없거나 다른 게임이면 등록
-            const isSameGame = backendGame?.gameId === blockchainGameIdStr;
+            setGameState(backendGameInfo, isEnded);
+            hasSetInitialState = true;
+            setIsLoading(false); // 백엔드 결과로 로딩 해제
+          } else if (result) {
+            logger.warn("백엔드 응답에 gameId 누락", { result });
+          }
+          return result;
+        })
+        .catch((err) => {
+          logger.error("백엔드 게임 조회 실패", err);
+          return null;
+        });
 
-            if (!isSameGame) {
-              logger.info("새 게임 백엔드 등록", {
-                gameId: blockchainGameIdStr,
-              });
-              backgroundApi.registerGame(blockchainGame).catch((err) => {
-                logger.error("백엔드 게임 등록 실패 (무시)", err);
-              });
+      // 블록체인 조회 (느림 - 백그라운드에서 처리, 더 정확한 정보)
+      const blockchainPromise = fetchActiveGameId(queryTokenAddress)
+        .then(async (gameId) => {
+          if (!gameId) {
+            logger.info("블록체인에 활성 게임 없음");
+            // 백엔드에서 이미 유효한 게임 정보를 받았으면 블록체인 null 결과로 덮어쓰지 않음
+            // (Race condition 방지: 백엔드 응답이 더 신뢰할 수 있는 경우가 많음)
+            if (hasSetInitialState) {
+              logger.info("백엔드 데이터가 있으므로 블록체인 null 결과 무시");
             }
-
-            return isSameGame ? backendGame : null;
-          }
-        }
-
-        // 블록체인에 활성 게임 없음
-        if (!blockchainGameId) {
-          // 백엔드에만 있는 경우 (이미 UI 반영됨)
-          if (backendGame) {
-            logger.info("블록체인에 활성 게임 없음, 백엔드 게임 유지");
-            return backendGame;
+            return null;
           }
 
-          // 양쪽 모두 게임 없음
+          // gameId로 상세 정보 조회
+          const blockchainGame = await fetchGameInfoById(gameId);
+          if (!blockchainGame) return null;
+
+          // endTime과 현재 시간을 비교하여 실제 종료 여부 계산
+          const isEnded = isGameEndedByTime(blockchainGame.endTime);
+
+          const gameInfo = toActiveGameInfo(blockchainGame);
+          // 시간 비교 결과로 isEnded 덮어쓰기
+          gameInfo.isEnded = isEnded;
+
+          const blockchainGameIdStr = blockchainGame.id.toString();
+
+          logger.info("블록체인 게임 정보로 UI 업데이트", {
+            blockchainGameId: blockchainGameIdStr,
+            endTime: blockchainGame.endTime.toString(),
+            isEndedByTime: isEnded,
+            isEndedFromContract: blockchainGame.isEnded,
+          });
+
+          // 블록체인 결과로 UI 업데이트 (시간 비교 결과 사용)
+          setGameState(gameInfo, isEnded);
+          hasSetInitialState = true;
+
+          return blockchainGame;
+        })
+        .catch((err) => {
+          logger.error("블록체인 게임 조회 실패", err);
+          return null;
+        });
+
+      try {
+        // 둘 다 완료될 때까지 대기 (하지만 UI는 이미 업데이트됨)
+        const [backendResult] = await Promise.all([
+          backendPromise,
+          blockchainPromise,
+        ]);
+
+        // 둘 다 게임이 없는 경우
+        if (!hasSetInitialState) {
           logger.info("게임 없음 (백엔드 및 블록체인 모두)", { tokenAddress });
           setGameState(null, false);
         }
 
-        return null;
+        return backendResult;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "게임 조회 실패";
         logger.error("게임 조회 실패", err);
         setError(errorMessage);
-        setGameState(null, false);
+        if (!hasSetInitialState) {
+          setGameState(null, false);
+        }
         return null;
       } finally {
         setIsLoading(false);
@@ -280,6 +314,7 @@ export function useTokenContract() {
       fetchActiveGameId,
       fetchGameInfoById,
       toActiveGameInfo,
+      activeGameInfo,
     ]
   );
 
@@ -298,43 +333,44 @@ export function useTokenContract() {
     [setCurrentPageInfo, fetchGameByToken]
   );
 
-  /**
-   * window에서 초기 토큰 정보 확인
-   */
-  const checkInitialTokenInfo = useCallback(() => {
-    try {
-      const cachedTokens = (window as any).__SQUID_MEME_TOKEN_CONTRACTS__;
-      const currentUrl = window.location.href;
-      const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+  // NOTE: 이벤트 드리븐 방식으로 모든 케이스가 커버되므로 폴링 방식 비활성화
+  // /**
+  //  * window에서 초기 토큰 정보 확인
+  //  */
+  // const checkInitialTokenInfo = useCallback(() => {
+  //   try {
+  //     const cachedTokens = (window as any).__SQUID_MEME_TOKEN_CONTRACTS__;
+  //     const currentUrl = window.location.href;
+  //     const profileMatch = currentUrl.match(/\/profile\/([^\/]+)\/([^\/]+)/);
 
-      logger.info("초기 토큰 정보 확인 시작", {
-        hasCachedTokens: !!cachedTokens,
-        currentUrl,
-        isProfilePage: !!profileMatch,
-      });
+  //     logger.info("초기 토큰 정보 확인 시작", {
+  //       hasCachedTokens: !!cachedTokens,
+  //       currentUrl,
+  //       isProfilePage: !!profileMatch,
+  //     });
 
-      if (cachedTokens && typeof cachedTokens === "object" && profileMatch) {
-        const [, username, userTag] = profileMatch;
-        const cacheKey = `${username}#${userTag}`;
+  //     if (cachedTokens && typeof cachedTokens === "object" && profileMatch) {
+  //       const [, username, userTag] = profileMatch;
+  //       const cacheKey = `${username}#${userTag}`;
 
-        const tokenInfo = cachedTokens[cacheKey];
-        logger.info("캐시 확인", { cacheKey, hasTokenInfo: !!tokenInfo });
+  //       const tokenInfo = cachedTokens[cacheKey];
+  //       logger.info("캐시 확인", { cacheKey, hasTokenInfo: !!tokenInfo });
 
-        if (tokenInfo) {
-          logger.info("초기 토큰 정보 발견", tokenInfo);
-          // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
-          lastTokenAddressRef.current = null;
-          handleTokenContractCached(tokenInfo);
-        } else {
-          logger.info(
-            "캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기"
-          );
-        }
-      }
-    } catch (err) {
-      logger.error("초기 토큰 정보 확인 실패", err);
-    }
-  }, [handleTokenContractCached]);
+  //       if (tokenInfo) {
+  //         logger.info("초기 토큰 정보 발견", tokenInfo);
+  //         // 초기 로딩 시에는 ref 초기화하여 항상 새로 조회
+  //         lastTokenAddressRef.current = null;
+  //         handleTokenContractCached(tokenInfo);
+  //       } else {
+  //         logger.info(
+  //           "캐시에 토큰 정보 없음, TOKEN_CONTRACT_CACHED 메시지 대기"
+  //         );
+  //       }
+  //     }
+  //   } catch (err) {
+  //     logger.error("초기 토큰 정보 확인 실패", err);
+  //   }
+  // }, [handleTokenContractCached]);
 
   /**
    * SPA 네비게이션 시 상태 초기화
@@ -374,12 +410,13 @@ export function useTokenContract() {
       // SPA 네비게이션 감지 시 상태 초기화 + 캐시된 토큰 정보 처리
       if (event.data.source === MESSAGE_SOURCE.SPA_NAVIGATION) {
         resetState();
-        // 캐시된 토큰 정보가 있으면 즉시 처리
-        const { cachedToken } = event.data;
-        if (cachedToken?.contractAddress) {
-          logger.info("SPA 네비게이션 + 캐시된 토큰 정보", cachedToken);
-          handleTokenContractCached(cachedToken);
-        }
+        // NOTE: cachedToken은 항상 null (injected.js에서 __next_f 추출 후 TOKEN_CONTRACT_CACHED로 전송)
+        // // 캐시된 토큰 정보가 있으면 즉시 처리
+        // const { cachedToken } = event.data;
+        // if (cachedToken?.contractAddress) {
+        //   logger.info("SPA 네비게이션 + 캐시된 토큰 정보", cachedToken);
+        //   handleTokenContractCached(cachedToken);
+        // }
         // 없으면 TOKEN_CONTRACT_CACHED 메시지를 기다림
         return;
       }
@@ -396,15 +433,16 @@ export function useTokenContract() {
 
     window.addEventListener("message", handleMessage);
 
-    // 초기 토큰 정보 확인 (이미 캐시되어 있는 경우)
-    checkInitialTokenInfo();
+    // NOTE: 이벤트 드리븐 방식으로 모든 케이스가 커버되므로 폴링 방식 비활성화
+    // checkInitialTokenInfo();
 
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [handleTokenContractCached, checkInitialTokenInfo, resetState]);
+  }, [handleTokenContractCached, resetState]);
 
   return {
+    activeGameInfo,
     currentPageInfo,
     isLoading,
     error,

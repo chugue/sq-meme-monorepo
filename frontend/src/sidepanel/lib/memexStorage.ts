@@ -12,11 +12,18 @@ const GTM_USER_IDENTIFIER_KEY = 'gtm_user_identifier';
 const SQUID_USER_KEY = 'squid_user';
 
 /**
- * MEMEX 로그인 정보 타입
+ * MEMEX 로그인 정보 타입 (캐시용 - SessionState 필드 포함)
  */
 export interface MemexUserInfo {
     username: string;
     user_tag: string;
+    // 추가 캐시 필드 (선택적)
+    profileImage?: string | null;
+    memexWalletAddress?: string | null;
+    myTokenAddr?: string | null;
+    myTokenSymbol?: string | null;
+    myTokenImageUrl?: string | null;
+    walletAddress?: string | null;
 }
 
 /**
@@ -31,7 +38,17 @@ export async function getMemexUserInfo(): Promise<MemexUserInfo | null> {
         }
 
         if (typeof data.username === 'string' && typeof data.user_tag === 'string') {
-            return { username: data.username, user_tag: data.user_tag };
+            // 모든 캐시된 필드를 반환
+            return {
+                username: data.username,
+                user_tag: data.user_tag,
+                profileImage: data.profileImage,
+                memexWalletAddress: data.memexWalletAddress,
+                myTokenAddr: data.myTokenAddr,
+                myTokenSymbol: data.myTokenSymbol,
+                myTokenImageUrl: data.myTokenImageUrl,
+                walletAddress: data.walletAddress,
+            };
         }
 
         return null;

@@ -88,7 +88,7 @@ export function SettingsStep({
         <label className="squid-input-label">
           Initial Funding
           <span className="squid-input-hint">
-            상금 풀에 넣을 초기 토큰 수량ㄴ
+            상금 풀에 넣을 초기 토큰 수량
           </span>
         </label>
         <div className="squid-input-with-suffix">
@@ -259,15 +259,15 @@ export function SettingsStep({
             <div className="squid-comment-actions">
               <button
                 type="button"
-                className="squid-comment-add-image"
+                className="squid-modal-add-image"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
               >
                 {isUploading ? (
-                  <span className="squid-upload-spinner" />
-                ) : (
-                  <ImagePlus size={20} />
-                )}
+                    <span className="squid-upload-spinner" />
+                  ) : (
+                    <ImagePlus size={20} />
+                  )}
               </button>
             </div>
           )}

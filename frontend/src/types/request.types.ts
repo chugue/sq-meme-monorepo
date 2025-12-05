@@ -1,24 +1,16 @@
 // 댓글 생성 요청 DTO
+// - txHash만 전송하면 백엔드에서 CommentAdded 이벤트를 파싱하여 저장
 export interface CreateCommentRequest {
   txHash: string;
-  gameId: string; // 컨트랙트상의 게임 ID (필수)
-  gameAddress?: string; // deprecated: gameId로 대체
-  commentor: string;
-  message: string;
-  imageUrl?: string; // 댓글 이미지 URL (선택)
-  newEndTime: string;
-  prizePool: string;
-  timestamp: string;
+  imageUrl?: string; // 댓글 이미지 URL (선택, 이벤트에 없으므로 별도 전송)
 }
 
 // 게임 생성 요청 DTO
 export interface CreateGameRequest {
   txHash: string;
   gameId: string;
-  gameAddr: string;
   gameTokenAddr: string;
   tokenSymbol: string;
-  tokenName: string;
   initiator: string;
   gameTime: string;
   endTime: string;

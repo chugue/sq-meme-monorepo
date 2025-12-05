@@ -5,7 +5,7 @@
  * SidePanel과 Content Script 간 상태 동기화
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { backgroundApi } from '../lib/backgroundApi';
 import { memeCoreChain } from '../config/wagmi';
 import { getChainConfig } from '../lib/injected/chainConfig';
@@ -274,10 +274,18 @@ export function useWallet(): UseWalletReturn {
         };
     }, [disconnect, updateState]);
 
-    // 초기화: backgroundApi를 통해 현재 지갑 상태 조회
+    // 초기 상태 확인 중복 방지
+    const initialCheckDone = useRef(false);
+
+    // 초기화: backgroundApi를 통해 현재 지갑 상태 조회 (마운트 시 한 번만)
     useEffect(() => {
+        if (initialCheckDone.current) {
+            return;
+        }
+        initialCheckDone.current = true;
         fetchWalletState();
-    }, [fetchWalletState]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return {
         ...state,

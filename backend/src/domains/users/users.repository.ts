@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -60,6 +60,27 @@ export class UsersRepository {
     }
 
     /**
+     * @description username과 userTag로 사용자 조회
+     */
+    async findByUsernameAndUserTag(
+        userName: string,
+        userTag: string,
+    ): Promise<User | null> {
+        const [user] = await this.db
+            .select()
+            .from(schema.users)
+            .where(eq(schema.users.userName, userName))
+            .limit(1);
+
+        // userTag도 확인
+        if (user && user.userTag === userTag) {
+            return user;
+        }
+
+        return null;
+    }
+
+    /**
      * @description 사용자 조회 또는 생성 (있으면 조회, 없으면 초기 체크인과 함께 생성)
      */
     async findOrCreate(
@@ -86,5 +107,25 @@ export class UsersRepository {
 
         const user = await this.create(newUser);
         return { user, isNew: true };
+    }
+
+    /**
+     * @description 여러 지갑 주소로 사용자 목록 조회
+     */
+    async findByWalletAddresses(walletAddresses: string[]): Promise<User[]> {
+        if (walletAddresses.length === 0) {
+            return [];
+        }
+
+        const normalizedAddresses = walletAddresses.map((addr) =>
+            addr.toLowerCase(),
+        );
+
+        const users = await this.db
+            .select()
+            .from(schema.users)
+            .where(inArray(schema.users.walletAddress, normalizedAddresses));
+
+        return users;
     }
 }

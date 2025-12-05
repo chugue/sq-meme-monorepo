@@ -1,0 +1,501 @@
+/* ===================================
+   No Game Section Styles
+   =================================== */
+
+.no-game-container {
+    box-sizing: border-box;
+    position: relative;
+    width: 366px;
+    min-height: 600px;
+    max-height: 90vh;
+    padding: 40px 20px;
+    background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.no-game-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* NO GAME YET! 타이틀 */
+.no-game-title {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+    height: 32px;
+    margin: 0;
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 21.35px;
+    line-height: 150%;
+    background: linear-gradient(207.55deg, #ffffff 29.55%, #f9d0ff 112.89%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0px 0px 14.344px #3e0ead);
+    -webkit-text-stroke: 1.304px #6541ff;
+}
+
+/* 오징어 캐릭터 이미지 */
+.no-game-squid-character {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-game-squid-image {
+    width: 151px;
+    height: 152px;
+    object-fit: contain;
+}
+
+/* 토큰 정보 프레임 */
+.no-game-token-info-frame {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+    max-width: 366px;
+}
+
+/* 대괄호 스타일 */
+.no-game-bracket {
+    width: 10px;
+    height: 77px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.no-game-bracket-top,
+.no-game-bracket-bottom {
+    position: absolute;
+    width: 7px;
+    height: 3px;
+    background: #8181a5;
+}
+
+.no-game-bracket-line {
+    position: absolute;
+    width: 3px;
+    height: 71px;
+    background: #8181a5;
+}
+
+/* 왼쪽 대괄호 */
+.no-game-left-bracket .no-game-bracket-top {
+    left: 3px;
+    top: 0;
+}
+
+.no-game-left-bracket .no-game-bracket-bottom {
+    left: 3px;
+    bottom: 0;
+}
+
+.no-game-left-bracket .no-game-bracket-line {
+    left: 0;
+    top: 3px;
+}
+
+/* 오른쪽 대괄호 */
+.no-game-right-bracket .no-game-bracket-top {
+    right: 3px;
+    top: 0;
+}
+
+.no-game-right-bracket .no-game-bracket-bottom {
+    right: 3px;
+    bottom: 0;
+}
+
+.no-game-right-bracket .no-game-bracket-line {
+    right: 0;
+    top: 3px;
+}
+
+/* 토큰 정보 내용 */
+.no-game-token-info-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    gap: 4px;
+    min-width: 180px;
+}
+
+.no-game-token-label {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 150%;
+    color: #8181a5;
+}
+
+.no-game-token-value {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #f8f8f8;
+}
+
+.no-game-token-handle {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #f8f8f8;
+}
+
+/* 게임 생성 섹션 */
+.no-game-create-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* CREATE GAME 버튼 */
+.no-game-create-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 40px;
+    gap: 10px;
+    width: 100%;
+    max-width: 304px;
+    height: 66px;
+    background: linear-gradient(135deg, #c456ff 0%, #7400bc 100%);
+    border-radius: 33px;
+    border: none;
+    box-shadow: 0px 0px 5.58px rgba(31, 156, 255, 1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.no-game-create-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 33px;
+    padding: 1px;
+    background: linear-gradient(90deg, #ffbdbf 0%, #f0beff 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.no-game-create-button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
+}
+
+.no-game-create-button:active {
+    transform: scale(0.98);
+}
+
+.no-game-create-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.no-game-create-button-text {
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #ffffff;
+    text-shadow: 0px 0px 12px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+
+/* 지갑 연결 상태 */
+.no-game-wallet-status {
+    font-family: "Pretendard", sans-serif;
+    font-size: 12px;
+    color: #8181a5;
+}
+
+.no-game-connected-status {
+    font-family: "Pretendard", sans-serif;
+    font-size: 10px;
+    color: #4ade80;
+}
+
+/* 에러 메시지 */
+.no-game-error {
+    font-family: "Pretendard", sans-serif;
+    font-size: 11px;
+    color: #ff6b6b;
+    text-align: center;
+    max-width: 280px;
+}
+
+/* 우승자 섹션 - 새 디자인 */
+.no-game-winner-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    gap: 0;
+    max-width: none;
+    position: relative;
+    margin-left: -20px;
+    margin-right: -20px;
+    margin-bottom: -40px;
+    margin-top: 30px;
+    width: calc(100% + 40px);
+    background: #7805b7;
+}
+
+/* 배경 이미지 컨테이너 */
+.no-game-winner-bg {
+    position: relative;
+    width: 100%;
+    height: auto;
+    background: #7805b7;
+    display: flex;
+    justify-content: center;
+}
+
+.no-game-winner-character {
+    position: relative;
+    width: 288px;
+    height: auto;
+    top: 0;
+    object-fit: contain;
+    aspect-ratio: auto;
+}
+
+.no-game-winner-bottom-bar {
+    position: absolute;
+    width: 304px;
+    height: 50px;
+    left: 0;
+    top: 422px;
+    background: #7905b7;
+    border-radius: 0 0 12px 12px;
+}
+
+/* 트로피 아이콘 */
+.no-game-winner-trophy {
+    position: absolute;
+    width: 73px;
+    height: 76px;
+    object-fit: contain;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 0;
+}
+
+/* 텍스트 섹션 - 이미지 위에 오버레이 */
+.no-game-winner-content {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    gap: 6px;
+    width: 100%;
+    z-index: 1;
+}
+
+/* YOU WON 타이틀 */
+.no-game-winner-title-box {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+}
+
+.no-game-winner-title {
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 150%;
+    text-align: center;
+    letter-spacing: 0.08em;
+    color: #ffe082;
+    text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000,
+        2px 2px 4px #000, 0 4px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* 상금 표시 */
+.no-game-winner-prize {
+    width: 100%;
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 150%;
+    text-align: center;
+    letter-spacing: 0.08em;
+    color: #ffe082;
+    text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000,
+        2px 2px 4px #000, 0 4px 40px rgba(0, 0, 0, 0.5);
+    margin: 0;
+}
+
+/* Claim 버튼 - 새 디자인 */
+.no-game-claim-button {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    margin-top: 100px;
+    transform: translateX(-50%);
+    z-index: 2;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 50px;
+    gap: 14px;
+    width: 286px;
+    background: linear-gradient(
+        93.05deg,
+        rgba(255, 177, 33, 0.88) 6.33%,
+        rgba(255, 217, 73, 0.88) 94.86%
+    );
+    border: 1px solid #ffffff;
+    border-radius: 125px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.no-game-claim-button:hover:not(:disabled) {
+    transform: translateX(-50%) scale(1.02);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
+}
+
+.no-game-claim-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: translateX(-50%);
+}
+
+.no-game-claim-button-text {
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #ffffff;
+    text-shadow: 0px 0px 12px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+
+/* 숨김 요소 */
+.no-game-winner-icon {
+    display: none;
+}
+
+.no-game-winner-text {
+    display: none;
+}
+
+.no-game-winner-text strong {
+    display: none;
+}
+
+.no-game-winner-text p {
+    display: none;
+}
+
+/* 트랜잭션 해시 */
+.no-game-tx-hash {
+    font-family: "Pretendard", sans-serif;
+    font-size: 10px;
+    color: #8181a5;
+    margin-top: 8px;
+}
+
+.no-game-tx-hash a {
+    color: #4a9eff;
+    text-decoration: none;
+}
+
+.no-game-tx-hash a:hover {
+    text-decoration: underline;
+}
+
+/* 로딩 텍스트 */
+.no-game-loading-text {
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 150%;
+    color: #f9d0ff;
+    text-shadow: 0px 0px 14px #6a003c;
+    letter-spacing: 2px;
+}
+
+/* 모바일 최적화 - 고정 너비 유지 */
+@media (max-width: 480px) {
+    .no-game-container {
+        width: 366px;
+        min-height: 500px;
+        padding: 30px 16px;
+        gap: 20px;
+    }
+
+    .no-game-title {
+        font-size: 14px;
+    }
+
+    .no-game-squid-image {
+        width: 120px;
+        height: 121px;
+    }
+
+    .no-game-token-info-content {
+        min-width: 150px;
+        padding: 8px;
+    }
+
+    .no-game-create-button {
+        max-width: 280px;
+        height: 56px;
+        padding: 10px 30px;
+    }
+
+    .no-game-create-button-text {
+        font-size: 12px;
+    }
+
+    .no-game-loading-text {
+        font-size: 14px;
+    }
+}

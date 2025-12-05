@@ -65,8 +65,12 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         uint256 indexed gameId,
         address indexed initiator,
         address indexed gameToken,
-        uint256 initialFunding,
-        uint256 endTime
+        uint256 cost,
+        uint256 gameTime,
+        string tokenSymbol,
+        uint256 endTime,
+        address lastCommentor,
+        uint256 totalFunding
     );
 
     event CommentAdded(
@@ -75,6 +79,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         address indexed commentor,
         string message,
         uint256 newEndTime,
+        uint256 totalFunding,
         uint256 timestamp
     );
 
@@ -159,7 +164,17 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         activeGameByToken[_gameToken] = gameId;
         allGameIds.push(gameId);
         
-        emit GameCreated(gameId, msg.sender, _gameToken, _initialFunding, game.endTime);
+        emit GameCreated(
+            gameId,
+            msg.sender,
+            _gameToken,
+            game.cost,
+            game.gameTime,
+            game.tokenSymbol,
+            game.endTime,
+            game.lastCommentor,
+            game.totalFunding
+        );
         
         return gameId;
     }
@@ -264,7 +279,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         game.lastCommentor = msg.sender;
         game.endTime = block.timestamp + game.gameTime;
 
-        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, block.timestamp);
+        emit CommentAdded(_gameId, commentId, msg.sender, _message, game.endTime, game.totalFunding, block.timestamp);
     }
 
     /**

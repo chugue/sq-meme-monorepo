@@ -1,0 +1,1048 @@
+/* 폰트는 CommentSection.tsx의 loadFont()에서 로컬 파일로 로드됨 */
+/* @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"); */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+/* ============================
+   메인 컨테이너 스타일
+   ============================ */
+.squid-comment-section {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui,
+        sans-serif;
+    position: relative;
+    width: 366px;
+    min-height: 600px;
+    max-height: 90vh;
+    background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
+    border-radius: 12px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.squid-comment-section::-webkit-scrollbar {
+    display: none;
+}
+
+/* 커스텀 스크롤바 */
+.squid-custom-scrollbar {
+    position: fixed;
+    right: 2px;
+    width: 4px;
+    background: #793f95;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 0.5s ease;
+}
+
+/* 배경 레이어 */
+.squid-comment-section::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 221px;
+    left: 0;
+    top: 148px;
+    background: linear-gradient(
+        180deg,
+        rgba(24, 24, 66, 0) 4.98%,
+        rgba(22, 22, 60, 0.323909) 17.04%,
+        #121230 96.61%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ============================
+   헤더 영역 (타이틀 + 타이머)
+   ============================ */
+.squid-game-header {
+    display: flex;
+    background: #060722;
+    flex-direction: column;
+    align-items: center;
+    /* padding: 20px 20px 0; */
+    position: relative;
+    z-index: 1;
+}
+
+.squid-game-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 90px;
+    padding: 10px 32px;
+    gap: 4px;
+    width: 366px;
+    border-radius: 90px;
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 150%;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.squid-title-yellow {
+    font-family: "Press Start 2P", "Courier New", monospace !important;
+    color: #ffd745;
+}
+
+.squid-title-purple {
+    font-family: "Press Start 2P", "Courier New", monospace !important;
+    color: #fbf3fc;
+    white-space: nowrap;
+}
+
+/* 타이머 래퍼 (배경 이미지 포함) */
+.squid-timer-wrapper {
+    position: relative;
+    width: calc(100% + 40px);
+    margin-left: -20px;
+    margin-right: -20px;
+    height: 180px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.squid-timer-bg {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    height: auto;
+    min-width: 100%;
+    min-height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 타이머 영역 */
+.squid-game-timer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 8px;
+    width: 100%;
+    margin-top: 30px;
+    max-width: 253px;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px dashed #003c26;
+    border-radius: 10px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+.squid-timer-container {
+    position: relative;
+    width: 253px;
+}
+
+.squid-prize-display {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 20px;
+    margin-top: 25px;
+    gap: 8px;
+    width: fit-content;
+    background: rgba(19, 19, 19, 0.8);
+    border: 2px dashed #003c26;
+    border-radius: 51.81px;
+    box-sizing: border-box;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, 30%);
+    z-index: 3;
+}
+
+.squid-prize-label {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 150%;
+    color: #7e7e7e;
+}
+
+.squid-prize-value {
+    font-family: "Press Start 2P", cursive;
+    font-weight: 200;
+    font-size: 8px;
+    line-height: 100%;
+    background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0px 0px 7.24px #1f0e00;
+}
+
+.squid-prize-amount {
+    font-family: "Press Start 2P", cursive;
+    font-weight: 400;
+    font-size: 11.5px;
+    line-height: 150%;
+    background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0px 0px 7.24px #1f0e00;
+}
+
+.squid-timer-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 8px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px dashed #003c26;
+    border-radius: 10px;
+    margin-top: 8px;
+    box-sizing: border-box;
+}
+
+.squid-timer-label {
+    font-family: "Press Start 2P", cursive;
+    font-weight: 400;
+    font-size: 9.68px;
+    line-height: 150%;
+    letter-spacing: 0.28em;
+    color: #7b3534;
+    text-shadow: 0px 0px 6px #1f0e00;
+}
+
+.squid-timer-value {
+    font-family: "Press Start 2P", cursive;
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 100%;
+    background: linear-gradient(180deg, #ff494d 42.24%, #c20004 92.35%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0px 0px 11.41px #1f0e00;
+}
+
+/* ============================
+   펀딩 섹션 스타일
+   ============================ */
+.squid-funding-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    width: 312px;
+    margin: 20px auto 0;
+    position: relative;
+    z-index: 1;
+}
+
+.squid-funding-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 8px 8px 12px;
+    gap: 4px;
+    width: 100%;
+    background: #000000;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.squid-funding-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 0px;
+}
+
+.squid-funding-title {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 150%;
+    color: #ffffff;
+    margin: 0;
+}
+
+.squid-funding-desc {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 150%;
+    color: #7e7e7e;
+    margin: 0;
+}
+
+.squid-funding-form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 4px;
+    width: 100%;
+}
+
+.squid-funding-amount-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 6px;
+    flex: 1;
+}
+
+.squid-funding-token-badge {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 10px;
+    border-radius: 100px;
+    background: transparent;
+}
+
+.squid-funding-token-badge span {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 14px;
+    color: #b9a7ff;
+}
+
+.squid-funding-value {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 150%;
+    color: #b9a7ff;
+}
+
+.squid-funding-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    gap: 50px;
+    width: 34px;
+    height: 34px;
+    background: #b9a7ff;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.squid-funding-button:hover:not(:disabled) {
+    background: #c9b9ff;
+    transform: scale(1.05);
+}
+
+.squid-funding-button:disabled {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.squid-funding-button svg {
+    width: 24px;
+    height: 24px;
+    color: #000000;
+}
+
+/* My Share 섹션 */
+.squid-my-share-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 8px 8px 12px;
+    gap: 4px;
+    width: 100%;
+    background: #000000;
+    border-radius: 10px;
+    margin-top: 0;
+    box-sizing: border-box;
+}
+
+.squid-my-share-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 2px;
+    width: 100%;
+}
+
+.squid-my-share-label {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #b9a7ff;
+}
+
+.squid-my-share-value {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+}
+
+.squid-my-share-value span {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 150%;
+    color: #b9a7ff;
+}
+
+/* ============================
+   댓글 입력 영역
+   ============================ */
+.squid-comment-form {
+    margin: 12px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.squid-chat-write {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 4px;
+    width: 100%;
+}
+
+.squid-input-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 8px 14px;
+    gap: 4px;
+    flex: 1;
+    background: #222222;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.squid-comment-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 17px;
+    color: #ffffff;
+    resize: none;
+}
+
+.squid-comment-input::placeholder {
+    color: #8181a5;
+}
+
+.squid-image-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.squid-image-button svg {
+    width: 18px;
+    height: 18px;
+    color: #ffffff;
+}
+
+.squid-send-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    gap: 50px;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(0deg, #313131, #313131),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+        linear-gradient(270deg, #5555ba -22.06%, #820eac 100%);
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.squid-send-button:hover:not(:disabled) {
+    opacity: 0.8;
+}
+
+.squid-send-button:disabled {
+    background: #313131;
+    cursor: not-allowed;
+}
+
+.squid-send-button.active {
+    background: linear-gradient(270deg, #5555ba -22.06%, #820eac 100%);
+}
+
+.squid-send-button svg {
+    width: 22px;
+    height: 22px;
+    color: #717172;
+}
+
+.squid-send-button.active svg {
+    color: #ffffff;
+}
+
+/* 이미지 미리보기 */
+.squid-comment-image-container {
+    position: relative;
+    margin: 8px 0;
+}
+
+.squid-comment-image {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.squid-comment-image-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================
+   댓글 목록 영역
+   ============================ */
+.squid-comments-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 9px 0px;
+    gap: 12px;
+    width: 326px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.squid-comments-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0px;
+    gap: 8px;
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+}
+
+.squid-comments-list:hover {
+    scrollbar-color: #783f9595 transparent;
+}
+
+/* 스크롤바 스타일 (Webkit) */
+.squid-comments-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.squid-comments-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.squid-comments-list::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+.squid-comments-list:hover::-webkit-scrollbar-thumb {
+    background: #783f9595;
+}
+
+/* ============================
+   댓글 아이템 스타일
+   ============================ */
+.squid-comment-item {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 10px 12px;
+    gap: 8px;
+    width: 312px;
+    background: #000000;
+    border-radius: 10px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+/* 우승자 댓글 스타일 */
+.squid-comment-item.winner {
+    position: relative;
+}
+
+.squid-winner-badge {
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 26px;
+    height: 26px;
+    z-index: 2;
+}
+
+/* 프로필 영역 */
+.squid-comment-profile {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 100px;
+    flex-shrink: 0;
+}
+
+.squid-comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.squid-comment-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c218ff 0%, #793f95 100%);
+}
+
+/* 댓글 내용 영역 */
+.squid-comment-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.squid-comment-header-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 8px;
+    width: 100%;
+}
+
+.squid-comment-username {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 14px;
+    color: #c218ff;
+}
+
+.squid-comment-username.winner {
+    color: #ffd845;
+}
+
+.squid-comment-time {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 8px;
+    line-height: 10px;
+    color: #71717d;
+}
+
+.squid-comment-time.winner {
+    color: #adaed0;
+}
+
+.squid-comment-content {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 17px;
+    color: #ffffff;
+    word-break: break-word;
+}
+
+/* 댓글 이미지 */
+.squid-comment-image-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.squid-comment-image-preview {
+    width: 100%;
+    max-height: 204px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* 좋아요 버튼 */
+.squid-comment-like {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+    width: 22px;
+    height: 36px;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.squid-comment-like-icon {
+    width: 22px;
+    height: 22px;
+    color: #b9a7ff;
+    stroke: #b9a7ff;
+    fill: transparent;
+    transition: all 0.2s ease;
+}
+
+.squid-comment-like.liked .squid-comment-like-icon {
+    fill: #b9a7ff;
+}
+
+.squid-comment-like-count {
+    font-family: "Pretendard", sans-serif;
+    font-size: 10px;
+    color: #b9a7ff;
+}
+
+/* ============================
+   게임 없음 섹션
+   ============================ */
+.squid-no-game-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.squid-no-game-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.squid-no-game-title {
+    font-family: "Press Start 2P", cursive;
+    font-size: 14px;
+    color: #ffd845;
+    margin-bottom: 8px;
+    text-shadow: 0px 0px 10px #5006ff;
+}
+
+.squid-no-game-description {
+    font-family: "Pretendard", sans-serif;
+    font-size: 12px;
+    color: #8181a5;
+    line-height: 1.5;
+}
+
+/* ============================
+   로딩 및 빈 상태
+   ============================ */
+.squid-comment-loading,
+.squid-comment-empty {
+    text-align: center;
+    padding: 40px 20px;
+    font-family: "Pretendard", sans-serif;
+    font-size: 14px;
+    color: #8181a5;
+}
+
+/* ============================
+   지갑 연결 UI
+   ============================ */
+.squid-wallet-actions {
+    display: none;
+}
+
+/* ============================
+   업로드 스피너
+   ============================ */
+.squid-upload-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================
+   펀딩 입력 필드 (기존 호환)
+   ============================ */
+.squid-funding-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: #222222;
+    border: none;
+    border-radius: 10px;
+    font-family: "Pretendard", sans-serif;
+    font-size: 14px;
+    color: #b9a7ff;
+    outline: none;
+}
+
+.squid-funding-input::placeholder {
+    color: #8181a5;
+}
+
+.squid-funding-input::-webkit-outer-spin-button,
+.squid-funding-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.squid-funding-input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* ============================
+   댓글 폼 추가 스타일
+   ============================ */
+.squid-comment-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    background: #000000;
+    border-radius: 10px;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.squid-comment-add-image-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px dashed #8181a5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.squid-comment-add-image-inline:hover:not(:disabled) {
+    border-color: #b9a7ff;
+}
+
+.squid-comment-add-image-inline:hover:not(:disabled) svg {
+    color: #b9a7ff;
+}
+
+.squid-comment-add-image-inline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.squid-comment-add-image-inline svg {
+    color: #8181a5;
+    transition: color 0.2s ease;
+}
+
+.squid-comment-submit-block {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 20px;
+    gap: 10px;
+    width: 100%;
+    background: linear-gradient(270deg, #5555ba -22.06%, #820eac 100%);
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: "Press Start 2P", cursive;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 150%;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+}
+
+.squid-comment-submit-block:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.squid-comment-submit-block:disabled {
+    background: #313131;
+    color: #717172;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ============================
+   배경 이미지 레이어
+   ============================ */
+.squid-bg-pig {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+}
+
+.squid-bg-legion {
+    position: absolute;
+    left: 0;
+    top: 148px;
+    width: 100%;
+    height: 221px;
+    object-fit: cover;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.squid-bg-character {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    width: 288px;
+    height: 137px;
+    object-fit: cover;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ============================
+   댓글 헤더
+   ============================ */
+.squid-comment-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.squid-comment-title {
+    font-family: "Press Start 2P", cursive;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 150%;
+    color: #b9a7ff;
+    margin: 0;
+}
+
+.squid-comment-count {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 150%;
+    color: #b9a7ff;
+    background: rgba(185, 167, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* ============================
+   댓글 정보 영역
+   ============================ */
+.squid-comment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.squid-comment-date {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 12px;
+    color: #71717d;
+}
+
+.squid-comment-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding-left: 44px;
+}

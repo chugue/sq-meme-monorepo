@@ -1,19 +1,22 @@
 export interface Comment {
   id: number;
   commentId: number; // 블록체인 commentId
-  gameAddress: string;
+  gameId: string;
   commentor: string;
   message: string;
   createdAt: string;
   likeCount?: number;
+  isLiked?: boolean;
   endTime?: string;
   currentPrizePool?: string;
   isWinnerComment?: boolean;
   imageUrl?: string;
+  username?: string;
+  profileImage?: string;
 }
 
 export interface CreateCommentInput {
-  gameAddress: string;
+  gameId: string;
   commentor: string;
   message: string;
 }

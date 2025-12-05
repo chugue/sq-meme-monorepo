@@ -1,0 +1,166 @@
+/* ===================================
+   Game Loading Section Styles
+   =================================== */
+
+.game-loading-container {
+    box-sizing: border-box;
+    position: relative;
+    width: 366px;
+    min-height: 600px;
+    padding: 40px 20px;
+    background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
+    box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
+        0 0 10px rgba(121, 63, 149, 0.2);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+}
+
+/* 오징어 캐릭터 이미지 */
+.squid-character {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.squid-image {
+    width: 148px;
+    height: auto;
+    object-fit: contain;
+}
+
+/* 토큰 정보 프레임 */
+.token-info-frame {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px;
+    gap: 8px;
+}
+
+/* 대괄호 스타일 */
+.bracket {
+    width: 10px;
+    height: 77px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.bracket-top,
+.bracket-bottom {
+    position: absolute;
+    width: 7px;
+    height: 3px;
+    background: #8181a5;
+}
+
+.bracket-line {
+    position: absolute;
+    width: 3px;
+    height: 71px;
+    background: #8181a5;
+}
+
+/* 왼쪽 대괄호 */
+.left-bracket .bracket-top {
+    left: 3px;
+    top: 0;
+}
+
+.left-bracket .bracket-bottom {
+    left: 3px;
+    bottom: 0;
+}
+
+.left-bracket .bracket-line {
+    left: 0;
+    top: 3px;
+}
+
+/* 오른쪽 대괄호 */
+.right-bracket .bracket-top {
+    right: 3px;
+    top: 0;
+}
+
+.right-bracket .bracket-bottom {
+    right: 3px;
+    bottom: 0;
+}
+
+.right-bracket .bracket-line {
+    right: 0;
+    top: 3px;
+}
+
+/* 토큰 정보 내용 */
+.token-info-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    gap: 4px;
+    min-width: 180px;
+}
+
+.token-label {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 150%;
+    color: #8181a5;
+}
+
+.token-value {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #f8f8f8;
+}
+
+.token-handle {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 150%;
+    color: #f8f8f8;
+}
+
+/* LOADING 텍스트 */
+.loading-text {
+    font-family: "Press Start 2P", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 150%;
+    color: #f9d0ff;
+    text-shadow: 0px 0px 14px #6a003c;
+    letter-spacing: 2px;
+    display: flex;
+}
+
+/* 모바일 최적화 - 고정 너비 유지 */
+@media (max-width: 480px) {
+    .game-loading-container {
+        width: 366px;
+        min-height: 500px;
+        padding: 30px 16px;
+        gap: 20px;
+    }
+
+    .squid-image {
+        width: 120px;
+    }
+
+    .loading-text {
+        font-size: 14px;
+    }
+
+    .token-info-content {
+        min-width: 150px;
+        padding: 8px;
+    }
+}

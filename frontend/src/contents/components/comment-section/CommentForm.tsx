@@ -12,6 +12,8 @@ interface CommentFormProps {
     isSigning: boolean;
     isConnected: boolean;
     disabled?: boolean;
+    tokenSymbol?: string;
+    commentCost?: string;
 }
 
 export function CommentForm({
@@ -24,6 +26,8 @@ export function CommentForm({
     isSigning,
     isConnected,
     disabled,
+    tokenSymbol,
+    commentCost,
 }: CommentFormProps) {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +36,9 @@ export function CommentForm({
         if (!isConnected) return 'CONNECT WALLET FIRST';
         if (isSigning) return 'SIGNING...';
         if (isSubmitting) return 'SUBMITTING...';
+        if (tokenSymbol && commentCost) {
+            return `SUBMIT (${commentCost} $${tokenSymbol})`;
+        }
         return 'SUBMIT';
     };
 
@@ -99,31 +106,31 @@ export function CommentForm({
                     </div>
                 )}
 
-                {/* 하단 액션 바 */}
-                <div className="squid-comment-actions">
-                    {onImageChange && (
-                        <button
-                            type="button"
-                            className="squid-comment-add-image"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isDisabled || isUploading}
-                        >
-                            {isUploading ? (
-                                <span className="squid-upload-spinner" />
-                            ) : (
-                                <ImagePlus size={20} />
-                            )}
-                        </button>
-                    )}
+                {/* 이미지 추가 버튼 - 텍스트필드 아래 왼쪽 (이미지가 없을 때만 표시) */}
+                {onImageChange && !imageUrl && (
                     <button
-                        type="submit"
-                        className="squid-comment-submit"
-                        disabled={!value.trim() || isSubmitting || isSigning || !isConnected || disabled}
+                        type="button"
+                        className="squid-comment-add-image-inline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isDisabled || isUploading}
                     >
-                        {getButtonText()}
+                        {isUploading ? (
+                            <span className="squid-upload-spinner" />
+                        ) : (
+                            <ImagePlus size={18} />
+                        )}
                     </button>
-                </div>
+                )}
             </div>
+
+            {/* Submit 버튼 - block */}
+            <button
+                type="submit"
+                className="squid-comment-submit-block"
+                disabled={!value.trim() || isSubmitting || isSigning || disabled}
+            >
+                {getButtonText()}
+            </button>
         </form>
     );
 }

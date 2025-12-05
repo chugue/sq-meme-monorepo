@@ -2,17 +2,21 @@ import { injected } from '@wagmi/core';
 import { defineChain } from 'viem';
 import { createConfig, http, type Config } from 'wagmi';
 
-const MEMECORE_CHAIN_ID = 43522;
-const MEMECORE_RPC_URL = 'https://rpc.insectarium.memecore.net'
-const MEMECORE_EXPLORER_URL = 'https://insectarium.blockscout.memecore.com';
+const MEMECORE_CHAIN_ID = 43521;
+const MEMECORE_RPC_URL = 'https://rpc.formicarium.memecore.net'
+// const MEMECORE_EXPLORER_URL = 'https://formicarium.blockscout.memecore.com';
+const MEMECORE_EXPLORER_URL = 'https://formicarium.memecorescan.io';
+
+// 블록 탐색기 URL (외부에서 사용)
+export const EXPLORER_URL = MEMECORE_EXPLORER_URL;
 
 export const memeCoreChain = defineChain({
     id: MEMECORE_CHAIN_ID,
     name: 'MemeCore',
-    network: 'Insectarium',
+    network: 'Formicarium',
     nativeCurrency: {
         decimals: 18,
-        name: 'Insectarium',
+        name: 'Formicarium',
         symbol: 'M',
     },
     rpcUrls: {

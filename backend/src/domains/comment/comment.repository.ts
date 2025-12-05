@@ -3,7 +3,6 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
-import { CreateCommentDtoSchema } from 'src/common/validator/comment.validator';
 
 export type ToggleLikeResult = { liked: boolean; likeCount: number };
 export type LikeCountResult = { likeCount: number };
@@ -75,7 +74,9 @@ export class CommentRepository {
 
                 await tx
                     .update(schema.comments)
-                    .set({ likeCount: sql`${schema.comments.likeCount} - 1` })
+                    .set({
+                        likeCount: sql`GREATEST(COALESCE(${schema.comments.likeCount}, 0) - 1, 0)`,
+                    })
                     .where(eq(schema.comments.id, commentId));
 
                 liked = false;
@@ -162,25 +163,19 @@ export class CommentRepository {
     }
 
     /**
-     * @description 프론트엔드에서 전송한 댓글 데이터를 검증하고 저장
-     * @returns 생성된 댓글 ID 또는 null (중복/실패 시)
+     * @description 이벤트에서 파싱된 댓글 데이터를 저장
+     * @returns 생성된 댓글 ID 또는 null (실패 시)
      */
-    async createFromFrontend(rawData: unknown): Promise<{ id: number } | null> {
-        const result = CreateCommentDtoSchema.safeParse(rawData);
-        if (!result.success) {
-            this.logger.error(`Invalid comment data: ${result.error.message}`);
-            return null;
-        }
-
-        const dto = result.data;
-
-        // 중복 체크 (txHash unique 제약조건으로도 방어됨)
-        const existing = await this.findByTxHash(dto.txHash);
-        if (existing) {
-            this.logger.warn(`중복 댓글 요청: txHash ${dto.txHash}`);
-            return existing;
-        }
-
+    async createFromEvent(dto: {
+        txHash: string;
+        gameId: string;
+        commentor: string;
+        message: string;
+        imageUrl?: string;
+        newEndTime: string;
+        prizePool: string;
+        timestamp: string;
+    }): Promise<{ id: number } | null> {
         try {
             const comment = await this.db.transaction(async (tx) => {
                 // 1. 댓글 저장
@@ -189,14 +184,9 @@ export class CommentRepository {
                     .values({
                         txHash: dto.txHash,
                         gameId: dto.gameId,
-                        gameAddress: dto.gameAddress,
                         commentor: dto.commentor,
                         message: dto.message,
                         imageUrl: dto.imageUrl,
-                        likeCount: 0,
-                        endTime: new Date(Number(dto.newEndTime) * 1000),
-                        currentPrizePool: dto.prizePool,
-                        isWinnerComment: false,
                         createdAt: new Date(Number(dto.timestamp) * 1000),
                     })
                     .returning({ id: schema.comments.id });
@@ -233,5 +223,29 @@ export class CommentRepository {
             .limit(1);
 
         return comment ?? null;
+    }
+
+    /**
+     * @description 지갑 주소로 댓글 수 조회
+     */
+    async countByWalletAddress(walletAddress: string): Promise<number> {
+        const [result] = await this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(schema.comments)
+            .where(eq(schema.comments.commentor, walletAddress.toLowerCase()));
+
+        return Number(result?.count ?? 0);
+    }
+
+    /**
+     * @description 지갑 주소로 참여한 게임 ID 목록 조회 (중복 제거)
+     */
+    async findGameIdsByWalletAddress(walletAddress: string): Promise<string[]> {
+        const results = await this.db
+            .selectDistinct({ gameId: schema.comments.gameId })
+            .from(schema.comments)
+            .where(eq(schema.comments.commentor, walletAddress.toLowerCase()));
+
+        return results.map((r) => r.gameId);
     }
 }
