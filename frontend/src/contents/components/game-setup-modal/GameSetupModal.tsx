@@ -5,7 +5,7 @@
  * - 토큰 잔액 확인, 게임 설정 입력, 트랜잭션 실행
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCreateGame } from "../../hooks/useCreateGame";
 import "./GameSetupModal.css";
 import {
@@ -34,6 +34,9 @@ export function GameSetupModal({
   const [realTokenSymbol, setRealTokenSymbol] = useState<string>(tokenSymbol);
   const [isCheckingExistingGame, setIsCheckingExistingGame] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { checkExistingGame } = useCreateGame();
 
@@ -55,6 +58,34 @@ export function GameSetupModal({
 
     checkGame();
   }, [isOpen, tokenAddress, checkExistingGame, onExistingGameFound, onClose]);
+
+  // 스크롤 이벤트 처리
+  useEffect(() => {
+    const container = modalContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setIsScrolling(true);
+
+      // 스크롤이 멈추면 1초 후 스크롤바 숨김
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false);
+      }, 1000);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [isOpen]);
 
   // 모달이 닫히지 않았으면 렌더링하지 않음
   if (!isOpen) return null;
@@ -98,7 +129,12 @@ export function GameSetupModal({
 
   return (
     <div className="squid-modal-backdrop" onClick={handleBackdropClick}>
-      <div className="squid-modal-container">
+      <div
+        ref={modalContainerRef}
+        className={`squid-modal-container ${
+          isScrolling ? "is-scrolling" : ""
+        }`}
+      >
         {/* 헤더 */}
         <div className="squid-modal-header">
           <h2 className="squid-modal-title">CREATE GAME</h2>

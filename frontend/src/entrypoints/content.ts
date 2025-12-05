@@ -64,20 +64,26 @@ function findSearchBar(): HTMLElement | null {
     return null;
 }
 
-// 타겟 요소 찾기 함수 - 오른쪽 사이드바 (RightPanel) 타겟
+// 타겟 요소 찾기 함수 - 페이지 최상위(body) 우선, RightPanel은 보조 옵션
 function findTargetElement(): HTMLElement | null {
-    let targetElement: HTMLElement | null = null;
+    // 우선순위 1: body를 항상 사용 (항상 존재하므로 즉시 반환)
+    // 작은 화면에서는 RightPanel이 사라질 수 있으므로 body를 기본으로 사용
+    if (document.body) {
+        console.log("🦑 body를 타겟 요소로 사용 (최상위 진입 지점)");
+        return document.body;
+    }
 
-    // 방법 1: RightPanel 클래스로 찾기 (가장 정확)
+    // 우선순위 2: RightPanel_container (큰 화면에서 사용 가능한 경우)
+    let targetElement: HTMLElement | null = null;
     targetElement = document.querySelector(
         '[class*="RightPanel_container"]'
     ) as HTMLElement;
     if (targetElement) {
-        console.log("🦑 RightPanel_container 클래스로 타겟 요소 찾음");
+        console.log("🦑 RightPanel_container 클래스로 타겟 요소 찾음 (보조 옵션)");
         return targetElement;
     }
 
-    // 방법 2: layout_rightPanelContainer 내부 div 찾기
+    // 우선순위 3: layout_rightPanelContainer 내부 div 찾기
     const rightPanelContainer = document.querySelector(
         '[class*="layout_rightPanelContainer"]'
     );
@@ -93,7 +99,7 @@ function findTargetElement(): HTMLElement | null {
         return targetElement;
     }
 
-    // 방법 3: Search 컴포넌트가 있는 section 찾기
+    // 우선순위 4: Search 컴포넌트가 있는 section 찾기
     const searchElement = document.querySelector('[class*="Search_"]');
     if (searchElement) {
         // Search의 부모 컨테이너 찾기
@@ -108,7 +114,7 @@ function findTargetElement(): HTMLElement | null {
         }
     }
 
-    // 방법 4: 폴백 - 세 번째 section (오른쪽 패널)
+    // 우선순위 5: 폴백 - 세 번째 section (오른쪽 패널)
     const sections = document.querySelectorAll("section");
     if (sections.length >= 3) {
         // layout_rightPanelContainer가 세 번째 section일 가능성
@@ -119,7 +125,8 @@ function findTargetElement(): HTMLElement | null {
         return targetElement;
     }
 
-    console.log("🦑 오른쪽 패널을 찾지 못함, body 사용");
+    // 최종 폴백: body (항상 존재)
+    console.log("🦑 모든 방법 실패, body 사용 (최종 폴백)");
     return document.body;
 }
 
@@ -138,34 +145,36 @@ function insertAfterSearchBar(container: HTMLElement, targetElement: HTMLElement
     return false;
 }
 
-// 타겟 요소 찾기 (리트라이 로직 포함)
+// 타겟 요소 찾기 (리트라이 로직 포함) - body 우선 사용으로 단순화
 function findTargetElementWithRetry(
     maxRetries: number = 10,
     retryInterval: number = 500,
-    timeout: number = 10000
+    timeout: number = 2000
 ): Promise<HTMLElement> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
+        // body는 항상 존재하므로 즉시 resolve
+        if (document.body) {
+            console.log("🦑 body를 타겟으로 즉시 반환 (항상 존재)");
+            resolve(document.body);
+            return;
+        }
+
+        // body가 아직 없는 경우 (매우 드문 경우) 대기
         const startTime = Date.now();
         let retryCount = 0;
 
         const tryFind = () => {
-            // 타임아웃 체크
+            // 타임아웃 체크 (2초로 단축)
             if (Date.now() - startTime > timeout) {
-                console.warn("🦑 타겟 요소 찾기 타임아웃, body에 마운트합니다.");
-                resolve(document.body);
+                console.warn("🦑 body 찾기 타임아웃, document.documentElement 사용");
+                resolve(document.documentElement);
                 return;
             }
 
-            const element = findTargetElement();
-
-            // 타겟 요소를 찾았고 body가 아닌 경우
-            if (element && element !== document.body) {
-                console.log(
-                    "🦑 타겟 요소 찾기 성공:",
-                    element,
-                    `(시도: ${retryCount + 1})`
-                );
-                resolve(element);
+            // body 확인
+            if (document.body) {
+                console.log("🦑 body 찾기 성공:", `(시도: ${retryCount + 1})`);
+                resolve(document.body);
                 return;
             }
 
@@ -174,9 +183,9 @@ function findTargetElementWithRetry(
             // 최대 재시도 횟수 체크
             if (retryCount >= maxRetries) {
                 console.warn(
-                    `🦑 타겟 요소를 ${maxRetries}회 시도 후 찾지 못했습니다. body에 마운트합니다.`
+                    `🦑 body를 ${maxRetries}회 시도 후 찾지 못했습니다. document.documentElement 사용.`
                 );
-                resolve(document.body);
+                resolve(document.documentElement);
                 return;
             }
 
@@ -186,16 +195,15 @@ function findTargetElementWithRetry(
 
         // MutationObserver를 사용하여 DOM 변경 감지
         const observer = new MutationObserver(() => {
-            const element = findTargetElement();
-            if (element && element !== document.body) {
-                console.log("🦑 MutationObserver로 타겟 요소 발견:");
+            if (document.body) {
+                console.log("🦑 MutationObserver로 body 발견");
                 observer.disconnect();
-                resolve(element);
+                resolve(document.body);
             }
         });
 
-        // body를 관찰 대상으로 설정
-        observer.observe(document.body, {
+        // document를 관찰 대상으로 설정
+        observer.observe(document.documentElement, {
             childList: true,
             subtree: true,
         });
@@ -206,11 +214,10 @@ function findTargetElementWithRetry(
         // 타임아웃 설정
         setTimeout(() => {
             observer.disconnect();
-            const element = findTargetElement();
-            if (element) {
-                resolve(element);
-            } else {
+            if (document.body) {
                 resolve(document.body);
+            } else {
+                resolve(document.documentElement);
             }
         }, timeout);
     });

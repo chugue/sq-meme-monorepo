@@ -88,7 +88,7 @@ export function SettingsStep({
         <label className="squid-input-label">
           Initial Funding
           <span className="squid-input-hint">
-            상금 풀에 넣을 초기 토큰 수량ㄴ
+            상금 풀에 넣을 초기 토큰 수량
           </span>
         </label>
         <div className="squid-input-with-suffix">
