@@ -342,13 +342,15 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 8px;
+    padding: 8px 8px;
     gap: 50px;
-    width: 34px;
-    height: 34px;
+    min-width: 25px;
+    height: 30px;
     background: #b9a7ff;
     border-radius: 10px;
     border: none;
+    font-weight: 500;
+    color: #000000;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -423,7 +425,7 @@
    댓글 입력 영역
    ============================ */
 .squid-comment-form {
-    margin: 12px 20px;
+    margin: 0px 20px;
     position: relative;
     z-index: 1;
 }
@@ -891,7 +893,6 @@
     width: 32px;
     height: 32px;
     background: transparent;
-    border: 1px dashed #8181a5;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -899,6 +900,8 @@
 
 .squid-comment-add-image-inline:hover:not(:disabled) {
     border-color: #b9a7ff;
+    background: #b9a7ff15;
+    transition: all 0.2s ease;
 }
 
 .squid-comment-add-image-inline:hover:not(:disabled) svg {
