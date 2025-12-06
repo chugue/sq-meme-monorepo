@@ -8,3 +8,4 @@ export { Snackbar } from "./Snackbar";
 export { default as BackButton } from "./BackButton";
 export { default as ProfileSection } from "./ProfileSection";
 export { default as TopBar } from "./TopBar";
+export { default as DashboardBackground } from "./DashboardBackground";

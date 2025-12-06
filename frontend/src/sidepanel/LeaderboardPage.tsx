@@ -1,5 +1,4 @@
 import { useSetAtom } from "jotai";
-import { ChevronLeft, Home } from "lucide-react";
 import { useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 import {
@@ -8,9 +7,9 @@ import {
     QuestCategory,
 } from "../types/response.types";
 import { navigateBackAtom } from "./atoms/pageAtoms";
+import { TopBar } from "./components";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import "./LeaderboardPage.css";
-import { ProfileModal } from "./ProfileModal";
 
 // Mock data
 const mockUserData = {
@@ -142,29 +141,13 @@ export function LeaderboardPage() {
     return (
         <div className="leaderboard-container">
             {/* Header */}
-            <header className="leaderboard-header">
-                <button className="back-btn" onClick={() => navigateBack()}>
-                    <ChevronLeft size={24} />
-                    <Home size={20} />
-                </button>
-                <div className="header-user-info">
-                    <span className="header-username">{username || "User"}</span>
-                    <img
-                        src={profileImageUrl || mockUserData.profileImage}
-                        alt="Profile"
-                        className="header-profile-image"
-                        onClick={() => setIsProfileModalOpen(true)}
-                        style={{ cursor: "pointer" }}
-                    />
-                </div>
-            </header>
+            <TopBar />
 
-            {/* Profile Modal */}
-            <ProfileModal
-                isOpen={isProfileModalOpen}
-                onClose={() => setIsProfileModalOpen(false)}
-            />
+            <div className="flex items-center justify-center gap-x-3 py-3 bg-brown-0">
+                <img src='/icon/trophy.png' className="w-14 h-14" style={{ imageRendering: 'pixelated' }} />
+                <span className="text-3xl font-bold text-gold-gradient-smooth uppercase">Leader Board</span>
 
+            </div>
             {/* Tabs */}
             <div className="leaderboard-tabs">
                 <button

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import TopBar from "./components/TopBar";
-
 export type QuestTypes = 'attendance' | 'comments';
 
 // 퀘스트 아이템
@@ -95,7 +94,9 @@ export default function QuestPage() {
     // if (!user) return <div>Loading...</div>;
 
     return (
-        <div className="flex flex-col items-center justify-center h-full">
+        <div
+            className="flex flex-col items-center justify-center relative min-h-screen z-30 backdrop-blur bg-black/90"
+        >
             <TopBar />
 
             <div className="flex items-center justify-center gap-x-5 pb-5">
@@ -105,7 +106,7 @@ export default function QuestPage() {
 
             <div className="w-full h-0.5 bg-gradient-main-1" />
 
-            <div className="flex flex-col items-center justify-center gap-y-20 px-5 pt-10 flex-1 w-full overflow-y-auto">
+            <div className="flex flex-col items-center justify-start gap-y-20 px-5 pt-10 flex-1 w-full overflow-y-auto">
                 {Object.keys(groupedQuests).length === 0 ? (
                     <div className="text-pixel-gray">No quests available.</div>
                 ) : (

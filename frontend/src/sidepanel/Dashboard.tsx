@@ -2,9 +2,7 @@ import "./Dashboard.css";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 
 // Assets imports
-import homeBg from "../../assets/home.png";
 import homeBanner from "../../assets/home_banner.png";
-import homeFloor from "../../assets/home_floor.png";
 import howToPlayIcon from "../../assets/how_to_play.png";
 import logoIcon from "../../assets/logo.png";
 import moneyIcon from "../../assets/money.png";
@@ -74,19 +72,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
     };
 
     return (
-        <div className="dashboard-container">
-            {/* Background Images */}
-            <div className="dashboard-background">
-                <img src={homeBg} alt="Background" className="bg-image" />
-                <img
-                    src={homeFloor}
-                    alt="Floor"
-                    className="absolute bottom-0 left-0 right-0 w-full h-full z-10 transform duration-1000 translate-y-[20%] sm:translate-y-[50%]"
-                    style={{
-                        animationDelay: '0.5s',
-                    }}
-                />
-            </div>
+        <div className="dashboard-container relative z-20">
 
             {/* Left Top: Profile Box with Image */}
             <button className="profile-btn">
