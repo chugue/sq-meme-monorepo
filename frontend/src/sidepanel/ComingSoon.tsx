@@ -15,10 +15,7 @@ import squareBrackets from "@/assets/square_brackets.png";
 function isContentScriptError(error: unknown): boolean {
     if (error instanceof Error) {
         const message = error.message.toLowerCase();
-        return (
-            message.includes("receiving end does not exist") ||
-            message.includes("could not establish connection")
-        );
+        return message.includes("receiving end does not exist") || message.includes("could not establish connection");
     }
     return false;
 }
@@ -34,6 +31,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
     const [snackbar, setSnackbar] = useState<{
         isVisible: boolean;
         message: string;
+
         type: "error" | "warning" | "info" | "success";
     }>({
         isVisible: false,
@@ -139,17 +137,12 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
             if (cachedUserInfo) {
                 try {
-                    const success = await tryLoginWithCachedUserInfo(
-                        cachedUserInfo,
-                        loginOptions,
-                    );
+                    const success = await tryLoginWithCachedUserInfo(cachedUserInfo, loginOptions);
                     if (success) {
                         return; // 로그인 성공
                     }
                     // 실패 시 Google 로그인으로 계속 진행
-                    console.log(
-                        "⚠️ [cachedUserInfo] 자동 회원가입 실패, memexLogin으로 계속 진행...",
-                    );
+                    console.log("⚠️ [cachedUserInfo] 자동 회원가입 실패, memexLogin으로 계속 진행...");
                 } catch (err) {
                     // content script 에러 처리
                     if (isContentScriptError(err)) {
@@ -176,12 +169,8 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             // Content script 연결 오류 체크 (응답에 error 필드가 있는 경우)
             if (
                 result?.error &&
-                (result.error
-                    .toLowerCase()
-                    .includes("receiving end does not exist") ||
-                    result.error
-                        .toLowerCase()
-                        .includes("could not establish connection"))
+                (result.error.toLowerCase().includes("receiving end does not exist") ||
+                    result.error.toLowerCase().includes("could not establish connection"))
             ) {
                 console.log("⚠️ Content script 연결 오류, 스낵바 표시");
                 showRefreshSnackbar();
@@ -189,27 +178,13 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             }
 
             // 이미 로그인되어 있으면 백엔드에서 user 정보 조회 후 완료
-            if (
-                result?.isLoggedIn &&
-                result.username &&
-                result.userTag &&
-                onMemexLoginComplete
-            ) {
-                console.log(
-                    "🔐 GTM 로그인 확인됨, 백엔드에서 user 정보 조회:",
-                    result.username,
-                );
+            if (result?.isLoggedIn && result.username && result.userTag && onMemexLoginComplete) {
+                console.log("🔐 GTM 로그인 확인됨, 백엔드에서 user 정보 조회:", result.username);
                 try {
-                    const userResult = await backgroundApi.getUserByUsername(
-                        result.username,
-                        result.userTag,
-                    );
+                    const userResult = await backgroundApi.getUserByUsername(result.username, result.userTag);
                     if (userResult?.user) {
                         setUser(userResult.user);
-                        console.log(
-                            "✅ MEMEX 로그인 완료:",
-                            userResult.user.userName,
-                        );
+                        console.log("✅ MEMEX 로그인 완료:", userResult.user.userName);
                         setLoggingIn(false);
                         onMemexLoginComplete(result.username, result.userTag);
                         return;
@@ -220,11 +195,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                     setLoggingIn(true);
 
                     // 1. 프로필 정보 fetch
-                    const profileInfo =
-                        await backgroundApi.fetchMemexProfileInfo(
-                            result.username,
-                            result.userTag,
-                        );
+                    const profileInfo = await backgroundApi.fetchMemexProfileInfo(result.username, result.userTag);
                     console.log("📋 프로필 정보:", profileInfo);
 
                     // 2. 지갑 주소 확인
@@ -235,11 +206,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                     }
 
                     // 3. 필수 정보 확인 후 Join 요청
-                    if (
-                        profileInfo?.profileImageUrl &&
-                        profileInfo?.tokenAddr &&
-                        profileInfo?.memexWalletAddress
-                    ) {
+                    if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
                         const joinResult = await backgroundApi.join({
                             username: result.username,
                             userTag: result.userTag,
@@ -254,15 +221,9 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
                         if (joinResult?.user) {
                             setUser(joinResult.user);
-                            console.log(
-                                "✅ 자동 회원가입 완료:",
-                                joinResult.user.userName,
-                            );
+                            console.log("✅ 자동 회원가입 완료:", joinResult.user.userName);
                             setLoggingIn(false);
-                            onMemexLoginComplete(
-                                result.username,
-                                result.userTag,
-                            );
+                            onMemexLoginComplete(result.username, result.userTag);
                             return;
                         }
                     } else {
@@ -311,31 +272,15 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
             {!isLoggingIn && (
                 <div className="absolute left-0 right-0 bottom-20 flex justify-center items-center w-full gap-3">
-                    <img
-                        src={squareBrackets}
-                        alt="["
-                        className="w-2 object-contain"
-                    />
-                    <button
-                        className="connect-bottom-button text-pixel-gold-flow text-xl"
-                        onClick={handleConnectWallet}
-                        disabled={isLoading}
-                    >
+                    <img src={squareBrackets} alt="[" className="w-2 object-contain" />
+                    <button className="connect-bottom-button text-pixel-gold-flow text-xl" onClick={handleConnectWallet} disabled={isLoading}>
                         CONNECT {">>>"}
                     </button>
-                    <img
-                        src={squareBrackets}
-                        alt="]"
-                        className="w-2 object-contain rotate-180"
-                    />
+                    <img src={squareBrackets} alt="]" className="w-2 object-contain rotate-180" />
                 </div>
             )}
 
-            <TermsModal
-                isOpen={isTermsModalOpen}
-                onClose={handleCloseTermsModal}
-                onAgree={handleAgreeTerms}
-            />
+            <TermsModal isOpen={isTermsModalOpen} onClose={handleCloseTermsModal} onAgree={handleAgreeTerms} />
             <Snackbar
                 message={snackbar.message}
                 type={snackbar.type}
@@ -346,17 +291,13 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 onAction={handleRefreshMemexTab}
             />
 
-            <img
-                src={homeBg}
-                alt="Background"
-                className="w-full h-full object-cover animate-zoom-out absolute inset-0 -z-10"
-            />
+            <img src={homeBg} alt="Background" className="w-full h-full object-cover animate-zoom-out absolute inset-0 -z-10" />
             <img
                 src={homeFloor}
                 alt="Floor"
                 className="absolute bottom-0 left-0 right-0 w-full h-full -z-10 transition-all transform translate-y-[20%] sm:translate-y-[50%]"
                 style={{
-                    animationDelay: '0.5s',
+                    animationDelay: "0.5s",
                 }}
             />
         </div>

@@ -1,10 +1,12 @@
 import "./App.css";
 
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { profileModalOpenAtom } from "./atoms/modalAtoms";
 import { currentPageAtom, PAGES } from "./atoms/pageAtoms";
 import { ComingSoon } from "./ComingSoon";
 import DashboardBackground from "./components/DashboardBackground";
+import { ProfileModal } from "./components/ProfileModal/ProfileModal";
 import { Dashboard } from "./Dashboard";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
@@ -16,11 +18,10 @@ import StartingLoading from "./StartingLoading";
 
 export function SidePanelApp() {
     const { isConnected, address, isLoading } = useSidepanelWallet();
-    const { isLoggedIn: isMemexLoggedIn, setLoggedIn: setMemexLoggedIn } =
-        useMemexLogin();
+    const { isLoggedIn: isMemexLoggedIn, setLoggedIn: setMemexLoggedIn } = useMemexLogin();
     const currentPage = useAtomValue(currentPageAtom);
     const [showStartingLoading, setShowStartingLoading] = useState(true);
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useAtom(profileModalOpenAtom);
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드로 전환
     useEffect(() => {
@@ -43,12 +44,7 @@ export function SidePanelApp() {
     };
 
     if (showStartingLoading || isLoading) {
-        return (
-            <StartingLoading
-                onComplete={handleStartingLoadingComplete}
-                duration={0}
-            />
-        );
+        return <StartingLoading onComplete={handleStartingLoadingComplete} duration={0} />;
     }
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드
@@ -60,8 +56,8 @@ export function SidePanelApp() {
                 {currentPage === PAGES.LEADERBOARD && <LeaderboardPage />}
                 {currentPage === PAGES.LIVE_GAMES && <LiveGamesPage />}
                 {currentPage === PAGES.MY_ASSETS && <MyAssetsPage />}
-                {(currentPage === PAGES.DASHBOARD || currentPage === undefined) && <Dashboard walletAddress={address || undefined} />
-                }
+                {(currentPage === PAGES.DASHBOARD || currentPage === undefined) && <Dashboard walletAddress={address || undefined} />}
+                <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
             </div>
         );
     }

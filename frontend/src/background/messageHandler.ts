@@ -1556,8 +1556,8 @@ export function createMessageHandler() {
 
                             const response = await apiCall<{
                                 success: boolean;
-                                data: { quests: any[] };
-                            }>("/v1/users/quests", {
+                                data: { today: string; quests: any[] };
+                            }>("/v1/quests", {
                                 headers: {
                                     "x-wallet-address": walletAddress,
                                 },

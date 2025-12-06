@@ -1,35 +1,14 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { z } from 'zod';
 
-export class JoinDto {
-    @IsString()
-    @IsNotEmpty()
-    walletAddress: string;
+export const JoinDtoSchema = z.object({
+    walletAddress: z.string().min(1),
+    userName: z.string().min(1),
+    userTag: z.string().min(1),
+    profileImage: z.string().min(1),
+    memexLink: z.string().min(1),
+    memexWalletAddress: z.string().min(1),
+    myTokenAddr: z.string().min(1),
+    myTokenSymbol: z.string().min(1),
+});
 
-    @IsString()
-    @IsNotEmpty()
-    userName: string;
-
-    @IsString()
-    @IsNotEmpty()
-    userTag: string;
-
-    @IsString()
-    @IsNotEmpty()
-    profileImage: string;
-
-    @IsString()
-    @IsNotEmpty()
-    memexLink: string;
-
-    @IsString()
-    @IsNotEmpty()
-    memexWalletAddress: string;
-
-    @IsString()
-    @IsNotEmpty()
-    myTokenAddr: string;
-
-    @IsString()
-    @IsNotEmpty()
-    myTokenSymbol: string;
-}
+export type JoinDto = z.infer<typeof JoinDtoSchema>;

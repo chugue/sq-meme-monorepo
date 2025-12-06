@@ -301,7 +301,9 @@ export class GameRepository {
      * @description 게임 ID 목록으로 활성 게임 정보 조회 (endTime > NOW(), isClaimed = false)
      * @returns API 응답 형식에 맞게 매핑된 게임 목록
      */
-    async findActiveGamesByIds(gameIds: string[]): Promise<ActiveGameBaseDto[]> {
+    async findActiveGamesByIds(
+        gameIds: string[],
+    ): Promise<ActiveGameBaseDto[]> {
         if (gameIds.length === 0) {
             return [];
         }
@@ -375,7 +377,7 @@ export class GameRepository {
      * @description 토큰별 총 상금 랭킹 조회 (claim된 게임 기준, 상위 N개)
      */
     async getGameRankingByToken(
-        limit: number = 5,
+        limit: number = 20,
     ): Promise<TokenPrizeRankDto[]> {
         try {
             const result = await this.db
@@ -386,10 +388,7 @@ export class GameRepository {
                 })
                 .from(schema.games)
                 .where(eq(schema.games.isClaimed, true))
-                .groupBy(
-                    schema.games.gameToken,
-                    schema.games.tokenSymbol,
-                )
+                .groupBy(schema.games.gameToken, schema.games.tokenSymbol)
                 .orderBy(
                     desc(sql`SUM(CAST(${schema.games.prizePool} AS NUMERIC))`),
                 )
@@ -409,7 +408,7 @@ export class GameRepository {
      * prizePool은 wei 단위(18 decimal)이므로 ETH 단위(정수)로 변환하여 반환
      */
     async getPrizeRankingByUser(
-        limit: number = 10,
+        limit: number = 20,
     ): Promise<UserPrizeRankDto[]> {
         try {
             // isClaimed = true인 개별 게임을 prizePool 내림차순으로 조회
@@ -421,16 +420,12 @@ export class GameRepository {
                 })
                 .from(schema.games)
                 .where(eq(schema.games.isClaimed, true))
-                .orderBy(
-                    desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`),
-                )
+                .orderBy(desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`))
                 .limit(limit);
 
             return result;
         } catch (error) {
-            this.logger.error(
-                `❌ 상금 랭킹 조회 실패: ${error.message}`,
-            );
+            this.logger.error(`❌ 상금 랭킹 조회 실패: ${error.message}`);
             return [];
         }
     }

@@ -10,6 +10,8 @@ describe('CommentController (e2e)', () => {
     let app: INestApplication<App>;
 
     const mockCommentService = {
+        createComment: jest.fn(),
+        getCommentsByGameId: jest.fn(),
         toggleLike: jest.fn(),
         getLikeCount: jest.fn(),
         hasUserLiked: jest.fn(),
@@ -43,6 +45,104 @@ describe('CommentController (e2e)', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+    });
+
+    describe('POST /v1/comments', () => {
+        const validTxHash =
+            '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+
+        it('should create comment successfully', async () => {
+            mockCommentService.createComment.mockResolvedValue(
+                Result.ok({ id: 1, newEndTime: '1700000000' }),
+            );
+
+            const response = await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({ txHash: validTxHash })
+                .expect(201);
+
+            expect(response.body).toEqual({
+                success: true,
+                data: { id: 1, newEndTime: '1700000000' },
+            });
+            expect(mockCommentService.createComment).toHaveBeenCalledWith({
+                txHash: validTxHash.toLowerCase(),
+            });
+        });
+
+        it('should create comment with imageUrl', async () => {
+            mockCommentService.createComment.mockResolvedValue(
+                Result.ok({ id: 2, newEndTime: '1700000000' }),
+            );
+
+            const response = await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({
+                    txHash: validTxHash,
+                    imageUrl: 'https://example.com/image.png',
+                })
+                .expect(201);
+
+            expect(response.body).toEqual({
+                success: true,
+                data: { id: 2, newEndTime: '1700000000' },
+            });
+            expect(mockCommentService.createComment).toHaveBeenCalledWith({
+                txHash: validTxHash.toLowerCase(),
+                imageUrl: 'https://example.com/image.png',
+            });
+        });
+
+        it('should return 400 for invalid txHash format', async () => {
+            await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({ txHash: 'invalid-hash' })
+                .expect(400);
+        });
+
+        it('should return 400 for missing txHash', async () => {
+            await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({})
+                .expect(400);
+        });
+
+        it('should return 400 for invalid imageUrl format', async () => {
+            await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({ txHash: validTxHash, imageUrl: 'not-a-url' })
+                .expect(400);
+        });
+
+        it('should return fail result when transaction not found', async () => {
+            mockCommentService.createComment.mockResolvedValue(
+                Result.fail('트랜잭션을 찾을 수 없습니다.'),
+            );
+
+            const response = await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({ txHash: validTxHash })
+                .expect(201);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.errorMessage).toBe(
+                '트랜잭션을 찾을 수 없습니다.',
+            );
+        });
+
+        it('should return fail result for duplicate comment', async () => {
+            mockCommentService.createComment.mockResolvedValue(
+                Result.fail('이미 처리된 댓글입니다.'),
+            );
+
+            const response = await request(app.getHttpServer())
+                .post('/v1/comments')
+                .send({ txHash: validTxHash })
+                .expect(201);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.errorMessage).toBe('이미 처리된 댓글입니다.');
+        });
     });
 
     describe('POST /v1/comments/:id/like', () => {
@@ -81,10 +181,8 @@ describe('CommentController (e2e)', () => {
                 .set('x-wallet-address', userAddress)
                 .expect(201);
 
-            expect(response.body).toEqual({
-                success: false,
-                errorMessage: '댓글을 찾을 수 없습니다',
-            });
+            expect(response.body.success).toBe(false);
+            expect(response.body.errorMessage).toBe('댓글을 찾을 수 없습니다');
         });
     });
 
@@ -115,10 +213,8 @@ describe('CommentController (e2e)', () => {
                 .get(`/v1/comments/999/like/count`)
                 .expect(200);
 
-            expect(response.body).toEqual({
-                success: false,
-                errorMessage: '댓글을 찾을 수 없습니다',
-            });
+            expect(response.body.success).toBe(false);
+            expect(response.body.errorMessage).toBe('댓글을 찾을 수 없습니다');
         });
     });
 

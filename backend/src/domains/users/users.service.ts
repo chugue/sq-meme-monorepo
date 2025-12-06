@@ -1,61 +1,25 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
+import {
+    mockMyAssets,
+    MyAsset,
+    MyAssetsRespDto,
+} from 'src/common/mock/my-assets';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
+import { QuestRepository } from '../quests/quest.repository';
 import { TokenRepository } from '../token/token.repository';
+import { WinnersRepository } from '../winners/winners.repository';
 import { JoinDto } from './dto/join.dto';
+import {
+    GameRankItem,
+    MostCommentUserRankDto,
+    MyActiveGameItem,
+    PrizeRankItem,
+    ProfilePageData,
+} from './dto/users.resp.dto';
 import { UsersRepository } from './users.repository';
-
-export interface ProfilePageData {
-    username: string | null;
-    connectedWallet: string;
-    memexWallet: string | null;
-    commentCounts: number;
-    streakDays: number;
-}
-
-// 리더보드 - 게임(토큰)별 총 상금 랭킹
-export interface GameRankItem {
-    rank: number;
-    tokenImage: string | null;
-    tokenAddress: string;
-    tokenSymbol: string | null;
-    totalPrize: string;
-}
-
-// 리더보드 - 유저별 총 획득 상금 랭킹
-export interface PrizeRankItem {
-    rank: number;
-    profileImage: string | null;
-    username: string | null;
-    totalAmount: string;
-    tokenAddress: string;
-    tokenSymbol: string;
-}
-
-// 퀘스트 아이템
-export interface QuestItem {
-    title: string;
-    claimed: boolean;
-    isEligible: boolean;
-}
-
-// 퀘스트 카테고리
-export interface QuestCategory {
-    category: string;
-    items: QuestItem[];
-}
-
-// 내가 참여 중인 게임 아이템
-export interface MyActiveGameItem {
-    gameId: string;
-    tokenImage: string | null;
-    tokenAddress: string;
-    tokenSymbol: string | null;
-    currentPrizePool: string | null;
-    endTime: string | null;
-}
 
 @Injectable()
 export class UsersService {
@@ -66,7 +30,94 @@ export class UsersService {
         private readonly commentRepository: CommentRepository,
         private readonly gameRepository: GameRepository,
         private readonly tokenRepository: TokenRepository,
+        private readonly questRepository: QuestRepository,
+        private readonly winnersRepository: WinnersRepository,
     ) {}
+
+    /**
+     * @description 내 자산 조회 (memex/otherTokens는 mock, myToken은 DB 조회)
+     */
+    async getMyAssets(walletAddress: string): Promise<Result<MyAssetsRespDto>> {
+        try {
+            const [memexMock, ...otherMocks] = mockMyAssets;
+
+            const memex: MyAsset = {
+                tokenAddress: memexMock.tokenAddress,
+                tokenSymbol: memexMock.tokenSymbol,
+                balance: memexMock.balance,
+                tokenImage: memexMock.tokenImage,
+            };
+
+            // 내 토큰은 DB에서 조회
+            let myToken: MyAsset = {
+                tokenAddress: '',
+                tokenSymbol: '',
+                balance: '0',
+                tokenImage: '',
+            };
+
+            const user =
+                await this.usersRepository.findByWalletAddress(walletAddress);
+            if (user?.myTokenAddr) {
+                const tokenInfo = await this.tokenRepository.findByTokenAddress(
+                    user.myTokenAddr,
+                );
+                myToken = {
+                    tokenAddress: user.myTokenAddr,
+                    tokenSymbol: user.myTokenSymbol ?? '',
+                    balance: user.myTokenBalance ?? '0',
+                    tokenImage: tokenInfo?.tokenImageUrl ?? '',
+                };
+            }
+
+            const otherTokens: MyAsset[] = otherMocks.map((m) => ({
+                tokenAddress: m.tokenAddress,
+                tokenSymbol: m.tokenSymbol,
+                balance: m.balance,
+                tokenImage: m.tokenImage,
+            }));
+
+            return Result.ok({ memex, myToken, otherTokens });
+        } catch (error) {
+            this.logger.error(`Get my assets failed: ${error.message}`);
+            return Result.fail(
+                '내 자산 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * @description 댓글 수 기준 유저 랭킹 조회
+     */
+    async getMostCommentors(
+        limit?: number,
+    ): Promise<Result<MostCommentUserRankDto[]>> {
+        try {
+            const topUsers = await this.usersRepository.getTopUsersByComments(
+                limit ?? 20,
+            );
+
+            const result: MostCommentUserRankDto[] = topUsers.map(
+                (user, index) => ({
+                    rank: index + 1,
+                    userWalletAddress: user.walletAddress,
+                    username: user.userName ?? '',
+                    userTag: user.userTag ?? '',
+                    profileImage: user.profileImage ?? null,
+                    commentCount: user.totalComments ?? 0,
+                }),
+            );
+
+            return Result.ok(result);
+        } catch (error) {
+            this.logger.error(`Get most commentors failed: ${error.message}`);
+            return Result.fail(
+                '댓글 랭킹 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 
     /**
      * @description 회원가입 (없으면 생성, 있으면 체크인 업데이트 후 반환)
@@ -80,12 +131,19 @@ export class UsersService {
             );
 
             if (isNew) {
+                // 신규 유저에게 퀘스트 4개 초기화
+                await this.questRepository.initializeQuestsForUser(
+                    user.walletAddress,
+                );
+                // 첫 체크인(streak=1) 반영하여 출석 퀘스트 업데이트
+                await this.questRepository.updateAttendanceQuests(user);
                 this.logger.log(`User created: ${dto.walletAddress}`);
                 return Result.ok({ user, isNew });
             }
 
             // 기존 사용자 - 체크인 업데이트
             const updatedUser = await this.updateCheckIn(user);
+
             this.logger.log(`User found: ${dto.walletAddress}`);
             return Result.ok({ user: updatedUser, isNew });
         } catch (error) {
@@ -129,6 +187,10 @@ export class UsersService {
         const updated = await this.usersRepository.update(user.walletAddress, {
             checkInHistory: newHistory,
         });
+
+        if (updated) {
+            await this.questRepository.updateAttendanceQuests(updated);
+        }
 
         return updated!;
     }
@@ -216,6 +278,7 @@ export class UsersService {
                 );
             }
 
+            //
             const commentCounts =
                 await this.commentRepository.countByWalletAddress(
                     walletAddress,
@@ -247,7 +310,7 @@ export class UsersService {
     async getGameRanking(): Promise<Result<{ gameRanking: GameRankItem[] }>> {
         try {
             const gameRankingRaw =
-                await this.gameRepository.getGameRankingByToken(5);
+                await this.gameRepository.getGameRankingByToken(20);
 
             // 토큰 이미지 조회
             const tokenAddresses = gameRankingRaw.map((r) => r.tokenAddress);
@@ -281,35 +344,43 @@ export class UsersService {
     }
 
     /**
-     * @description 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
+     * @description 게임별 상금 랭킹 조회 (Prize Ranking 탭)
+     * winners 테이블에서 개별 게임 단위로 상금 순 정렬
      */
     async getPrizeRanking(
         limit?: number,
     ): Promise<Result<{ prizeRanking: PrizeRankItem[] }>> {
         try {
-            const prizeRankingRaw =
-                await this.gameRepository.getPrizeRankingByUser(limit);
+            const topWinners = await this.winnersRepository.getTopWinners(
+                limit ?? 20,
+            );
 
             // 유저 정보 조회 (profileImage, username)
-            const walletAddresses = prizeRankingRaw.map((r) => r.walletAddress);
+            const walletAddresses = topWinners.map((w) => w.walletAddress);
             const users =
                 await this.usersRepository.findByWalletAddresses(
                     walletAddresses,
                 );
             const userMap = new Map(
-                users.map((u: User) => [u.walletAddress, u]),
+                users.map((u: User) => [u.walletAddress.toLowerCase(), u]),
             );
 
-            const prizeRanking: PrizeRankItem[] = prizeRankingRaw.map(
-                (item, index) => {
-                    const userInfo = userMap.get(item.walletAddress);
+            const prizeRanking: PrizeRankItem[] = topWinners.map(
+                (winner, index) => {
+                    const userInfo = userMap.get(
+                        winner.walletAddress.toLowerCase(),
+                    );
+                    // wei -> ETH 변환 (소수점 없이 정수로)
+                    const prizeInEth = Math.floor(
+                        Number(BigInt(winner.prize) / BigInt(10 ** 18)),
+                    ).toString();
                     return {
                         rank: index + 1,
                         profileImage: userInfo?.profileImage ?? null,
                         username: userInfo?.userName ?? null,
-                        totalAmount: item.totalAmount,
-                        tokenAddress: '',
-                        tokenSymbol: 'ETH',
+                        totalAmount: prizeInEth,
+                        tokenAddress: winner.tokenAddress,
+                        tokenSymbol: winner.tokenSymbol,
                     };
                 },
             );
@@ -319,31 +390,6 @@ export class UsersService {
             this.logger.error(`Get prize ranking failed: ${error.message}`);
             return Result.fail(
                 '상금 랭킹 조회에 실패했습니다.',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-        }
-    }
-
-    /**
-     * @description 퀘스트 목록 조회 (Quests 탭)
-     */
-    async getQuests(
-        walletAddress: string,
-    ): Promise<Result<{ quests: QuestCategory[] }>> {
-        try {
-            const user =
-                await this.usersRepository.findByWalletAddress(walletAddress);
-            const commentCount =
-                await this.commentRepository.countByWalletAddress(
-                    walletAddress,
-                );
-            const quests = this.calculateQuests(user, commentCount);
-
-            return Result.ok({ quests });
-        } catch (error) {
-            this.logger.error(`Get quests failed: ${error.message}`);
-            return Result.fail(
-                '퀘스트 조회에 실패했습니다.',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
@@ -390,6 +436,8 @@ export class UsersService {
                         tokenImage: token?.tokenImageUrl ?? null,
                         tokenAddress: game.tokenAddress,
                         tokenSymbol: token?.tokenSymbol ?? null,
+                        tokenUsername: token?.tokenUsername ?? null,
+                        tokenUsertag: token?.tokenUsertag ?? null,
                         currentPrizePool: game.currentPrizePool,
                         endTime: game.endTime?.toISOString() ?? null,
                     };
@@ -404,51 +452,5 @@ export class UsersService {
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
-    }
-
-    /**
-     * @description 퀘스트 진행 상황 계산
-     * TODO: 이거 나중에 퀘스트 쉽게 등록할려면 따로 테이블 만들어서 관리하면 좋을 것 같음
-     */
-    private calculateQuests(
-        user: User | null,
-        commentCount: number = 0,
-    ): QuestCategory[] {
-        const history: CheckInRecord[] = user?.checkInHistory ?? [];
-        const lastCheckIn = history[history.length - 1];
-        const currentStreak = lastCheckIn?.currentStreak ?? 0;
-
-        return [
-            {
-                category: 'Check In Quest',
-                items: [
-                    {
-                        title: '5 Days Streak!',
-                        claimed: false, // TODO: 퀘스트 클레임 상태 저장 필요
-                        isEligible: currentStreak >= 5,
-                    },
-                    {
-                        title: '10 Days Streak!',
-                        claimed: false,
-                        isEligible: currentStreak >= 10,
-                    },
-                ],
-            },
-            {
-                category: 'Comment Quest',
-                items: [
-                    {
-                        title: '20 comments',
-                        claimed: false,
-                        isEligible: commentCount >= 20,
-                    },
-                    {
-                        title: '50 comments',
-                        claimed: false,
-                        isEligible: commentCount >= 50,
-                    },
-                ],
-            },
-        ];
     }
 }

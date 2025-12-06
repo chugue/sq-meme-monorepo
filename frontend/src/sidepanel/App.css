@@ -158,6 +158,10 @@ body {
    ============================================ */
 
 @theme {
+    /* 커스텀 폰트 패밀리 - Tailwind 유틸리티로 사용 가능 (font-pixel, font-pretendard) */
+    --font-pixel: "Press Start 2P", "Courier New", monospace;
+    --font-pretendard: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
     /* Brown 색상 팔레트 - Tailwind 테마에 등록 (모든 유틸리티에서 사용 가능) */
     --color-brown-0: #231205;
     --color-brown-1: #2E1D0D;

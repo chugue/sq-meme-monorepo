@@ -2,6 +2,7 @@ import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import {
     boolean,
     index,
+    integer,
     json,
     serial,
     text,
@@ -10,6 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { squidSchema } from './common';
 import { comments } from './comment.schema';
+import { userQuests } from './quest.schema';
 
 // Check-in record type
 export interface CheckInRecord {
@@ -66,6 +68,9 @@ export const users = squidSchema.table(
         // 약관 동의 여부
         isPolicyAgreed: boolean('is_policy_agreed').default(false).notNull(),
 
+        // 총 댓글 수
+        totalComments: integer('total_comments').default(0).notNull(),
+
         createdAt: timestamp('created_at').defaultNow(),
         updatedAt: timestamp('updated_at')
             .defaultNow()
@@ -79,9 +84,10 @@ export const users = squidSchema.table(
     },
 );
 
-// Relations: users -> comments (one-to-many via walletAddress)
+// Relations: users -> comments, userQuests (one-to-many via walletAddress)
 export const usersRelations = relations(users, ({ many }) => ({
     comments: many(comments),
+    quests: many(userQuests),
 }));
 
 export type User = InferSelectModel<typeof users>;

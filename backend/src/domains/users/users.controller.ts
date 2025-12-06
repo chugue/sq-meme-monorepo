@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { WalletAddress } from 'src/common/decorators';
-import { JoinDto } from './dto/join.dto';
+import { Result } from 'src/common/types';
+import { JoinDtoSchema } from './dto/join.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -23,8 +24,12 @@ export class UsersController {
      */
     @Post('join')
     @HttpCode(HttpStatus.OK)
-    async join(@Body() body: JoinDto) {
-        return this.usersService.join(body);
+    async join(@Body() body: unknown) {
+        const parsed = JoinDtoSchema.safeParse(body);
+        if (!parsed.success) {
+            return Result.fail(parsed.error.message, HttpStatus.BAD_REQUEST);
+        }
+        return this.usersService.join(parsed.data);
     }
 
     /**
@@ -71,11 +76,11 @@ export class UsersController {
     }
 
     /**
-     * 퀘스트 목록 조회 (Quests 탭)
+     * 댓글 많은 유저 랭킹 조회 (Most Comments 탭)
      */
-    @Get('quests')
-    async getQuests(@WalletAddress() walletAddress: string) {
-        return this.usersService.getQuests(walletAddress);
+    @Get('most-comments')
+    async getMostComments() {
+        return this.usersService.getMostCommentors();
     }
 
     /**
@@ -84,5 +89,10 @@ export class UsersController {
     @Get('my-active-games')
     async getMyActiveGames(@WalletAddress() walletAddress: string) {
         return this.usersService.getMyActiveGames(walletAddress);
+    }
+
+    @Get('my-assets')
+    async getMyAssets(@WalletAddress() walletAddress: string) {
+        return this.usersService.getMyAssets(walletAddress);
     }
 }

@@ -1,167 +1,200 @@
-.my-games-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background: linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%);
-  color: #fff;
-  padding: 16px;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+/* Container */
+.live-games-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at center, #2d1810 0%, #1a0a05 40%, #0a0502 100%);
+    color: #fff;
+    padding: 16px;
+    font-family: "Press Start 2P", "Courier New", monospace;
 }
 
 /* Header */
-.my-games-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.live-games-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
 }
 
-.my-games-header .back-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 8px 0;
-  transition: all 0.2s ease;
+.live-games-header .back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    color: #c4a574;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+    image-rendering: pixelated;
 }
 
-.my-games-header .back-btn:hover {
-  color: #00ffff;
+.live-games-header .back-btn:hover {
+    color: #f0d9a0;
+    transform: scale(1.1);
 }
 
-.my-games-header .header-user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.live-games-header .header-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.my-games-header .header-username {
-  font-size: 14px;
-  font-weight: 600;
-  color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+.live-games-header .header-user-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
 }
 
-.my-games-header .header-profile-image {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+.live-games-header .header-username {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c4a574;
+    text-shadow: 2px 2px 0 #000;
+    letter-spacing: 2px;
+}
+
+.live-games-header .header-usertag {
+    font-size: 9px;
+    color: #8a7a5a;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.live-games-header .header-profile-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid #c4a574;
+    box-shadow: 0 0 10px rgba(196, 165, 116, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.live-games-header .header-profile-image:hover {
+    border-color: #f0d9a0;
+    box-shadow: 0 0 15px rgba(240, 217, 160, 0.7);
+}
+
+/* Title */
+.live-games-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #c4a574;
+    text-shadow: 3px 3px 0 #000, -1px -1px 0 #8a5a2a;
+    letter-spacing: 8px;
+    margin: 20px 0 30px 0;
+    font-family: "Press Start 2P", "Courier New", monospace;
 }
 
 /* Content */
-.my-games-content {
-  flex: 1;
-  padding: 16px 0;
-  overflow-y: auto;
-}
-
-/* Games List */
-.games-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.game-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(26, 26, 46, 0.8),
-    rgba(45, 27, 78, 0.6)
-  );
-  border: 1px solid rgba(255, 0, 255, 0.2);
-  border-radius: 16px;
-  transition: all 0.3s ease;
-}
-
-.game-card:hover {
-  border-color: rgba(255, 0, 255, 0.4);
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
-  transform: translateY(-2px);
+.live-games-content {
+    flex: 1;
+    overflow-y: auto;
 }
 
 .game-card-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.game-rank {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #ff00ff, #00ffff);
-  border-radius: 50%;
-  font-size: 14px;
-  font-weight: bold;
-  color: #000;
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
 .game-token-image {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  flex-shrink: 0;
-  overflow: hidden;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #5a4a3a;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .game-token-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .game-token-symbol {
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    margin-left: 2px;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+    letter-spacing: 2px;
+    font-family: "Press Start 2P", "Courier New", monospace;
 }
 
 .game-card-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
 }
 
-.game-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+.game-prize {
+    font-size: 16px;
+    font-weight: 700;
+    color: #c4a574;
+    text-shadow: 2px 2px 0 #000;
+    font-family: "Press Start 2P", "Courier New", monospace;
 }
 
-.game-stat .stat-label {
-  font-size: 11px;
-  color: #888;
+.game-time {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+    font-family: "Press Start 2P", "Courier New", monospace;
 }
 
-.game-stat .stat-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #00ffff;
-  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+/* Loading & Empty States */
+.loading,
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #8a7a5a;
+    font-size: 12px;
+    letter-spacing: 2px;
 }
 
-.game-stat .stat-value.time {
-  color: #ff00ff;
-  text-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
+/* Scrollbar */
+.live-games-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.live-games-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+.live-games-content::-webkit-scrollbar-thumb {
+    background: #5a4a3a;
+    border-radius: 3px;
+}
+
+.live-games-content::-webkit-scrollbar-thumb:hover {
+    background: #7a6a5a;
+}
+
+/* Fade in up animation */
+@keyframes fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
 }

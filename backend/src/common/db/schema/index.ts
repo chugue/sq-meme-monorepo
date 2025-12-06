@@ -6,3 +6,4 @@ export * from './game.schema';
 export * from './token.schema';
 export * from './user.schema';
 export * from './winner.schema';
+export * from './quest.schema';

@@ -13,6 +13,7 @@ import tropyIcon from "../../assets/tropy.png";
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
+import { profileModalOpenAtom } from "./atoms/modalAtoms";
 import { PAGES, setPageAtom } from "./atoms/pageAtoms";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
@@ -20,8 +21,7 @@ import { getAllSessionStorage } from "./lib/sessionStorage";
 
 // Default data (세션 데이터가 없을 때 사용)
 const defaultUserData = {
-    profileImage:
-        "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
+    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
 };
 
 // mTokenBalance 포맷팅 (콤마 추가)
@@ -45,18 +45,12 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
     const session = useAtomValue(sessionAtom);
     const { user } = session;
     const setPage = useSetAtom(setPageAtom);
+    const setProfileModalOpen = useSetAtom(profileModalOpenAtom);
 
     // 디버깅: 세션 데이터 변화 확인
     useEffect(() => {
         console.log("🏠 [Dashboard] session 전체:", JSON.stringify(session, null, 2));
-        console.log(
-            "🏠 [Dashboard] session user:",
-            user?.userName,
-            "profileImage:",
-            user?.profileImage,
-            "mTokenBalance:",
-            user?.mTokenBalance
-        );
+        console.log("🏠 [Dashboard] session user:", user?.userName, "profileImage:", user?.profileImage, "mTokenBalance:", user?.mTokenBalance);
         // 전체 세션 스토리지 데이터 확인
         getAllSessionStorage().then((data) => {
             console.log("🏠 [Dashboard] 전체 세션 스토리지:", JSON.stringify(data, null, 2));
@@ -73,26 +67,13 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
 
     return (
         <div className="dashboard-container relative z-20">
-
             {/* Left Top: Profile Box with Image */}
-            <button className="profile-btn">
+            <button className="profile-btn" onClick={() => setProfileModalOpen(true)}>
                 <div className="profile-box-container">
-                    <img
-                        src={profileBox}
-                        alt="Profile Box"
-                        className="profile-box-frame"
-                    />
-                    <img
-                        src={user?.profileImage || defaultUserData.profileImage}
-                        alt="Profile"
-                        className="profile-box-image"
-                    />
+                    <img src={profileBox} alt="Profile Box" className="profile-box-frame" />
+                    <img src={user?.profileImage || defaultUserData.profileImage} alt="Profile" className="profile-box-image" />
                 </div>
-                <img
-                    src={profileBanner}
-                    alt="Profile Banner"
-                    className="profile-banner"
-                />
+                <img src={profileBanner} alt="Profile Banner" className="profile-banner" />
             </button>
             {/* Right: Menu Icons (Vertical) */}
             <div className="menu-icons-vertical">
@@ -111,30 +92,18 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
                         Play
                     </span>
                 </button>
-                <button
-                    className="menu-icon-btn"
-                    onClick={() => setPage(PAGES.QUESTS)}
-                    title="Quest"
-                >
+                <button className="menu-icon-btn" onClick={() => setPage(PAGES.QUESTS)} title="Quest">
                     <img src={questIcon} alt="Quest" />
                     <span className="menu-icon-btn-text">Quest</span>
                 </button>
-                <button
-                    className="menu-icon-btn"
-                    onClick={() => setPage(PAGES.LEADERBOARD)}
-                    title="Leader Board"
-                >
+                <button className="menu-icon-btn" onClick={() => setPage(PAGES.LEADERBOARD)} title="Leader Board">
                     <img src={tropyIcon} alt="Leader Board" />
                     <span className="menu-icon-btn-text">
                         <span>Leader</span>
                         <span>Board</span>
                     </span>
                 </button>
-                <button
-                    className="menu-icon-btn"
-                    onClick={() => setPage(PAGES.MY_ASSETS)}
-                    title="My Memecoins"
-                >
+                <button className="menu-icon-btn" onClick={() => setPage(PAGES.MY_ASSETS)} title="My Memecoins">
                     <img src={moneyIcon} alt="My Memecoins" />
                     <span className="menu-icon-btn-text">
                         My
@@ -150,9 +119,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
                     <div className="asset-display-main">
                         <span className="asset-label-main">ASSET</span>
                         {/* <span className="asset-amount-main">{formatMTokenBalance(user?.mTokenBalance)}</span> */}
-                        <span className="asset-amount-main">
-                            {formatMTokenBalance("1000000000")}
-                        </span>
+                        <span className="asset-amount-main">{formatMTokenBalance("1000000000")}</span>
                     </div>
                 </div>
             </section>

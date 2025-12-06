@@ -4,6 +4,8 @@ import { ethers } from 'ethers';
 import { EthereumProvider } from 'src/common/providers';
 import { Result } from 'src/common/types';
 import { CreateCommentDto } from 'src/common/validator/comment.validator';
+import { QuestRepository } from '../quests/quest.repository';
+import { UsersRepository } from '../users/users.repository';
 import {
     CommentRepository,
     LikeCountResult,
@@ -26,6 +28,8 @@ export class CommentService {
         private readonly configService: ConfigService,
         private readonly ethereumProvider: EthereumProvider,
         private readonly commentRepository: CommentRepository,
+        private readonly usersRepository: UsersRepository,
+        private readonly questRepository: QuestRepository,
     ) {
         this.commentAddedIface = new ethers.Interface([COMMENT_ADDED_EVENT]);
         this.contractAddress =
@@ -47,10 +51,11 @@ export class CommentService {
             let userTotalFunding = '0';
             if (userAddress) {
                 const normalizedAddress = userAddress.toLowerCase();
-                userTotalFunding = await this.commentRepository.getUserFundingByGameId(
-                    gameId,
-                    normalizedAddress,
-                );
+                userTotalFunding =
+                    await this.commentRepository.getUserFundingByGameId(
+                        gameId,
+                        normalizedAddress,
+                    );
             }
 
             // 좋아요 여부 조회
@@ -190,7 +195,10 @@ export class CommentService {
             );
             if (existing) {
                 this.logger.warn(`중복 댓글 요청: txHash ${dto.txHash}`);
-                return Result.fail('이미 처리된 댓글입니다.', HttpStatus.CONFLICT);
+                return Result.fail(
+                    '이미 처리된 댓글입니다.',
+                    HttpStatus.CONFLICT,
+                );
             }
 
             // 2. 트랜잭션 영수증 조회
@@ -265,6 +273,19 @@ export class CommentService {
                 return Result.fail(
                     '댓글 저장에 실패했습니다.',
                     HttpStatus.INTERNAL_SERVER_ERROR,
+                );
+            }
+
+            // 사용자 totalComments 증가 및 퀘스트 업데이트
+            const user =
+                await this.usersRepository.findByWalletAddress(commentor);
+
+            if (user) {
+                const newTotalComments = (user.totalComments ?? 0) + 1;
+                await this.usersRepository.updateTotalComments(commentor);
+                await this.questRepository.updateCommentQuestsForUser(
+                    commentor,
+                    newTotalComments,
                 );
             }
 

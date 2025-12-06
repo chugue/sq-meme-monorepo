@@ -1,11 +1,7 @@
 import { backgroundApi } from "@/contents/lib/backgroundApi";
 import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "viem";
-import {
-    CommentLeaderItem,
-    MyActiveGameItem,
-    PrizeRankItem,
-} from "../types/response.types";
+import { CommentLeaderItem, MyActiveGameItem, PrizeRankItem } from "../types/response.types";
 import { TopBar } from "./components";
 import RankBadge from "./components/RankBadge";
 import "./LeaderboardPage.css";
@@ -64,14 +60,15 @@ export function LeaderboardPage() {
         fetchAllData();
     }, []);
 
-
     const getPrizePoolStyle = useCallback((rank: number, currentPrizePool: string) => {
-        const baseStyle = 'font-pretendard font-regular text-base p-2 border rounded-full';
+        const baseStyle = "font-pretendard font-regular text-base p-2 border rounded-full";
 
         if (rank === 1) {
-            return <div className={`${baseStyle} border-gold-dark`}>
-                <span className="text-gold-dark">{currentPrizePool}</span>
-            </div>;
+            return (
+                <div className={`${baseStyle} border-gold-dark`}>
+                    <span className="text-gold-dark">{currentPrizePool}</span>
+                </div>
+            );
         } else if (rank === 2) {
             return <div className={`${baseStyle}  border-[#6A6878]  text-[#6A6878]`}>{currentPrizePool}</div>;
         } else if (rank === 3) {
@@ -81,42 +78,40 @@ export function LeaderboardPage() {
         }
     }, []);
 
+    const renderGamesTab = useCallback(
+        () => (
+            <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className="w-12 h-12 border-4 border-brown-3 border-t-gold-base rounded-full animate-spin mb-4"></div>
+                        <span className="text-base text-brown-6 font-pretendard">Loading games...</span>
+                    </div>
+                ) : myActiveGames.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <span className="text-lg text-brown-6 font-pretendard">No memes yet</span>
+                    </div>
+                ) : (
+                    myActiveGames.map((game, index) => {
+                        const rank = index + 1;
 
-    const renderGamesTab = useCallback(() => (
-        <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
-            {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                    <div className="w-12 h-12 border-4 border-brown-3 border-t-gold-base rounded-full animate-spin mb-4"></div>
-                    <span className="text-base text-brown-6 font-pretendard">Loading games...</span>
-                </div>
-            ) : myActiveGames.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                    <span className="text-lg text-brown-6 font-pretendard">No memes yet</span>
-                </div>
-            ) : (
-                myActiveGames.map((game, index) => {
-                    const rank = index + 1;
-
-                    return (
-                        <div key={game.gameId} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
-                            <RankBadge rank={rank} />
-                            <div className="w-10 h-10 rounded-full overflow-hidden">
-                                {game.tokenImage ? (
-                                    <img src={game.tokenImage} alt={game.tokenSymbol || ""} />
-                                ) : (
-                                    "🎮"
-                                )}
+                        return (
+                            <div key={game.gameId} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
+                                <RankBadge rank={rank} />
+                                <div className="w-10 h-10 rounded-full overflow-hidden">
+                                    {game.tokenImage ? <img src={game.tokenImage} alt={game.tokenSymbol || ""} /> : "🎮"}
+                                </div>
+                                <span className="text-lg text-white flex-1">{game.tokenSymbol}</span>
+                                <div className={`relative z-20`}>
+                                    {getPrizePoolStyle(rank, Number(formatEther(BigInt(game?.currentPrizePool || "0"))).toLocaleString())}
+                                </div>
                             </div>
-                            <span className="text-lg text-white flex-1">{game.tokenSymbol}</span>
-                            <div className={`relative z-20`}>
-                                {getPrizePoolStyle(rank, Number(formatEther(BigInt(game?.currentPrizePool || '0'))).toLocaleString())}
-                            </div>
-                        </div>
-                    );
-                })
-            )}
-        </div>
-    ), [myActiveGames, isLoading, getPrizePoolStyle]);
+                        );
+                    })
+                )}
+            </div>
+        ),
+        [myActiveGames, isLoading, getPrizePoolStyle],
+    );
 
     const renderPrizeRankTab = () => (
         <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
@@ -139,12 +134,14 @@ export function LeaderboardPage() {
                             className="w-10 h-10 rounded-full overflow-hidden "
                         />
                         <span className="text-base text-white flex-1">{user.username || "Anonymous"}</span>
-                        <div className={`relative `}>{getPrizePoolStyle(user.rank, Number(user?.totalAmount || '0').toLocaleString())}</div>
+                        <div className={`relative `}>{getPrizePoolStyle(user.rank, Number(user?.totalAmount || "0").toLocaleString())}</div>
                     </div>
                 ))
             )}
         </div>
     );
+
+    // 퀘스트를 type별로 그룹화
 
     const renderCommentsTab = () => (
         <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
@@ -172,7 +169,7 @@ export function LeaderboardPage() {
                                 src="/icon/leaderboard/text_popup.png"
                                 alt="Comment count"
                                 className="h-5 object-contain"
-                                style={{ imageRendering: 'pixelated' }}
+                                style={{ imageRendering: "pixelated" }}
                             />
                             <span className={`text-base font-pretendard font-regular ${user.rank < 4 ? "text-brown-7 " : "text-brown-3"}`}>
                                 {user.commentCount.toLocaleString()}
@@ -190,7 +187,7 @@ export function LeaderboardPage() {
             <TopBar />
 
             <div className="flex items-center justify-center gap-x-3 py-3 mx-5 mt-5">
-                <img src='/icon/trophy.png' className="w-14 h-14" style={{ imageRendering: 'pixelated' }} />
+                <img src="/icon/trophy.png" className="w-14 h-14" style={{ imageRendering: "pixelated" }} />
                 <span className="text-3xl font-bold text-gold-gradient-smooth uppercase">Leader Board</span>
             </div>
 
@@ -201,23 +198,20 @@ export function LeaderboardPage() {
                     return (
                         <button
                             key={tab.id}
-                            className={`flex-1 border-t-2 border-x-2 border-r-gray-900 p-3 flex flex-col items-center gap-2 ${isActive
-                                ? "border-gold-base"
-                                : "border-gray-600"
-                                }`}
+                            className={`flex-1 border-t-2 border-x-2 border-r-gray-900 p-3 flex flex-col items-center gap-2 ${
+                                isActive ? "border-gold-base" : "border-gray-600"
+                            }`}
                             onClick={() => setActiveTab(tab.id)}
                         >
                             {tab.icon && (
                                 <img
                                     src={tab.icon}
-                                    className={`w-14 h-14 ${!isActive ? 'opacity-20 ' : ''}`}
-                                    style={{ imageRendering: 'pixelated' }}
+                                    className={`w-14 h-14 ${!isActive ? "opacity-20 " : ""}`}
+                                    style={{ imageRendering: "pixelated" }}
                                     alt={tab.label}
                                 />
                             )}
-                            <span className={isActive ? 'text-gold-gradient-smooth' : 'text-gold-gradient-smooth opacity-50'}>
-                                {tab.label}
-                            </span>
+                            <span className={isActive ? "text-gold-gradient-smooth" : "text-gold-gradient-smooth opacity-50"}>{tab.label}</span>
                         </button>
                     );
                 })}
