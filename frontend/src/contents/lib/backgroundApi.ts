@@ -92,7 +92,8 @@ export type BackgroundMessage =
   | { type: "GET_QUESTS" }
   | { type: "GET_MY_ACTIVE_GAMES" }
   | { type: "GET_LIVE_GAMES" }
-  | { type: "TOGGLE_COMMENT_LIKE"; commentId: number; walletAddress: string };
+  | { type: "TOGGLE_COMMENT_LIKE"; commentId: number; walletAddress: string }
+  | { type: "GET_CURRENT_TAB_URL" };
 
 export type BackgroundResponse<T = any> =
   | { success: true; data: T }
@@ -492,6 +493,13 @@ export const backgroundApi = {
     return sendToBackground<{ success: boolean }>({
       type: "NAVIGATE_TO_URL",
       url,
+    });
+  },
+
+  // 현재 활성 탭의 URL 가져오기
+  getCurrentTabUrl: async () => {
+    return sendToBackground<{ url: string | null }>({
+      type: "GET_CURRENT_TAB_URL",
     });
   },
 };
