@@ -339,7 +339,10 @@ export class GameService {
     async getActiveGameById(gameId: string) {
         const game = await this.gameRepository.findFullByGameId(gameId);
         if (!game) {
-            return Result.fail('게임을 찾을 수 없습니다.', HttpStatus.NOT_FOUND);
+            return Result.fail(
+                '게임을 찾을 수 없습니다.',
+                HttpStatus.NOT_FOUND,
+            );
         }
 
         return Result.ok({
@@ -373,10 +376,10 @@ export class GameService {
             const token = tokenMap.get(game.tokenAddress.toLowerCase());
             return {
                 ...game,
-                tokenUsername: token?.tokenUsername ?? null,
-                tokenUsertag: token?.tokenUsertag ?? null,
-                tokenImageUrl: token?.tokenImageUrl ?? null,
-                tokenSymbol: token?.tokenSymbol ?? null,
+                tokenUsername: token?.tokenUsername,
+                tokenUsertag: token?.tokenUsertag,
+                tokenImageUrl: token?.tokenImageUrl,
+                tokenSymbol: token?.tokenSymbol,
             };
         });
 
@@ -389,24 +392,17 @@ export class GameService {
     async getGamesInPlaying(
         walletAddress: string,
     ): Promise<Result<ActiveGameDto[]>> {
-        // 1. 사용자가 댓글을 단 게임 ID 목록 조회
-        const gameIds =
-            await this.commentRepository.findGameIdsByWalletAddress(
+        // 1. 사용자가 댓글을 단 활성 게임 목록 조회 (isEnded=false, isClaimed=false)
+        const games =
+            await this.commentRepository.findActiveGamesByWalletAddress(
                 walletAddress,
             );
-
-        if (gameIds.length === 0) {
-            return Result.ok([]);
-        }
-
-        // 2. 해당 게임들 중 활성 상태인 게임 정보 조회
-        const games = await this.gameRepository.findActiveGamesByIds(gameIds);
 
         if (games.length === 0) {
             return Result.ok([]);
         }
 
-        // 3. 토큰 정보 조회
+        // 2. 토큰 정보 조회
         const tokenAddresses = games.map((g) => g.tokenAddress);
         const tokens =
             await this.tokenRepository.findByTokenAddresses(tokenAddresses);
@@ -414,7 +410,7 @@ export class GameService {
             tokens.map((t) => [t.tokenAddress.toLowerCase(), t]),
         );
 
-        // 4. 게임 + 토큰 정보 매핑
+        // 3. 게임 + 토큰 정보 매핑
         const result: ActiveGameDto[] = games.map((game) => {
             const token = tokenMap.get(game.tokenAddress.toLowerCase());
             return {

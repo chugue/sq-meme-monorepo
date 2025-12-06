@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { WalletAddress } from 'src/common/decorators';
-import { JoinDto } from './dto/join.dto';
+import { Result } from 'src/common/types';
+import { JoinDtoSchema } from './dto/join.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
@@ -23,8 +24,12 @@ export class UsersController {
      */
     @Post('join')
     @HttpCode(HttpStatus.OK)
-    async join(@Body() body: JoinDto) {
-        return this.usersService.join(body);
+    async join(@Body() body: unknown) {
+        const parsed = JoinDtoSchema.safeParse(body);
+        if (!parsed.success) {
+            return Result.fail(parsed.error.message, HttpStatus.BAD_REQUEST);
+        }
+        return this.usersService.join(parsed.data);
     }
 
     /**

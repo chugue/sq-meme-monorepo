@@ -3,6 +3,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
+import { ActiveGameBaseDto } from '../game/dto/game.dto';
 
 export type ToggleLikeResult = { liked: boolean; likeCount: number };
 export type LikeCountResult = { likeCount: number };
@@ -300,5 +301,35 @@ export class CommentRepository {
             .where(eq(schema.comments.commentor, walletAddress.toLowerCase()));
 
         return results.map((r) => r.gameId);
+    }
+
+    /**
+     * @description 지갑 주소로 참여한 활성 게임 목록 조회 (isEnded=false, isClaimed=false)
+     */
+    async findActiveGamesByWalletAddress(
+        walletAddress: string,
+    ): Promise<ActiveGameBaseDto[]> {
+        const results = await this.db
+            .selectDistinct({
+                gameId: schema.games.gameId,
+                tokenAddress: schema.games.gameToken,
+                currentPrizePool: schema.games.prizePool,
+                endTime: schema.games.endTime,
+            })
+            .from(schema.comments)
+            .innerJoin(
+                schema.games,
+                eq(schema.comments.gameId, schema.games.gameId),
+            )
+            .where(
+                and(
+                    eq(schema.comments.commentor, walletAddress.toLowerCase()),
+                    eq(schema.games.isEnded, false),
+                    eq(schema.games.isClaimed, false),
+                ),
+            )
+            .orderBy(desc(sql`CAST(${schema.games.prizePool} AS NUMERIC)`));
+
+        return results;
     }
 }
