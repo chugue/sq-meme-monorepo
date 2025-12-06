@@ -8,7 +8,7 @@ export default function DashboardBackground() {
             <img
                 src={homeFloor}
                 alt="Floor"
-                className="absolute bottom-0 left-0 right-0 w-full h-full z-10 transform duration-1000 translate-y-[20%] sm:translate-y-[50%]"
+                className="absolute bottom-0 left-0 right-0 w-full h-full z-0 transform duration-1000 translate-y-[20%] sm:translate-y-[50%]"
                 style={{
                     animationDelay: '0.5s',
                 }}
