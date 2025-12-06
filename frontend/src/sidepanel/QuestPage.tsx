@@ -1,14 +1,200 @@
-import { useSetAtom } from "jotai";
+import ProfileBox from "@/assets/profile_box.png";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useEffect, useState } from "react";
 import { navigateBackAtom } from "./atoms/pageAtoms";
+import { sessionAtom } from "./atoms/sessionAtoms";
+
+export type QuestTypes = 'attendance' | 'comments';
+
+// 퀘스트 아이템
+export interface QuestItem {
+    type: QuestTypes;
+    title: string;
+    description: string;
+    currentNumber: number;
+    targetNumber: number;
+    isClaimed: boolean;
+}
 
 export default function QuestPage() {
     const navigateBack = useSetAtom(navigateBackAtom);
+    const session = useAtomValue(sessionAtom);
+    const { user } = session;
+    const [quests, setQuests] = useState<QuestItem[]>([]);
 
+    // TODO: API 호출로 실제 데이터 가져오기
+    useEffect(() => {
+        // 예시 데이터 - 실제로는 API에서 가져와야 함
+        // fetchQuests().then(setQuests);
+
+        // 임시 더미 데이터
+        setQuests([
+            {
+                type: 'attendance',
+                title: 'Daily Login',
+                description: '매일 로그인하여 출석체크를 완료하세요',
+                currentNumber: 5,
+                targetNumber: 7,
+                isClaimed: false,
+            },
+            {
+                type: 'attendance',
+                title: 'Weekly Challenge',
+                description: '일주일 동안 5일 이상 출석하세요',
+                currentNumber: 5,
+                targetNumber: 5,
+                isClaimed: false,
+            },
+            {
+                type: 'attendance',
+                title: 'Monthly Attendance',
+                description: '한 달 동안 출석하세요',
+                currentNumber: 30,
+                targetNumber: 30,
+                isClaimed: true,
+            },
+            {
+                type: 'comments',
+                title: 'First Comment',
+                description: '첫 댓글을 작성하세요',
+                currentNumber: 1,
+                targetNumber: 1,
+                isClaimed: false,
+            },
+            {
+                type: 'comments',
+                title: '10 Comments',
+                description: '10개의 댓글을 작성하세요',
+                currentNumber: 10,
+                targetNumber: 10,
+                isClaimed: true,
+            },
+        ]);
+    }, []);
+
+    const getProgressPercentage = (current: number, target: number) => {
+        return Math.min((current / target) * 100, 100);
+    };
+
+    const getQuestImage = (quest: QuestItem) => {
+        // isClaimed이면 무조건 열린 박스
+        if (quest.isClaimed) {
+            return '/icon/quests/quest_box_open.png';
+        }
+        return '/icon/quests/quest_box_close.png';
+    };
+
+    // questType별로 그룹화
+    const groupedQuests = quests.reduce((acc, quest) => {
+        if (!acc[quest.type]) {
+            acc[quest.type] = [];
+        }
+        acc[quest.type].push(quest);
+        return acc;
+    }, {} as Record<QuestTypes, QuestItem[]>);
+
+    const handleClaim = (quest: QuestItem) => {
+        // TODO: API 호출로 클레임 처리
+        console.log('Claim quest:', quest);
+    };
+
+    // if (!user) return <div>Loading...</div>;
 
     return (
-        <div>
-            <h1>Quest Page</h1>
-            <button onClick={navigateBack}>Back to Dashboard</button>
+        <div className="flex flex-col items-center justify-center h-full">
+            <div className="flex items-center px-5 h-24 w-full">
+                <img src='/icon/back_icon.png' className="w-8 h-8" onClick={navigateBack} />
+
+                <div className="flex items-center ml-auto gap-x-2">
+                    <div className="flex flex-col items-end justify-center ">
+                        <span className="text-base font-regular text-gold-gradient-smooth">{user?.userName}</span>
+                        <span className="text-xs font-regular text-gold-gradient-smooth">#{user?.userTag}</span>
+                    </div>
+
+                    <div>
+                        {user && user?.profileImage &&
+                            <div className="relative w-16 h-16 overflow-hidden p-1">
+                                <img src={ProfileBox} className="w-full h-full absolute inset-0" />
+                                <img src={user.profileImage} alt="Profile" className="w-full h-full" />
+                            </div>
+
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-x-5 pb-5">
+                <img src='/icon/quests/quest_box_default.png' className="w-10 h-10" />
+                <span className="text-2xl font-bold text-pixel-orange-gold uppercase">Quest</span>
+            </div>
+
+            <div className="w-full h-0.5 bg-gradient-main-1" />
+
+            <div className="flex flex-col items-center justify-center gap-y-20 px-5 pt-10 flex-1 w-full overflow-y-auto">
+                {Object.keys(groupedQuests).length === 0 ? (
+                    <div className="text-pixel-gray">퀘스트가 없습니다.</div>
+                ) : (
+                    Object.entries(groupedQuests).map(([type, typeQuests]) => (
+                        <div key={type} className="flex flex-col items-center justify-center gap-y-5 w-full max-w-xl">
+                            <div className="text-xl font-bold text-pixel-orange-gold uppercase">
+                                {type} quest
+                            </div>
+
+                            {typeQuests.map((quest, index) => {
+                                const progressPercentage = getProgressPercentage(quest.currentNumber, quest.targetNumber);
+                                const isEligible = quest.currentNumber >= quest.targetNumber;
+
+                                return (
+                                    <div
+                                        key={`${type}-${index}`}
+                                        className="w-full p-5 flex items-center justify-between gap-x-5"
+                                        style={{
+                                            backgroundImage: `url('/icon/quests/quest_frame.png')`,
+                                            backgroundSize: '100% 100%',
+                                            backgroundPosition: 'center',
+                                            backgroundRepeat: 'no-repeat',
+                                        }}
+                                    >
+                                        <div className="flex flex-col items-start gap-y-2 flex-1">
+                                            <div className="flex flex-col items-start">
+                                                <span className="font-pretendard text-xl font-normal text-white ">{quest.title}</span>
+                                                <span className="font-pretendard text-sm text-gray-300">{quest.description}</span>
+                                            </div>
+                                            <div className="w-full h-5 bg-brown-3 rounded-sm relative overflow-hidden flex items-center">
+                                                <div className="absolute text-xs text-white z-30 w-full text-center ">
+                                                    {quest.currentNumber} / {quest.targetNumber}
+                                                </div>
+                                                <div
+                                                    className="h-full bg-gradient-main-5 animate-gradient-flow transition-all duration-300 ease-out"
+                                                    style={{ width: `${progressPercentage}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col items-center gap-y-2">
+                                            <button
+                                                disabled={!isEligible || quest.isClaimed}
+                                                onClick={() => handleClaim(quest)}
+                                                className={`w-16 h-16 rounded-xl flex items-center justify-center transition-opacity ${isEligible
+                                                    ? 'bg-gradient-main-5 hover:opacity-90'
+                                                    : 'bg-brown-0'
+                                                    } ${quest.isClaimed ? 'opacity-50' : ''} ${isEligible && !quest.isClaimed ? 'animate-treasure-glow' : ''}`}
+                                            >
+                                                <img
+                                                    src={getQuestImage(quest)}
+                                                    className={`w-12 h-12 object-contain ${isEligible && !quest.isClaimed ? 'animate-treasure-pulse' : ''}`}
+                                                    style={{ imageRendering: 'pixelated' }}
+                                                    alt={quest.isClaimed ? 'Claimed' : isEligible ? 'Eligible' : 'In Progress'}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }
