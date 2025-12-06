@@ -90,8 +90,16 @@ export function Dashboard({
             {/* Background Images */}
             <div className="dashboard-background">
                 <img src={homeBg} alt="Background" className="bg-image" />
-                <img src={homeFloor} alt="Floor" className="floor-image" />
+                <img
+                    src={homeFloor}
+                    alt="Floor"
+                    className="absolute bottom-0 left-0 right-0 w-full h-full z-10 transform duration-1000 translate-y-[20%] sm:translate-y-[50%]"
+                    style={{
+                        animationDelay: '0.5s',
+                    }}
+                />
             </div>
+
             {/* Left Top: Profile Box with Image */}
             <button className="profile-btn" onClick={onNavigateToProfile}>
                 <div className="profile-box-container">

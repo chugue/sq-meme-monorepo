@@ -39,29 +39,14 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center top;
-    transform-origin: top left;
-    opacity: 0.9;
+    object-position: center center;
+    transform-origin: center center;
 }
 
-.floor-image {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    min-width: 400px;
-    height: auto;
-    object-fit: contain;
-    object-position: center bottom;
-    transform-origin: bottom left;
-    z-index: 1;
-    animation: slideUpFromBottom 1s ease-out forwards;
-    transform: translateY(100%);
-}
 
 @keyframes slideUpFromBottom {
     from {
-        transform: translateY(100%);
+        transform: translateY(50%);
     }
 
     to {
