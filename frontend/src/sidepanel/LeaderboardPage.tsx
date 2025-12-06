@@ -1,200 +1,234 @@
-import { ChevronLeft, Home } from "lucide-react";
-import { useEffect, useState } from "react";
-import { backgroundApi } from "../contents/lib/backgroundApi";
+import { backgroundApi } from "@/contents/lib/backgroundApi";
+import { useCallback, useEffect, useState } from "react";
+import { formatEther } from "viem";
 import {
-  MyActiveGameItem,
-  PrizeRankItem,
-  QuestCategory,
+    CommentLeaderItem,
+    MyActiveGameItem,
+    PrizeRankItem,
 } from "../types/response.types";
-import { useMemexLogin } from "./hooks/useMemexLogin";
-import { ProfileModal } from "./ProfileModal";
+import { TopBar } from "./components";
+import RankBadge from "./components/RankBadge";
 import "./LeaderboardPage.css";
 
 // Mock data
 const mockUserData = {
-  profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
+    profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
 };
 
-type TabType = "games" | "prizeRank" | "quest";
+type TabType = "best memes" | "most winnings" | "most comments";
 
-interface LeaderboardPageProps {
-  onBack: () => void;
+interface TabItem {
+    id: TabType;
+    label: string;
+    icon?: string;
 }
 
-export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
-  const { username, profileImageUrl } = useMemexLogin();
-  const [activeTab, setActiveTab] = useState<TabType>("games");
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+const tabs: TabItem[] = [
+    { id: "best memes", label: "Best Memes", icon: "/icon/leaderboard/king.png" },
+    { id: "most winnings", label: "Most Winnings", icon: "/icon/leaderboard/rank.png" },
+    { id: "most comments", label: "Most Comments", icon: "/icon/leaderboard/wing.png" },
+];
 
-  // API 데이터 상태
-  const [myActiveGames, setMyActiveGames] = useState<MyActiveGameItem[]>([]);
-  const [prizeRanking, setPrizeRanking] = useState<PrizeRankItem[]>([]);
-  const [quests, setQuests] = useState<QuestCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function LeaderboardPage() {
+    const [activeTab, setActiveTab] = useState<TabType>("best memes");
 
-  // 컴포넌트 로드 시 네 API 동시 호출
-  useEffect(() => {
-    const fetchAllData = async () => {
-      setIsLoading(true);
+    // API 데이터 상태
+    const [myActiveGames, setMyActiveGames] = useState<MyActiveGameItem[]>([]);
+    const [prizeRanking, setPrizeRanking] = useState<PrizeRankItem[]>([]);
+    const [commentLeaders, setCommentLeaders] = useState<CommentLeaderItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-      try {
-        const [myGamesRes, prizeRes, questRes] = await Promise.all([
-          backgroundApi.getMyActiveGames(),
-          backgroundApi.getPrizeRanking(),
-          backgroundApi.getQuests(),
-        ]);
+    // 컴포넌트 로드 시 네 API 동시 호출
+    useEffect(() => {
+        const fetchAllData = async () => {
+            setIsLoading(true);
 
-        setMyActiveGames(myGamesRes.myActiveGames);
-        setPrizeRanking(prizeRes.prizeRanking);
-        setQuests(questRes.quests);
-        console.log("✅ [LeaderboardPage] 데이터 로드 완료");
-      } catch (error) {
-        console.error("❌ [LeaderboardPage] 데이터 로드 실패:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+            try {
+                const [myGamesRes, prizeRes, questRes] = await Promise.all([
+                    backgroundApi.getMyActiveGames(),
+                    backgroundApi.getPrizeRanking(),
+                    backgroundApi.getQuests(),
+                ]);
 
-    fetchAllData();
-  }, []);
+                setMyActiveGames(myGamesRes.myActiveGames);
+                setPrizeRanking(prizeRes.prizeRanking);
+                // setCommentLeaders(questRes.quests);
+                console.log("✅ [LeaderboardPage] 데이터 로드 완료");
+            } catch (error) {
+                console.error("❌ [LeaderboardPage] 데이터 로드 실패:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-  const renderGamesTab = () => (
-    <div className="leaderboard-list">
-      {isLoading ? (
-        <div className="loading">Loading...</div>
-      ) : myActiveGames.length === 0 ? (
-        <div className="empty-state">참여 중인 게임이 없습니다</div>
-      ) : (
-        myActiveGames.map((game, index) => (
-          <div key={game.gameId} className="leaderboard-item">
-            <span className="rank-number">{index + 1}</span>
-            <div className="token-image">
-              {game.tokenImage ? (
-                <img src={game.tokenImage} alt={game.tokenSymbol || ""} />
-              ) : (
-                "🎮"
-              )}
-            </div>
-            <span className="item-name">{game.tokenSymbol}</span>
-            <span className="item-value">{game.currentPrizePool} ETH</span>
-          </div>
-        ))
-      )}
-    </div>
-  );
+        fetchAllData();
+    }, []);
 
-  const renderPrizeRankTab = () => (
-    <div className="leaderboard-list">
-      {isLoading ? (
-        <div className="loading">Loading...</div>
-      ) : prizeRanking.length === 0 ? (
-        <div className="empty-state">No prize ranking data</div>
-      ) : (
-        prizeRanking.map((user) => (
-          <div key={user.rank} className="leaderboard-item">
-            <span className="rank-number">{user.rank}</span>
-            <img
-              src={user.profileImage || mockUserData.profileImage}
-              alt={user.username || "User"}
-              className="user-avatar"
-            />
-            <span className="item-name">{user.username || "Anonymous"}</span>
-            <span className="item-value">
-              {user.totalAmount} {user.tokenSymbol}
-            </span>
-          </div>
-        ))
-      )}
-    </div>
-  );
 
-  const renderQuestTab = () => (
-    <div className="quest-list">
-      {isLoading ? (
-        <div className="loading">Loading...</div>
-      ) : quests.length === 0 ? (
-        <div className="empty-state">No quests available</div>
-      ) : (
-        quests.map((questGroup) => (
-          <div key={questGroup.category} className="quest-group">
-            <h3 className="quest-category">{questGroup.category}</h3>
-            {questGroup.items.map((quest, idx) => (
-              <div key={idx} className="quest-item">
-                <span className="quest-title">{quest.title}</span>
-                <button
-                  className={`claim-btn ${quest.claimed ? "claimed" : ""} ${
-                    !quest.isEligible && !quest.claimed ? "disabled" : ""
-                  }`}
-                  disabled={quest.claimed || !quest.isEligible}
-                >
-                  {quest.claimed
-                    ? "Claimed"
-                    : quest.isEligible
-                    ? "Claim"
-                    : "Locked"}
-                </button>
-              </div>
-            ))}
-          </div>
-        ))
-      )}
-    </div>
-  );
+    const getPrizePoolStyle = useCallback((rank: number, currentPrizePool: string) => {
+        const baseStyle = 'font-pretendard font-regular text-base p-2 border rounded-full';
 
-  return (
-    <div className="leaderboard-container">
-      {/* Header */}
-      <header className="leaderboard-header">
-        <button className="back-btn" onClick={onBack}>
-          <ChevronLeft size={24} />
-          <Home size={20} />
-        </button>
-        <div className="header-user-info">
-          <span className="header-username">{username || "User"}</span>
-          <img
-            src={profileImageUrl || mockUserData.profileImage}
-            alt="Profile"
-            className="header-profile-image"
-            onClick={() => setIsProfileModalOpen(true)}
-            style={{ cursor: "pointer" }}
-          />
+        if (rank === 1) {
+            return <div className={`${baseStyle} border-gold-dark`}>
+                <span className="text-gold-dark">{currentPrizePool}</span>
+            </div>;
+        } else if (rank === 2) {
+            return <div className={`${baseStyle}  border-[#6A6878]  text-[#6A6878]`}>{currentPrizePool}</div>;
+        } else if (rank === 3) {
+            return <div className={`${baseStyle}  border-[#654A35] text-[#654A35]`}>{currentPrizePool}</div>;
+        } else {
+            return <div className={`${baseStyle}  text-[#6B4F25]`}>{currentPrizePool}</div>;
+        }
+    }, []);
+
+
+    const renderGamesTab = useCallback(() => (
+        <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-12 h-12 border-4 border-brown-3 border-t-gold-base rounded-full animate-spin mb-4"></div>
+                    <span className="text-base text-brown-6 font-pretendard">Loading games...</span>
+                </div>
+            ) : myActiveGames.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <span className="text-lg text-brown-6 font-pretendard">No memes yet</span>
+                </div>
+            ) : (
+                myActiveGames.map((game, index) => {
+                    const rank = index + 1;
+
+                    return (
+                        <div key={game.gameId} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
+                            <RankBadge rank={rank} />
+                            <div className="w-10 h-10 rounded-full overflow-hidden">
+                                {game.tokenImage ? (
+                                    <img src={game.tokenImage} alt={game.tokenSymbol || ""} />
+                                ) : (
+                                    "🎮"
+                                )}
+                            </div>
+                            <span className="text-lg text-white flex-1">{game.tokenSymbol}</span>
+                            <div className={`relative z-20`}>
+                                {getPrizePoolStyle(rank, Number(formatEther(BigInt(game?.currentPrizePool || '0'))).toLocaleString())}
+                            </div>
+                        </div>
+                    );
+                })
+            )}
         </div>
-      </header>
+    ), [myActiveGames, isLoading, getPrizePoolStyle]);
 
-      {/* Profile Modal */}
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-      />
+    const renderPrizeRankTab = () => (
+        <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-12 h-12 border-4 border-brown-3 border-t-gold-base rounded-full animate-spin mb-4"></div>
+                    <span className="text-base text-brown-6 font-pretendard">Loading rankings...</span>
+                </div>
+            ) : prizeRanking.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <span className="text-lg text-brown-6 font-pretendard">No prize ranking data</span>
+                </div>
+            ) : (
+                prizeRanking.map((user) => (
+                    <div key={user.rank} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
+                        <RankBadge rank={user.rank} />
+                        <img
+                            src={user.profileImage || mockUserData.profileImage}
+                            alt={user.username || "User"}
+                            className="w-10 h-10 rounded-full overflow-hidden "
+                        />
+                        <span className="text-base text-white flex-1">{user.username || "Anonymous"}</span>
+                        <div className={`relative `}>{getPrizePoolStyle(user.rank, Number(user?.totalAmount || '0').toLocaleString())}</div>
+                    </div>
+                ))
+            )}
+        </div>
+    );
 
-      {/* Tabs */}
-      <div className="leaderboard-tabs">
-        <button
-          className={`tab-btn ${activeTab === "games" ? "active" : ""}`}
-          onClick={() => setActiveTab("games")}
-        >
-          참여 중인 게임
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "prizeRank" ? "active" : ""}`}
-          onClick={() => setActiveTab("prizeRank")}
-        >
-          Prize Rank
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "quest" ? "active" : ""}`}
-          onClick={() => setActiveTab("quest")}
-        >
-          Quest
-        </button>
-      </div>
+    const renderCommentsTab = () => (
+        <div className="flex flex-col gap-4 px-5 w-full mt-5 relative">
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-12 h-12 border-4 border-brown-3 border-t-gold-base rounded-full animate-spin mb-4"></div>
+                    <span className="text-base text-brown-6 font-pretendard">Loading comments...</span>
+                </div>
+            ) : commentLeaders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <span className="text-lg text-brown-6 font-pretendard">No comment leaders data</span>
+                </div>
+            ) : (
+                commentLeaders.map((user) => (
+                    <div key={user.rank} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
+                        <RankBadge rank={user.rank} />
+                        <img
+                            src={user.profileImage || mockUserData.profileImage}
+                            alt={user.username || "User"}
+                            className="w-10 h-10 rounded-full overflow-hidden"
+                        />
+                        <span className="text-base text-white flex-1">{user.username || "Anonymous"}</span>
+                        <div className="flex items-center gap-2 relative">
+                            <img
+                                src="/icon/leaderboard/text_popup.png"
+                                alt="Comment count"
+                                className="h-5 object-contain"
+                                style={{ imageRendering: 'pixelated' }}
+                            />
+                            <span className={`text-base font-pretendard font-regular ${user.rank < 4 ? "text-brown-7 " : "text-brown-3"}`}>
+                                {user.commentCount.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
+    );
 
-      {/* Content */}
-      <section className="leaderboard-content">
-        {activeTab === "games" && renderGamesTab()}
-        {activeTab === "prizeRank" && renderPrizeRankTab()}
-        {activeTab === "quest" && renderQuestTab()}
-      </section>
-    </div>
-  );
+    return (
+        <div className="relative z-30 backdrop-blur bg-brown-0/95 flex flex-col min-h-screen">
+            {/* Header */}
+            <TopBar />
+
+            <div className="flex items-center justify-center gap-x-3 py-3 mx-5 mt-5">
+                <img src='/icon/trophy.png' className="w-14 h-14" style={{ imageRendering: 'pixelated' }} />
+                <span className="text-3xl font-bold text-gold-gradient-smooth uppercase">Leader Board</span>
+            </div>
+
+            {/* Tabs */}
+            <div className="px-5 max-w-xl flex gap-5 mt-5">
+                {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            className={`flex-1 border-t-2 border-x-2 border-r-gray-900 p-3 flex flex-col items-center gap-2 ${isActive
+                                ? "border-gold-base"
+                                : "border-gray-600"
+                                }`}
+                            onClick={() => setActiveTab(tab.id)}
+                        >
+                            {tab.icon && (
+                                <img
+                                    src={tab.icon}
+                                    className={`w-14 h-14 ${!isActive ? 'opacity-20 ' : ''}`}
+                                    style={{ imageRendering: 'pixelated' }}
+                                    alt={tab.label}
+                                />
+                            )}
+                            <span className={isActive ? 'text-gold-gradient-smooth' : 'text-gold-gradient-smooth opacity-50'}>
+                                {tab.label}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Content */}
+            <section className="bg-[#120705]/80 flex flex-col items-center justify-start flex-1 relative pb-10">
+                {activeTab === "best memes" && renderGamesTab()}
+                {activeTab === "most winnings" && renderPrizeRankTab()}
+                {activeTab === "most comments" && renderCommentsTab()}
+            </section>
+        </div>
+    );
 }

@@ -49,7 +49,7 @@ const initialSessionState: SessionState = {
     isMemexLoggedIn: false,
     memexUsername: null,
     memexUserTag: null,
-    memexProfileImage: null,
+    memexProfileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
     memexWalletAddress: null,
     myTokenAddr: null,
     myTokenSymbol: null,

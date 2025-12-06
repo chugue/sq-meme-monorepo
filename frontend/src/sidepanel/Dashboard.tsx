@@ -2,9 +2,7 @@ import "./Dashboard.css";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 
 // Assets imports
-import homeBg from "../../assets/home.png";
 import homeBanner from "../../assets/home_banner.png";
-import homeFloor from "../../assets/home_floor.png";
 import howToPlayIcon from "../../assets/how_to_play.png";
 import logoIcon from "../../assets/logo.png";
 import moneyIcon from "../../assets/money.png";
@@ -13,8 +11,9 @@ import profileBox from "../../assets/profile_box.png";
 import questIcon from "../../assets/quest.png";
 import tropyIcon from "../../assets/tropy.png";
 
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
+import { PAGES, setPageAtom } from "./atoms/pageAtoms";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { getAllSessionStorage } from "./lib/sessionStorage";
@@ -38,27 +37,14 @@ function formatMTokenBalance(balance: string | undefined): string {
 
 interface DashboardProps {
     walletAddress?: string;
-    onNavigateToProfile?: () => void;
-    onNavigateToLeaderboard?: () => void;
-    onNavigateToLiveGames?: () => void;
-    onNavigateToMyAssets?: () => void;
-    onNavigateToHowToPlay?: () => void;
-    onNavigateToQuest?: () => void;
 }
 
-export function Dashboard({
-    walletAddress: walletAddressProp,
-    onNavigateToProfile,
-    onNavigateToLeaderboard,
-    onNavigateToLiveGames,
-    onNavigateToMyAssets,
-    onNavigateToHowToPlay,
-    onNavigateToQuest,
-}: DashboardProps) {
+export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) {
     const { logout } = useMemexLogin();
     const { address: walletAddressFromHook } = useSidepanelWallet();
     const session = useAtomValue(sessionAtom);
     const { user } = session;
+    const setPage = useSetAtom(setPageAtom);
 
     // 디버깅: 세션 데이터 변화 확인
     useEffect(() => {
@@ -86,22 +72,10 @@ export function Dashboard({
     };
 
     return (
-        <div className="dashboard-container">
-            {/* Background Images */}
-            <div className="dashboard-background">
-                <img src={homeBg} alt="Background" className="bg-image" />
-                <img
-                    src={homeFloor}
-                    alt="Floor"
-                    className="absolute bottom-0 left-0 right-0 w-full h-full z-10 transform duration-1000 translate-y-[20%] sm:translate-y-[50%]"
-                    style={{
-                        animationDelay: '0.5s',
-                    }}
-                />
-            </div>
+        <div className="dashboard-container relative z-20">
 
             {/* Left Top: Profile Box with Image */}
-            <button className="profile-btn" onClick={onNavigateToProfile}>
+            <button className="profile-btn">
                 <div className="profile-box-container">
                     <img
                         src={profileBox}
@@ -124,7 +98,10 @@ export function Dashboard({
             <div className="menu-icons-vertical">
                 <button
                     className="menu-icon-btn"
-                    onClick={onNavigateToHowToPlay}
+                    onClick={() => {
+                        // TODO: How to Play 페이지 구현
+                        console.log("How to Play clicked");
+                    }}
                     title="How to Play"
                 >
                     <img src={howToPlayIcon} alt="How toPlay" />
@@ -136,7 +113,7 @@ export function Dashboard({
                 </button>
                 <button
                     className="menu-icon-btn"
-                    onClick={onNavigateToQuest}
+                    onClick={() => setPage(PAGES.QUESTS)}
                     title="Quest"
                 >
                     <img src={questIcon} alt="Quest" />
@@ -144,7 +121,7 @@ export function Dashboard({
                 </button>
                 <button
                     className="menu-icon-btn"
-                    onClick={onNavigateToLeaderboard}
+                    onClick={() => setPage(PAGES.LEADERBOARD)}
                     title="Leader Board"
                 >
                     <img src={tropyIcon} alt="Leader Board" />
@@ -155,7 +132,7 @@ export function Dashboard({
                 </button>
                 <button
                     className="menu-icon-btn"
-                    onClick={onNavigateToMyAssets}
+                    onClick={() => setPage(PAGES.MY_ASSETS)}
                     title="My Memecoins"
                 >
                     <img src={moneyIcon} alt="My Memecoins" />
@@ -179,8 +156,8 @@ export function Dashboard({
                     </div>
                 </div>
             </section>
-            ㄴ{/* Bottom: Logo and Live Game Banner */}
-            <button className="bottom-section" onClick={onNavigateToLiveGames}>
+            {/* Bottom: Logo and Live Game Banner */}
+            <button className="bottom-section" onClick={() => setPage(PAGES.LIVE_GAMES)}>
                 <img src={logoIcon} alt="Logo" className="logo-image" />
                 <div className="live-game-banner">
                     <img src={homeBanner} alt="Live Games" className="banner-image" />

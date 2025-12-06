@@ -1,22 +1,24 @@
 import "./App.css";
 
+import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { currentPageAtom, PAGES } from "./atoms/pageAtoms";
 import { ComingSoon } from "./ComingSoon";
+import DashboardBackground from "./components/DashboardBackground";
 import { Dashboard } from "./Dashboard";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { LeaderboardPage } from "./LeaderboardPage";
 import { LiveGamesPage } from "./LiveGamesPage";
 import { MyAssetsPage } from "./MyAssetsPage";
-import { ProfileModal } from "./ProfileModal";
+import QuestPage from "./QuestPage";
 import StartingLoading from "./StartingLoading";
-
-type Page = "dashboard" | "leaderboard" | "liveGames" | "myAssets";
 
 export function SidePanelApp() {
     const { isConnected, address, isLoading } = useSidepanelWallet();
-    const { isLoggedIn: isMemexLoggedIn, setLoggedIn: setMemexLoggedIn } = useMemexLogin();
-    const [currentPage, setCurrentPage] = useState<Page>("dashboard");
+    const { isLoggedIn: isMemexLoggedIn, setLoggedIn: setMemexLoggedIn } =
+        useMemexLogin();
+    const currentPage = useAtomValue(currentPageAtom);
     const [showStartingLoading, setShowStartingLoading] = useState(true);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -27,7 +29,10 @@ export function SidePanelApp() {
 
     // MEMEX 로그인 완료 핸들러
     const handleMemexLoginComplete = (username: string, userTag: string) => {
-        console.log("🔐 [App] handleMemexLoginComplete 호출됨:", { username, userTag });
+        console.log("🔐 [App] handleMemexLoginComplete 호출됨:", {
+            username,
+            userTag,
+        });
         setMemexLoggedIn(true, username, userTag);
     };
 
@@ -38,55 +43,26 @@ export function SidePanelApp() {
     };
 
     if (showStartingLoading || isLoading) {
-        return <StartingLoading onComplete={handleStartingLoadingComplete} duration={3000} />;
+        return (
+            <StartingLoading
+                onComplete={handleStartingLoadingComplete}
+                duration={0}
+            />
+        );
     }
-
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드
     if (isConnected && isMemexLoggedIn) {
-        if (currentPage === "leaderboard") {
-            return (
-                <LeaderboardPage
-                    onBack={() => setCurrentPage("dashboard")}
-                />
-            );
-        }
-        if (currentPage === "liveGames") {
-            return (
-                <LiveGamesPage
-                    onBack={() => setCurrentPage("dashboard")}
-                />
-            );
-        }
-        if (currentPage === "myAssets") {
-            return (
-                <MyAssetsPage
-                    onBack={() => setCurrentPage("dashboard")}
-                />
-            );
-        }
         return (
-            <>
-                <Dashboard
-                    walletAddress={address || undefined}
-                    onNavigateToProfile={() => setIsProfileModalOpen(true)}
-                    onNavigateToLeaderboard={() => setCurrentPage("leaderboard")}
-                    onNavigateToLiveGames={() => setCurrentPage("liveGames")}
-                    onNavigateToMyAssets={() => setCurrentPage("myAssets")}
-                    onNavigateToHowToPlay={() => {
-                        // TODO: How to Play 페이지 구현
-                        console.log("How to Play clicked");
-                    }}
-                    onNavigateToQuest={() => {
-                        // TODO: Quest 페이지 구현
-                        console.log("Quest clicked");
-                    }}
-                />
-                <ProfileModal
-                    isOpen={isProfileModalOpen}
-                    onClose={() => setIsProfileModalOpen(false)}
-                />
-            </>
+            <div className="relative min-h-screen">
+                <DashboardBackground />
+                {currentPage === PAGES.QUESTS && <QuestPage />}
+                {currentPage === PAGES.LEADERBOARD && <LeaderboardPage />}
+                {currentPage === PAGES.LIVE_GAMES && <LiveGamesPage />}
+                {currentPage === PAGES.MY_ASSETS && <MyAssetsPage />}
+                {(currentPage === PAGES.DASHBOARD || currentPage === undefined) && <Dashboard walletAddress={address || undefined} />
+                }
+            </div>
         );
     }
 

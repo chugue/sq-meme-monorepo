@@ -44,10 +44,10 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
         type: "error",
     });
 
-    const showRefreshSnackbar = () => {
+    const showRefreshSnackbar = (message?: string) => {
         setSnackbar({
             isVisible: true,
-            message: "MEMEX에서 실행해주세요",
+            message: message || "MEMEX에서 실행해주세요",
             type: "warning",
         });
     };
@@ -55,6 +55,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
     const closeSnackbar = () => {
         setSnackbar((prev) => ({ ...prev, isVisible: false }));
     };
+
     const handleRefreshMemexTab = async () => {
         try {
             await backgroundApi.refreshMemexTab();
@@ -66,9 +67,35 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
     const handleConnectWallet = async () => {
         try {
-            await connect();
-            // 지갑 연결 성공 시 현재 탭을 app.memex.xyz로 이동
-            await backgroundApi.navigateToUrl("https://app.memex.xyz");
+            // 현재 활성 탭의 URL 확인
+            const currentUrlResult = await backgroundApi.getCurrentTabUrl();
+            const currentUrl = currentUrlResult?.url;
+
+            // URL이 https://app.memex.xyz로 시작하지 않으면 스낵바 표시하고 종료
+            if (!currentUrl || !currentUrl.startsWith("https://app.memex.xyz")) {
+                showRefreshSnackbar();
+                return;
+            }
+
+            // URL 파싱하여 경로 확인
+            try {
+                const url = new URL(currentUrl);
+                const pathname = url.pathname;
+
+                // 정확히 https://app.memex.xyz 또는 https://app.memex.xyz/인 경우 (경로가 없거나 /만 있는 경우)
+                if (pathname === "/" || pathname === "") {
+                    showRefreshSnackbar("로그인 이후 시도해주세요");
+                    return;
+                }
+
+                // 경로가 있으면 지갑 연결 진행
+                await connect();
+                await handleMemexLogin();
+            } catch (urlError) {
+                // URL 파싱 실패 시 기본 메시지 표시
+                showRefreshSnackbar();
+                return;
+            }
         } catch (err) {
             console.error("Wallet connection failed:", err);
             if (isContentScriptError(err)) {
@@ -82,37 +109,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
         walletAddress: address ?? undefined,
         onSuccess: onMemexLoginComplete,
         onRefetch: refetch,
-    };
-
-    const handleConnectMemex = async () => {
-        console.log("🔐 handleConnectMemex 시작, GTM 키 체크 중...");
-        // 1. GTM 키 먼저 체크
-        const cachedUserInfo = await getMemexUserInfo();
-        console.log("🔐 GTM 키 체크 결과:", cachedUserInfo);
-
-        if (cachedUserInfo) {
-            try {
-                const success = await tryLoginWithCachedUserInfo(
-                    cachedUserInfo,
-                    loginOptions,
-                );
-                if (success) {
-                    return; // 로그인 성공
-                }
-                // 실패 시 Terms 모달 표시
-                setIsTermsModalOpen(true);
-            } catch (err) {
-                // content script 에러 처리
-                if (isContentScriptError(err)) {
-                    showRefreshSnackbar();
-                }
-                return;
-            }
-        } else {
-            // GTM 키가 없으면 Terms 모달 표시
-            console.log("🔐 GTM 키 없음, Terms 모달 표시...");
-            setIsTermsModalOpen(true);
-        }
     };
 
     const handleCloseTermsModal = () => {
@@ -285,165 +281,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                     setLoggingIn(false);
                 }
             }
-
-            // 로그인 시작됨 - 폴링으로 로그인 완료 확인
-            if (result?.loginStarted) {
-                console.log("🔐 Google 로그인 시작됨, 폴링 시작...");
-                setLoggingIn(true);
-                const maxWaitTime = 60000; // 60초
-                const pollInterval = 2000; // 2초
-                const startTime = Date.now();
-
-                const checkLoginStatus = async (): Promise<void> => {
-                    const elapsed = Date.now() - startTime;
-                    if (elapsed >= maxWaitTime) {
-                        console.error("❌ 로그인 타임아웃");
-                        setLoggingIn(false);
-                        return;
-                    }
-
-                    try {
-                        const checkResult =
-                            (await backgroundApi.memexLogin()) as {
-                                success: boolean;
-                                isLoggedIn?: boolean;
-                                username?: string;
-                                userTag?: string;
-                            };
-                        console.log(
-                            "🔐 로그인 상태 확인:",
-                            checkResult,
-                            Math.floor(elapsed / 1000),
-                            "초 경과",
-                        );
-
-                        if (
-                            checkResult?.isLoggedIn &&
-                            checkResult.username &&
-                            checkResult.userTag &&
-                            onMemexLoginComplete
-                        ) {
-                            console.log(
-                                "🔐 GTM 로그인 확인됨, 백엔드에서 user 정보 조회:",
-                                checkResult.username,
-                            );
-
-                            // 백엔드에서 user 정보 가져오기 - user가 있어야만 로그인 완료
-                            try {
-                                const userResult =
-                                    await backgroundApi.getUserByUsername(
-                                        checkResult.username,
-                                        checkResult.userTag,
-                                    );
-                                if (userResult?.user) {
-                                    setUser(userResult.user);
-                                    console.log(
-                                        "✅ MEMEX 로그인 완료:",
-                                        userResult.user.userName,
-                                    );
-                                    setLoggingIn(false);
-                                    await refetch();
-                                    onMemexLoginComplete(
-                                        checkResult.username,
-                                        checkResult.userTag,
-                                    );
-                                    return;
-                                }
-
-                                // 백엔드에 user 없음 - 자동 회원가입 시도
-                                console.log(
-                                    "🆕 백엔드에 user 없음, 자동 회원가입 시도...",
-                                );
-
-                                // 1. 프로필 정보 fetch
-                                const profileInfo =
-                                    await backgroundApi.fetchMemexProfileInfo(
-                                        checkResult.username,
-                                        checkResult.userTag,
-                                    );
-                                console.log("📋 프로필 정보:", profileInfo);
-
-                                // 2. 지갑 주소 확인
-                                if (!address) {
-                                    console.warn(
-                                        "⚠️ 지갑 연결 필요, 폴링 계속...",
-                                    );
-                                    setTimeout(checkLoginStatus, pollInterval);
-                                    return;
-                                }
-
-                                // 3. 필수 정보 확인 후 Join 요청
-                                if (
-                                    profileInfo?.profileImageUrl &&
-                                    profileInfo?.tokenAddr &&
-                                    profileInfo?.memexWalletAddress
-                                ) {
-                                    const joinResult = await backgroundApi.join(
-                                        {
-                                            username: checkResult.username,
-                                            userTag: checkResult.userTag,
-                                            walletAddress: address,
-                                            profileImageUrl:
-                                                profileInfo.profileImageUrl,
-                                            memeXLink: `https://app.memex.xyz/profile/${checkResult.username}/${checkResult.userTag}`,
-                                            myTokenAddr: profileInfo.tokenAddr,
-                                            myTokenSymbol:
-                                                profileInfo.tokenSymbol || "",
-                                            memexWalletAddress:
-                                                profileInfo.memexWalletAddress,
-                                            isPolicyAgreed: true,
-                                        },
-                                    );
-
-                                    if (joinResult?.user) {
-                                        setUser(joinResult.user);
-                                        console.log(
-                                            "✅ 자동 회원가입 완료:",
-                                            joinResult.user.userName,
-                                        );
-                                        setLoggingIn(false);
-                                        await refetch();
-                                        onMemexLoginComplete(
-                                            checkResult.username,
-                                            checkResult.userTag,
-                                        );
-                                        return;
-                                    }
-                                } else {
-                                    console.warn(
-                                        "⚠️ 프로필 정보 부족, 폴링 계속:",
-                                        {
-                                            profileImageUrl:
-                                                profileInfo?.profileImageUrl,
-                                            tokenAddr: profileInfo?.tokenAddr,
-                                            memexWalletAddress:
-                                                profileInfo?.memexWalletAddress,
-                                        },
-                                    );
-                                }
-                            } catch (userErr) {
-                                console.warn(
-                                    "⚠️ User 정보 조회/회원가입 실패, 폴링 계속:",
-                                    userErr,
-                                );
-                            }
-                        }
-
-                        // 아직 로그인 안됨, 다시 체크
-                        setTimeout(checkLoginStatus, pollInterval);
-                    } catch (err) {
-                        console.log("🔐 로그인 확인 중 오류 (재시도):", err);
-                        setTimeout(checkLoginStatus, pollInterval);
-                    }
-                };
-
-                // 5초 후 폴링 시작 (Google 로그인 완료 시간 대기)
-                setTimeout(checkLoginStatus, 5000);
-            } else if (!result?.isLoggedIn && !result?.loginStarted) {
-                // 로그인도 안되고 로그인 시작도 안됨 - MEMEX 탭 없음
-                console.log("⚠️ MEMEX 탭이 없거나 연결 안됨, 스낵바 표시");
-                showRefreshSnackbar();
-            }
         } catch (err) {
             console.error("❌ MEMEX login failed:", err);
             setLoggingIn(false);
@@ -520,7 +357,10 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             <img
                 src={homeFloor}
                 alt="Floor"
-                className="absolute bottom-0 left-0 right-0 w-full h-full scale-150  object-contain animate-[slideUpFromBottom_1.5s_ease-in-out] -z-10 transition-all duration-1000 transform md:translate-y-[50%]"
+                className="absolute bottom-0 left-0 right-0 w-full h-full -z-10 transition-all transform translate-y-[20%] sm:translate-y-[50%]"
+                style={{
+                    animationDelay: '0.5s',
+                }}
             />
         </div>
     );

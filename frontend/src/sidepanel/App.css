@@ -123,7 +123,7 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%);
+    background: var(--gradient-loading-bg);
     color: #fff;
     gap: 16px;
 }
@@ -154,8 +154,41 @@ body {
 }
 
 /* ============================================
-   Tailwind v4 Theme Configuration (CSS Variables)
+   Tailwind v4 Theme Configuration
    ============================================ */
+
+@theme {
+    /* Brown 색상 팔레트 - Tailwind 테마에 등록 (모든 유틸리티에서 사용 가능) */
+    --color-brown-0: #231205;
+    --color-brown-1: #2E1D0D;
+    --color-brown-2: #4A2F1E;
+    --color-brown-3: #634320;
+    --color-brown-4: #805948;
+    --color-brown-5: #996E5D;
+    --color-brown-6: #B38372;
+    --color-brown-7: #CDB887;
+    --color-brown-8: #E6CD9C;
+
+    /* 황금/갈색 색상 팔레트 - Tailwind 테마에 등록 */
+    --color-gold-light: #FFE9BD;
+    --color-gold-medium: #F5D89C;
+    --color-gold-base: #E0B372;
+    --color-gold-dark: #D4A574;
+    --color-gold-open: #D99838;
+    --color-gold-darker: #C9A961;
+    --color-gold-bold-light: #FFF8E7;
+    --color-gold-bold-base: #FFD700;
+    --color-gold-bold-dark: #8B6914;
+    --color-gold-stroke: #361807;
+
+    /* 오렌지/황금 색상 - Tailwind 테마에 등록 */
+    --color-orange: #ffa500;
+    --color-yellow: #ffff00;
+
+    /* 랭킹 배지 그라데이션 border */
+    --gradient-rank-2: linear-gradient(180deg, #EBEEFF 0%, #3B394A 100%);
+    --gradient-rank-3: linear-gradient(180deg, #BA9C90 0%, #503326 100%);
+}
 
 :root {
     /* 커스텀 폰트 패밀리 */
@@ -163,30 +196,74 @@ body {
     --font-family-pixel-alt: "PressStart2P", "Courier New", monospace;
     --font-family-pretendard: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-    /* 황금/갈색 색상 팔레트 */
-    --color-gold-light: #FFE9BD;
-    --color-gold-medium: #F5D89C;
-    --color-gold-base: #E0B372;
-    --color-gold-dark: #D4A574;
-    --color-gold-darker: #C9A961;
-    --color-gold-bold-light: #FFF8E7;
-    --color-gold-bold-base: #FFD700;
-    --color-gold-bold-dark: #8B6914;
-    --color-gold-stroke: #361807;
-
-    /* 오렌지/황금 색상 */
-    --color-orange: #ffa500;
-    --color-yellow: #ffff00;
+    /* 그라데이션 변수 (테마 색상이 아닌 복합 값이므로 :root에 유지) */
+    --gradient-main-1: linear-gradient(112.47deg, var(--color-gold-light) 37.39%, var(--color-gold-base) 81.42%);
+    --gradient-main-2: linear-gradient(112.47deg, var(--color-gold-light) 0%, var(--color-gold-medium) 20%, var(--color-gold-base) 40%, var(--color-gold-dark) 60%, var(--color-gold-light) 80%, var(--color-gold-base) 100%);
+    --gradient-main-3: linear-gradient(45deg, var(--color-orange), var(--color-yellow), var(--color-orange));
+    --gradient-main-4: linear-gradient(112.47deg, var(--color-gold-bold-light) 0%, var(--color-gold-bold-base) 12.5%, var(--color-gold-darker) 25%, var(--color-gold-bold-dark) 37.5%, var(--color-gold-bold-light) 50%, var(--color-gold-bold-base) 62.5%, var(--color-gold-darker) 75%, var(--color-gold-bold-dark) 87.5%, var(--color-gold-bold-light) 100%);
+    --gradient-main-5: linear-gradient(90deg, #FAEAA6 0%, #D09331 31.25%, #E3AA3D 57.21%, #A3641A 100%, #E3AA3D 131.25%, #D09331 157.21%, #FAEAA6 200%);
+    --gradient-loading-bg: linear-gradient(180deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%);
 }
 
-/* 그라데이션 애니메이션 키프레임 */
+/* 그라데이션 애니메이션 키프레임 - 왕복 (1-2-3-2-1) */
 @keyframes gradient-flow {
     0% {
         background-position: 0% 50%;
     }
 
     100% {
-        background-position: 200% 50%;
+        background-position: 100% 50%;
+    }
+}
+
+/* 흔들리는 애니메이션 */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-1px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(1px);
+    }
+}
+
+/* 보물 상자 안에 뭔가 있는 듯한 애니메이션 */
+@keyframes treasure-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0px rgba(255, 215, 0, 0);
+        filter: brightness(1);
+    }
+
+    50% {
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.6), 0 0 12px rgba(255, 215, 0, 0.4);
+        filter: brightness(1.15);
+    }
+}
+
+@keyframes treasure-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
     }
 }
 
@@ -215,10 +292,92 @@ body {
         font-family: var(--font-family-pretendard);
     }
 
+    /* 배경 그라데이션 유틸리티 */
+    .bg-gradient-main-1 {
+        background: var(--gradient-main-1);
+    }
+
+    .bg-gradient-main-2 {
+        background: var(--gradient-main-2);
+    }
+
+    .bg-gradient-main-3 {
+        background: var(--gradient-main-3);
+    }
+
+    .bg-gradient-main-4 {
+        background: var(--gradient-main-4);
+    }
+
+    .bg-gradient-main-5 {
+        background: var(--gradient-main-5);
+    }
+
+    .bg-gradient-loading {
+        background: var(--gradient-loading-bg);
+    }
+
+    /* 범용 그라데이션 흐르는 애니메이션 - 왕복 */
+    .animate-gradient-flow {
+        background-size: 500% 100%;
+        animation: gradient-flow 3s ease-in-out infinite alternate;
+    }
+
+    /* 흔들리는 애니메이션 */
+    .animate-shake {
+        animation: shake 2s ease-in-out infinite;
+    }
+
+    /* 보물 상자 안에 뭔가 있는 듯한 애니메이션 */
+    .animate-treasure-glow {
+        animation: treasure-glow 2s ease-in-out infinite;
+    }
+
+    .animate-treasure-pulse {
+        animation: treasure-pulse 1.5s ease-in-out infinite;
+    }
+
+    /* 1위 (gold) - rounded-full 적용을 위한 트릭 */
+    .border-gold-gradient-1 {
+        /* 기존 border-image 제거 */
+        /* border: 1px solid transparent; */
+        /* HTML에서 border-2 border-transparent 적용 권장 */
+        border-radius: 50%;
+        /* Tailwind의 rounded-full 클래스가 이 역할을 대신합니다. */
+
+        /* 테두리 두께를 위한 padding-box 설정 */
+        background-clip: padding-box;
+
+        /* mask를 사용하여 테두리 부분만 그라디언트를 보이게 합니다. */
+        /* background-image는 HTML에서 직접 적용해야 합니다 (예: bg-[var(--gradient-main-1)] ) */
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+    }
+
+    /* 2위 (silver) */
+    .border-gradient-rank-2 {
+        /* 기존 border-image 제거 */
+        border-radius: 50%;
+        background-clip: padding-box;
+        /* background-image는 HTML에서 직접 적용합니다 (예: bg-[var(--gradient-rank-2)] ) */
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+    }
+
+    /* 3위 (bronze) */
+    .border-gradient-rank-3 {
+        /* 기존 border-image 제거 */
+        border-radius: 50%;
+        background-clip: padding-box;
+        /* background-image는 HTML에서 직접 적용합니다 (예: bg-[var(--gradient-rank-3)] ) */
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+    }
+
     /* 기본 황금/갈색 그라데이션 텍스트 */
     .text-gold-gradient {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(112.47deg, var(--color-gold-light) 37.39%, var(--color-gold-base) 81.42%);
+        background: var(--gradient-main-1);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -231,13 +390,7 @@ body {
     /* 부드러운 황금/갈색 그라데이션 (흐르는 애니메이션) */
     .text-gold-gradient-smooth {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(112.47deg,
-                var(--color-gold-light) 0%,
-                var(--color-gold-medium) 20%,
-                var(--color-gold-base) 40%,
-                var(--color-gold-dark) 60%,
-                var(--color-gold-light) 80%,
-                var(--color-gold-base) 100%);
+        background: var(--gradient-main-2);
         background-size: 200% 100%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -252,7 +405,7 @@ body {
     /* 오렌지/황금 그라데이션 */
     .text-orange-gold-gradient {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(45deg, var(--color-orange), var(--color-yellow), var(--color-orange));
+        background: var(--gradient-main-3);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -263,16 +416,7 @@ body {
     /* 강렬한 황금/갈색 그라데이션 */
     .text-gold-gradient-bold {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(112.47deg,
-                var(--color-gold-bold-light) 0%,
-                var(--color-gold-bold-base) 12.5%,
-                var(--color-gold-darker) 25%,
-                var(--color-gold-bold-dark) 37.5%,
-                var(--color-gold-bold-light) 50%,
-                var(--color-gold-bold-base) 62.5%,
-                var(--color-gold-darker) 75%,
-                var(--color-gold-bold-dark) 87.5%,
-                var(--color-gold-bold-light) 100%);
+        background: var(--gradient-main-4);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -282,7 +426,7 @@ body {
     /* 픽셀 폰트 + 황금 그라데이션 (조합) */
     .text-pixel-gold {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(112.47deg, var(--color-gold-light) 37.39%, var(--color-gold-base) 81.42%);
+        background: var(--gradient-main-1);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -295,7 +439,7 @@ body {
     /* 픽셀 폰트 + 오렌지/황금 그라데이션 (조합) */
     .text-pixel-orange-gold {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(45deg, var(--color-orange), var(--color-yellow), var(--color-orange));
+        background: var(--gradient-main-3);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -306,13 +450,7 @@ body {
     /* 픽셀 폰트 + 흐르는 황금 그라데이션 (조합) */
     .text-pixel-gold-flow {
         font-family: var(--font-family-pixel);
-        background: linear-gradient(112.47deg,
-                var(--color-gold-light) 0%,
-                var(--color-gold-medium) 20%,
-                var(--color-gold-base) 40%,
-                var(--color-gold-dark) 60%,
-                var(--color-gold-light) 80%,
-                var(--color-gold-base) 100%);
+        background: var(--gradient-main-2);
         background-size: 200% 100%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -410,5 +548,90 @@ body {
         bottom: -15px;
         right: 25%;
         border-width: 14px 13px 1px 0;
+    }
+
+    /* 픽셀 보더 - 모서리만 픽셀 패턴 (내부/외부 모두) */
+    .border-pixel-simple {
+        border: 6px solid var(--color-brown-3);
+        position: relative;
+    }
+
+    .border-pixel-simple::before {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: 1;
+        background-image:
+            /* 좌상단 모서리 - 내부 */
+            repeating-linear-gradient(45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 우상단 모서리 - 내부 */
+            repeating-linear-gradient(-45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 좌하단 모서리 - 내부 */
+            repeating-linear-gradient(-45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 우하단 모서리 - 내부 */
+            repeating-linear-gradient(45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 좌상단 모서리 - 외부 */
+            repeating-linear-gradient(45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 우상단 모서리 - 외부 */
+            repeating-linear-gradient(-45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 좌하단 모서리 - 외부 */
+            repeating-linear-gradient(-45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px),
+            /* 우하단 모서리 - 외부 */
+            repeating-linear-gradient(45deg,
+                var(--color-brown-3) 0px,
+                var(--color-brown-3) 2px,
+                transparent 2px,
+                transparent 4px);
+        background-size:
+            24px 24px,
+            24px 24px,
+            24px 24px,
+            24px 24px,
+            24px 24px,
+            24px 24px,
+            24px 24px,
+            24px 24px;
+        background-position:
+            /* 내부 모서리 */
+            calc(6px) calc(6px),
+            calc(100% - 6px - 24px) calc(6px),
+            calc(6px) calc(100% - 6px - 24px),
+            calc(100% - 6px - 24px) calc(100% - 6px - 24px),
+            /* 외부 모서리 */
+            -12px -12px,
+            calc(100% + 12px - 24px) -12px,
+            -12px calc(100% + 12px - 24px),
+            calc(100% + 12px - 24px) calc(100% + 12px - 24px);
+        background-repeat: no-repeat;
     }
 }
