@@ -4,6 +4,7 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { currentPageAtom, PAGES } from "./atoms/pageAtoms";
 import { ComingSoon } from "./ComingSoon";
+import DashboardBackground from "./components/DashboardBackground";
 import { Dashboard } from "./Dashboard";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
@@ -45,26 +46,24 @@ export function SidePanelApp() {
         return (
             <StartingLoading
                 onComplete={handleStartingLoadingComplete}
-                duration={3000}
+                duration={0}
             />
         );
     }
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드
     if (isConnected && isMemexLoggedIn) {
-        if (currentPage === PAGES.LEADERBOARD) {
-            return <LeaderboardPage />;
-        }
-        if (currentPage === PAGES.LIVE_GAMES) {
-            return <LiveGamesPage />;
-        }
-        if (currentPage === PAGES.MY_ASSETS) {
-            return <MyAssetsPage />;
-        }
-        if (currentPage === PAGES.QUESTS) {
-            return <QuestPage />;
-        }
-        return <Dashboard walletAddress={address || undefined} />;
+        return (
+            <div className="relative min-h-screen">
+                <DashboardBackground />
+                {currentPage === PAGES.QUESTS && <QuestPage />}
+                {currentPage === PAGES.LEADERBOARD && <LeaderboardPage />}
+                {currentPage === PAGES.LIVE_GAMES && <LiveGamesPage />}
+                {currentPage === PAGES.MY_ASSETS && <MyAssetsPage />}
+                {(currentPage === PAGES.DASHBOARD || currentPage === undefined) && <Dashboard walletAddress={address || undefined} />
+                }
+            </div>
+        );
     }
 
     return <ComingSoon onMemexLoginComplete={handleMemexLoginComplete} />;
