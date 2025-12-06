@@ -28,10 +28,8 @@ interface ComingSoonProps {
 }
 
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
-    const { isConnected, address, isLoading, error, connect, refetch } =
-        useSidepanelWallet();
-    const { setLoggingIn, setUser, tryLoginWithCachedUserInfo } =
-        useMemexLogin();
+    const { isConnected, address, isLoading, error, connect, refetch } = useSidepanelWallet();
+    const { isLoggingIn, setLoggingIn, setUser, tryLoginWithCachedUserInfo } = useMemexLogin();
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [snackbar, setSnackbar] = useState<{
         isVisible: boolean;
@@ -483,7 +481,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                     />
                     <button
                         className="connect-bottom-button text-pixel-gold-flow text-xl"
-                        onClick={handleConnect}
+                        onClick={handleConnectWallet}
                         disabled={isLoading}
                     >
                         CONNECT {">>>"}
