@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { defineConfig } from 'wxt';
 
@@ -16,8 +17,10 @@ export default defineConfig({
     vite: () => ({
         // 부모 디렉토리의 .env 파일 사용
         envDir: path.resolve(__dirname, '..'),
+        plugins: [tailwindcss()],
         resolve: {
             alias: {
+                '@/assets': path.resolve(__dirname, './assets'),
                 '@/sidepanel': path.resolve(__dirname, './src/sidepanel'),
                 '@/shared': path.resolve(__dirname, './src/shared'),
                 '@/contents': path.resolve(__dirname, './src/contents'),
@@ -73,7 +76,7 @@ export default defineConfig({
         // 웹 접근 가능 리소스 설정
         web_accessible_resources: [
             {
-                resources: ['injected.js', 'icon/*', 'font/*'],
+                resources: ['injected.js', 'icon/*', 'font/*', '*.gif'],
                 matches: [
                     'https://app.memex.xyz/*',
                     'http://app.memex.xyz/*',
