@@ -2,10 +2,11 @@
  * 1단계: 잔액 확인 컴포넌트
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import type { Address } from 'viem';
-import { useTokenBalance } from '../../../hooks/useTokenBalance';
-import { useWallet } from '../../../hooks/useWallet';
+import checkCoin from "@/public/icon/game-setting/check-coin.png";
+import { useCallback, useEffect, useState } from "react";
+import type { Address } from "viem";
+import { useTokenBalance } from "../../../hooks/useTokenBalance";
+import { useWallet } from "../../../hooks/useWallet";
 
 interface BalanceCheckStepProps {
     tokenAddress: Address;
@@ -14,12 +15,7 @@ interface BalanceCheckStepProps {
     onClose: () => void;
 }
 
-export function BalanceCheckStep({
-    tokenAddress,
-    tokenSymbol,
-    onNext,
-    onClose,
-}: BalanceCheckStepProps) {
+export function BalanceCheckStep({ tokenAddress, tokenSymbol, onNext, onClose }: BalanceCheckStepProps) {
     const { address } = useWallet();
     const { tokenInfo, isLoading, error, checkBalance, hasBalance } = useTokenBalance();
     const [isChecked, setIsChecked] = useState(false);
@@ -47,80 +43,78 @@ export function BalanceCheckStep({
             tradeButton.click();
         } else {
             // Trade 버튼이 없으면 알림
-            alert('Trade 버튼을 찾을 수 없습니다. 페이지에서 직접 Trade를 클릭해주세요.');
+            alert("Trade 버튼을 찾을 수 없습니다. 페이지에서 직접 Trade를 클릭해주세요.");
         }
     };
 
     return (
-        <div className="squid-step-content">
-            <div className="squid-step-icon">💰</div>
-            <h3 className="squid-step-title">Check Token Balance</h3>
-            <p className="squid-step-description">
-                게임을 생성하려면 {tokenSymbol} 토큰이 필요합니다.
+        <div className="balance-check-step">
+            <div className="balance-check-icon">
+                <img src={checkCoin} alt="Check Token" />
+            </div>
+            <h3 className="balance-check-title">Check Token Balance</h3>
+            <p className="balance-check-description">
+                Creating a game requires $50M tokens.
                 <br />
-                첫 댓글 비용으로 사용됩니다.
+                This amount will be used as the cost for the first comment
             </p>
 
-            <div className="squid-token-address-box">
-                <span className="squid-label">Token Address</span>
-                <span className="squid-value">{tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}</span>
-            </div>
-
-            {isLoading && (
-                <div className="squid-balance-box">
-                    <span className="squid-label">Your Balance</span>
-                    <span className="squid-value">Loading...</span>
-                </div>
-            )}
-
-            {error && (
-                <div className="squid-error-box">
-                    {error}
-                </div>
-            )}
-
-            {tokenInfo && (
-                <div className="squid-balance-box">
-                    <span className="squid-label">Your Balance</span>
-                    <span className={`squid-value ${hasBalance ? 'has-balance' : 'no-balance'}`}>
-                        {tokenInfo.balanceFormatted} {tokenInfo.symbol || tokenSymbol}
+            <div className="balance-check-info-section">
+                <div className="balance-check-info-row">
+                    <span className="balance-check-label">TOKEN ADDRESS</span>
+                    <span className="balance-check-value">
+                        {tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}
                     </span>
                 </div>
-            )}
+
+                {isLoading && (
+                    <div className="balance-check-info-row">
+                        <span className="balance-check-label">YOUR BALANCE</span>
+                        <span className="balance-check-value">Loading...</span>
+                    </div>
+                )}
+
+                {error && <div className="balance-check-error">{error}</div>}
+
+                {tokenInfo && (
+                    <div className="balance-check-info-row">
+                        <span className="balance-check-label">YOUR BALANCE</span>
+                        <span className={`balance-check-balance ${hasBalance ? "has-balance" : "no-balance"}`}>
+                            <span className="balance-amount">{tokenInfo.balanceFormatted}</span>
+                            <span className="balance-symbol">$ {tokenInfo.symbol || tokenSymbol}</span>
+                        </span>
+                    </div>
+                )}
+            </div>
 
             {isChecked && !hasBalance && !isLoading && (
-                <div className="squid-warning-box">
+                <div className="balance-check-warning">
                     <p>토큰 잔액이 부족합니다.</p>
                     <p>Trade 버튼을 눌러 토큰을 구매해주세요.</p>
-                    <button type="button" className="squid-trade-button" onClick={handleTrade}>
+                    <button type="button" className="balance-check-trade-btn" onClick={handleTrade}>
                         TRADE {tokenSymbol}
                     </button>
                 </div>
             )}
 
-            <div className="squid-button-group">
-                <button type="button" className="squid-btn-secondary" onClick={onClose}>
+            <div className="balance-check-button-group">
+                <button type="button" className="balance-check-btn-cancel" onClick={onClose}>
                     Cancel
                 </button>
                 {!isChecked || isLoading ? (
-                    <button
-                        type="button"
-                        className="squid-btn-primary"
-                        onClick={handleCheckBalance}
-                        disabled={isLoading || !address}
-                    >
-                        {isLoading ? 'Checking...' : 'Check Balance'}
+                    <button type="button" className="balance-check-btn-next" onClick={handleCheckBalance} disabled={isLoading || !address}>
+                        {isLoading ? "Checking..." : "Check Balance"}
                     </button>
                 ) : hasBalance ? (
-                    <button type="button" className="squid-btn-primary" onClick={() => onNext(tokenInfo?.decimals ?? 18, tokenInfo?.symbol ?? tokenSymbol)}>
+                    <button
+                        type="button"
+                        className="balance-check-btn-next"
+                        onClick={() => onNext(tokenInfo?.decimals ?? 18, tokenInfo?.symbol ?? tokenSymbol)}
+                    >
                         Next
                     </button>
                 ) : (
-                    <button
-                        type="button"
-                        className="squid-btn-primary"
-                        onClick={handleCheckBalance}
-                    >
+                    <button type="button" className="balance-check-btn-next" onClick={handleCheckBalance}>
                         Refresh
                     </button>
                 )}

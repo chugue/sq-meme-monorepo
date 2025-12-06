@@ -29,33 +29,34 @@
 
 /* 모달 컨테이너 */
 .squid-modal-container {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border: 2px solid #ff006e;
-    border-radius: 16px;
-    width: 90%;
-    max-width: 480px;
+    box-sizing: border-box;
+    background: #1c1933;
+    border: 2px solid #8310c9;
+    border-radius: 17px;
+    width: 430px;
+    max-width: 95%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 0 40px rgba(255, 0, 110, 0.3);
+    box-shadow: 0 0 80px rgba(151, 33, 225, 0.3);
     animation: slideUp 0.3s ease-out;
     /* 스크롤바 스타일링 */
     scrollbar-width: auto;
-    scrollbar-color: rgba(255, 0, 110, 0.02);
+    scrollbar-color: rgba(131, 16, 201, 0.02);
 }
 
 /* Webkit 브라우저용 스크롤바 스타일 */
 .squid-modal-container::-webkit-scrollbar {
     width: 4px;
-    background: rgba(255, 0, 110, 0.02);
+    background: rgba(131, 16, 201, 0.02);
     transition: width 0.2s ease;
 }
 
 .squid-modal-container::-webkit-scrollbar-track {
-    background: rgba(255, 0, 110, 0.02);
+    background: rgba(131, 16, 201, 0.02);
 }
 
 .squid-modal-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 0, 110, 0.02);
+    background: rgba(131, 16, 201, 0.02);
     border-radius: 20px;
     transition: background 0.2s ease, width 0.2s ease;
 }
@@ -66,11 +67,11 @@
 }
 
 .squid-modal-container:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 0, 110, 0.6) !important;
+    background: rgba(131, 16, 201, 0.6) !important;
 }
 
 .squid-modal-container:hover::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 0, 110, 0.9) !important;
+    background: rgba(131, 16, 201, 0.9) !important;
 }
 
 /* 스크롤 중일 때 스크롤바 표시 - 얇게 */
@@ -79,7 +80,7 @@
 }
 
 .squid-modal-container.is-scrolling::-webkit-scrollbar-thumb {
-    background: rgba(255, 0, 110, 0.02);
+    background: rgba(131, 16, 201, 0.02);
 }
 
 /* 스크롤 중이면서 hover 시 - 더 넓게 */
@@ -88,24 +89,24 @@
 }
 
 .squid-modal-container.is-scrolling:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 0, 110, 0.7);
+    background: rgba(131, 16, 201, 0.7);
 }
 
 /* Firefox용 스크롤바 스타일 */
 .squid-modal-container:not(:hover):not(.is-scrolling) {
-    scrollbar-color: rgba(255, 0, 110, 0.02);
+    scrollbar-color: rgba(131, 16, 201, 0.02);
 }
 
 .squid-modal-container:hover {
-    scrollbar-color: rgba(255, 0, 110, 0.5);
+    scrollbar-color: rgba(131, 16, 201, 0.5);
 }
 
 .squid-modal-container.is-scrolling {
-    scrollbar-color: rgba(255, 0, 110, 0.4);
+    scrollbar-color: rgba(131, 16, 201, 0.4);
 }
 
 .squid-modal-container.is-scrolling:hover {
-    scrollbar-color: rgba(255, 0, 110, 0.6);
+    scrollbar-color: rgba(131, 16, 201, 0.6);
 }
 
 @keyframes slideUp {
@@ -123,26 +124,33 @@
 /* 모달 헤더 */
 .squid-modal-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(255, 0, 110, 0.3);
+    padding: 24px 34px 0;
+    position: relative;
 }
 
 .squid-modal-title {
     margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: #ff006e;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-family: "Press Start 2P", cursive;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 150%;
+    text-align: center;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+    text-shadow: 0px 0px 11.4141px #8512cb;
 }
 
 .squid-modal-close {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
-    color: #888;
-    font-size: 28px;
+    color: #5e5e75;
+    font-size: 24px;
     cursor: pointer;
     padding: 0;
     line-height: 1;
@@ -150,7 +158,7 @@
 }
 
 .squid-modal-close:hover:not(:disabled) {
-    color: #ff006e;
+    color: #8411ca;
 }
 
 .squid-modal-close:disabled {
@@ -158,33 +166,70 @@
     opacity: 0.5;
 }
 
-/* 단계 표시 */
+/* 단계 표시 - 새로운 스타일 */
 .squid-modal-steps {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 24px 12px;
+    gap: 7px;
+}
+
+.squid-steps-indicators {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.squid-step-indicator {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 16px 24px;
-    background: rgba(0, 0, 0, 0.2);
+    width: 24px;
+    height: 24px;
 }
 
-.squid-step {
-    padding: 6px 12px;
-    font-size: 11px;
-    color: #666;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    transition: all 0.3s;
+.squid-step-box {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
 }
 
-.squid-step.active {
-    color: #fff;
-    background: linear-gradient(135deg, #ff006e, #ff4d94);
-    box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
+.squid-step-line {
+    width: 64px;
+    height: 2px;
+    background: #45435c;
+}
+
+.squid-steps-labels {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 248px;
+}
+
+.squid-step-label {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 100%;
+    text-align: center;
+    color: #5e5e75;
+    text-shadow: 0px 0px 14.0993px rgba(163, 138, 255, 0.25);
+    transition: color 0.3s;
+}
+
+.squid-step-label.active {
+    color: #ffffff;
 }
 
 /* 모달 컨텐츠 */
 .squid-modal-content {
-    padding: 24px;
+    padding: 20px 34px 24px;
 }
 
 /* 단계별 컨텐츠 */
@@ -203,7 +248,6 @@
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         transform: scale(1);
@@ -671,6 +715,221 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* ===================================
+   Balance Check Step 스타일
+   =================================== */
+
+.balance-check-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.balance-check-icon {
+    width: 108px;
+    height: 98px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.balance-check-icon img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.balance-check-title {
+    margin: 0;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 13.2px;
+    line-height: 100%;
+    text-align: center;
+    color: #ffffff;
+    text-shadow: 0px 0px 14.0993px rgba(163, 138, 255, 0.25);
+}
+
+.balance-check-description {
+    margin: 0;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 130%;
+    text-align: center;
+    color: #5e5e75;
+    text-shadow: 0px 0px 14.0993px rgba(163, 138, 255, 0.25);
+}
+
+.balance-check-info-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+}
+
+.balance-check-info-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    gap: 50px;
+    width: 100%;
+    height: 34px;
+    background: #000000;
+    border-radius: 10px;
+}
+
+.balance-check-label {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 12px;
+    color: #7f7f9d;
+}
+
+.balance-check-value {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    line-height: 12px;
+    color: #ffffff;
+}
+
+.balance-check-balance {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.balance-check-balance .balance-amount,
+.balance-check-balance .balance-symbol {
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 12px;
+    color: #b9a7ff;
+}
+
+.balance-check-balance.has-balance .balance-amount,
+.balance-check-balance.has-balance .balance-symbol {
+    color: #b9a7ff;
+}
+
+.balance-check-balance.no-balance .balance-amount,
+.balance-check-balance.no-balance .balance-symbol {
+    color: #ff4444;
+}
+
+.balance-check-error {
+    padding: 12px 14px;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 10px;
+    color: #ff8888;
+    font-family: "Pretendard", sans-serif;
+    font-size: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.balance-check-warning {
+    padding: 16px;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.balance-check-warning p {
+    margin: 0 0 8px;
+    font-family: "Pretendard", sans-serif;
+    font-size: 12px;
+    color: #ff8888;
+    text-align: center;
+}
+
+.balance-check-trade-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #ff6b6b, #ff4444);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: "Pretendard", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.2s;
+}
+
+.balance-check-trade-btn:hover {
+    transform: scale(1.02);
+}
+
+.balance-check-button-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.balance-check-btn-cancel,
+.balance-check-btn-next {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    height: 34px;
+    border-radius: 10px;
+    font-family: "Pretendard", sans-serif;
+    font-size: 15px;
+    line-height: 100%;
+    text-align: center;
+    color: #ffffff;
+    text-shadow: 0px 0px 14.0993px rgba(163, 138, 255, 0.25);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.balance-check-btn-cancel {
+    background: #343852;
+    font-weight: 400;
+}
+
+.balance-check-btn-cancel:hover:not(:disabled) {
+    background: #444966;
+}
+
+.balance-check-btn-next {
+    background: #8411ca;
+    font-weight: 700;
+}
+
+.balance-check-btn-next:hover:not(:disabled) {
+    background: #9922db;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(132, 17, 202, 0.4);
+}
+
+.balance-check-btn-cancel:disabled,
+.balance-check-btn-next:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* 반응형 */
 @media (max-width: 480px) {
     .squid-modal-container {
@@ -693,5 +952,10 @@
     .squid-step {
         padding: 4px 8px;
         font-size: 10px;
+    }
+
+    .balance-check-icon {
+        width: 80px;
+        height: 72px;
     }
 }
