@@ -1,11 +1,7 @@
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
-import {
-    MyActiveGameItem,
-    PrizeRankItem,
-    QuestCategory,
-} from "../types/response.types";
+import { MyActiveGameItem, PrizeRankItem, QuestItem, QuestTypes } from "../types/response.types";
 import { navigateBackAtom } from "./atoms/pageAtoms";
 import { TopBar } from "./components";
 import { useMemexLogin } from "./hooks/useMemexLogin";
@@ -27,7 +23,7 @@ export function LeaderboardPage() {
     // API 데이터 상태
     const [myActiveGames, setMyActiveGames] = useState<MyActiveGameItem[]>([]);
     const [prizeRanking, setPrizeRanking] = useState<PrizeRankItem[]>([]);
-    const [quests, setQuests] = useState<QuestCategory[]>([]);
+    const [quests, setQuests] = useState<QuestItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // 컴포넌트 로드 시 네 API 동시 호출
@@ -66,13 +62,7 @@ export function LeaderboardPage() {
                 myActiveGames.map((game, index) => (
                     <div key={game.gameId} className="leaderboard-item">
                         <span className="rank-number">{index + 1}</span>
-                        <div className="token-image">
-                            {game.tokenImage ? (
-                                <img src={game.tokenImage} alt={game.tokenSymbol || ""} />
-                            ) : (
-                                "🎮"
-                            )}
-                        </div>
+                        <div className="token-image">{game.tokenImage ? <img src={game.tokenImage} alt={game.tokenSymbol || ""} /> : "🎮"}</div>
                         <span className="item-name">{game.tokenSymbol}</span>
                         <span className="item-value">{game.currentPrizePool} ETH</span>
                     </div>
@@ -91,11 +81,7 @@ export function LeaderboardPage() {
                 prizeRanking.map((user) => (
                     <div key={user.rank} className="leaderboard-item">
                         <span className="rank-number">{user.rank}</span>
-                        <img
-                            src={user.profileImage || mockUserData.profileImage}
-                            alt={user.username || "User"}
-                            className="user-avatar"
-                        />
+                        <img src={user.profileImage || mockUserData.profileImage} alt={user.username || "User"} className="user-avatar" />
                         <span className="item-name">{user.username || "Anonymous"}</span>
                         <span className="item-value">
                             {user.totalAmount} {user.tokenSymbol}
@@ -106,32 +92,40 @@ export function LeaderboardPage() {
         </div>
     );
 
+    // 퀘스트를 type별로 그룹화
+    const groupedQuests = quests.reduce((acc, quest) => {
+        if (!acc[quest.type]) {
+            acc[quest.type] = [];
+        }
+        acc[quest.type].push(quest);
+        return acc;
+    }, {} as Record<QuestTypes, QuestItem[]>);
+
     const renderQuestTab = () => (
         <div className="quest-list">
             {isLoading ? (
                 <div className="loading">Loading...</div>
-            ) : quests.length === 0 ? (
+            ) : Object.keys(groupedQuests).length === 0 ? (
                 <div className="empty-state">No quests available</div>
             ) : (
-                quests.map((questGroup) => (
-                    <div key={questGroup.category} className="quest-group">
-                        <h3 className="quest-category">{questGroup.category}</h3>
-                        {questGroup.items.map((quest, idx) => (
-                            <div key={idx} className="quest-item">
-                                <span className="quest-title">{quest.title}</span>
-                                <button
-                                    className={`claim-btn ${quest.claimed ? "claimed" : ""} ${!quest.isEligible && !quest.claimed ? "disabled" : ""
-                                        }`}
-                                    disabled={quest.claimed || !quest.isEligible}
-                                >
-                                    {quest.claimed
-                                        ? "Claimed"
-                                        : quest.isEligible
-                                            ? "Claim"
-                                            : "Locked"}
-                                </button>
-                            </div>
-                        ))}
+                Object.entries(groupedQuests).map(([type, typeQuests]) => (
+                    <div key={type} className="quest-group">
+                        <h3 className="quest-category">{type} Quest</h3>
+                        {typeQuests.map((quest) => {
+                            const isEligible = quest.currentNumber >= quest.targetNumber;
+                            return (
+                                <div key={quest.id} className="quest-item">
+                                    <span className="quest-title">{quest.title}</span>
+                                    <span className="quest-progress">{quest.currentNumber}/{quest.targetNumber}</span>
+                                    <button
+                                        className={`claim-btn ${quest.isClaimed ? "claimed" : ""} ${!isEligible && !quest.isClaimed ? "disabled" : ""}`}
+                                        disabled={quest.isClaimed || !isEligible}
+                                    >
+                                        {quest.isClaimed ? "Claimed" : isEligible ? "Claim" : "Locked"}
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 ))
             )}
@@ -144,28 +138,18 @@ export function LeaderboardPage() {
             <TopBar />
 
             <div className="flex items-center justify-center gap-x-3 py-3 bg-brown-0">
-                <img src='/icon/trophy.png' className="w-14 h-14" style={{ imageRendering: 'pixelated' }} />
+                <img src="/icon/trophy.png" className="w-14 h-14" style={{ imageRendering: "pixelated" }} />
                 <span className="text-3xl font-bold text-gold-gradient-smooth uppercase">Leader Board</span>
-
             </div>
             {/* Tabs */}
             <div className="leaderboard-tabs">
-                <button
-                    className={`tab-btn ${activeTab === "games" ? "active" : ""}`}
-                    onClick={() => setActiveTab("games")}
-                >
+                <button className={`tab-btn ${activeTab === "games" ? "active" : ""}`} onClick={() => setActiveTab("games")}>
                     참여 중인 게임
                 </button>
-                <button
-                    className={`tab-btn ${activeTab === "prizeRank" ? "active" : ""}`}
-                    onClick={() => setActiveTab("prizeRank")}
-                >
+                <button className={`tab-btn ${activeTab === "prizeRank" ? "active" : ""}`} onClick={() => setActiveTab("prizeRank")}>
                     Prize Rank
                 </button>
-                <button
-                    className={`tab-btn ${activeTab === "quest" ? "active" : ""}`}
-                    onClick={() => setActiveTab("quest")}
-                >
+                <button className={`tab-btn ${activeTab === "quest" ? "active" : ""}`} onClick={() => setActiveTab("quest")}>
                     Quest
                 </button>
             </div>

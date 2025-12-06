@@ -69,17 +69,18 @@ export interface PrizeRankItem {
   tokenSymbol: string;
 }
 
+// 퀘스트 타입
+export type QuestTypes = 'attendance' | 'comments';
+
 // 퀘스트 아이템
 export interface QuestItem {
+  id: number;
+  type: QuestTypes;
   title: string;
-  claimed: boolean;
-  isEligible: boolean;
-}
-
-// 퀘스트 카테고리
-export interface QuestCategory {
-  category: string;
-  items: QuestItem[];
+  description: string;
+  currentNumber: number;
+  targetNumber: number;
+  isClaimed: boolean;
 }
 
 // Game Ranking API 응답 타입
@@ -94,7 +95,8 @@ export interface PrizeRankingResponse {
 
 // Quests API 응답 타입
 export interface QuestsResponse {
-  quests: QuestCategory[];
+  today: string;
+  quests: QuestItem[];
 }
 
 // 내가 참여 중인 게임 아이템

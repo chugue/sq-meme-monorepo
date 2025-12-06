@@ -1,68 +1,27 @@
 import { useEffect, useState } from "react";
+import { backgroundApi } from "../contents/lib/backgroundApi";
+import { QuestItem, QuestTypes } from "../types/response.types";
 import TopBar from "./components/TopBar";
-export type QuestTypes = 'attendance' | 'comments';
-
-// 퀘스트 아이템
-export interface QuestItem {
-    type: QuestTypes;
-    title: string;
-    description: string;
-    currentNumber: number;
-    targetNumber: number;
-    isClaimed: boolean;
-}
 
 export default function QuestPage() {
     const [quests, setQuests] = useState<QuestItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // TODO: API 호출로 실제 데이터 가져오기
     useEffect(() => {
-        // 예시 데이터 - 실제로는 API에서 가져와야 함
-        // fetchQuests().then(setQuests);
+        const fetchQuests = async () => {
+            setIsLoading(true);
+            try {
+                const response = await backgroundApi.getQuests();
+                setQuests(response.quests || []);
+                console.log("✅ [QuestPage] 퀘스트 로드 완료:", response.quests?.length || 0);
+            } catch (error) {
+                console.error("❌ [QuestPage] 퀘스트 로드 실패:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-        // 임시 더미 데이터
-        setQuests([
-            {
-                type: 'attendance',
-                title: 'Daily Login',
-                description: 'Log in daily to complete attendance check',
-                currentNumber: 5,
-                targetNumber: 7,
-                isClaimed: false,
-            },
-            {
-                type: 'attendance',
-                title: 'Weekly Challenge',
-                description: 'Attend at least 5 days in a week',
-                currentNumber: 5,
-                targetNumber: 5,
-                isClaimed: false,
-            },
-            {
-                type: 'attendance',
-                title: 'Monthly Attendance',
-                description: 'Attend for a full month',
-                currentNumber: 30,
-                targetNumber: 30,
-                isClaimed: true,
-            },
-            {
-                type: 'comments',
-                title: 'First Comment',
-                description: 'Write your first comment',
-                currentNumber: 1,
-                targetNumber: 1,
-                isClaimed: false,
-            },
-            {
-                type: 'comments',
-                title: '10 Comments',
-                description: 'Write 10 comments',
-                currentNumber: 10,
-                targetNumber: 10,
-                isClaimed: true,
-            },
-        ]);
+        fetchQuests();
     }, []);
 
     const getProgressPercentage = (current: number, target: number) => {
@@ -107,7 +66,9 @@ export default function QuestPage() {
             <div className="w-full h-0.5 bg-gradient-main-1" />
 
             <div className="flex flex-col items-center justify-start gap-y-20 px-5 pt-10 flex-1 w-full overflow-y-auto">
-                {Object.keys(groupedQuests).length === 0 ? (
+                {isLoading ? (
+                    <div className="text-pixel-gray">Loading...</div>
+                ) : Object.keys(groupedQuests).length === 0 ? (
                     <div className="text-pixel-gray">No quests available.</div>
                 ) : (
                     Object.entries(groupedQuests).map(([type, typeQuests]) => (

@@ -2,6 +2,7 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Result } from 'src/common/types';
 import { QuestItem, QuestRespDto } from './dto/quest.resp.dto';
 import { QuestRepository } from './quest.repository';
+import { UserQuest } from 'src/common/db/schema/quest.schema';
 
 @Injectable()
 export class QuestService {
@@ -19,7 +20,7 @@ export class QuestService {
 
             const quests: QuestItem[] = userQuests.map((quest) => ({
                 id: quest.id,
-                type: quest.questType.startsWith('ATTENDANCE')
+                type: quest.questType.toLowerCase().startsWith('attendance')
                     ? 'attendance'
                     : 'comments',
                 title: quest.questTitle,
@@ -91,7 +92,7 @@ export class QuestService {
 
             const questItem: QuestItem = {
                 id: claimed.id,
-                type: claimed.questType.startsWith('ATTENDANCE')
+                type: claimed.questType.toLowerCase().startsWith('attendance')
                     ? 'attendance'
                     : 'comments',
                 title: claimed.questTitle,
@@ -110,6 +111,42 @@ export class QuestService {
             this.logger.error(`Claim quest failed: ${error.message}`);
             return Result.fail(
                 '퀘스트 보상 수령에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * @description 유저에게 퀘스트 초기화 (테스트용)
+     */
+    async initializeQuests(
+        walletAddress: string,
+    ): Promise<Result<{ quests: UserQuest[] }>> {
+        try {
+            // 이미 퀘스트가 있는지 확인
+            const existing =
+                await this.questRepository.findByWalletAddress(walletAddress);
+            if (existing.length > 0) {
+                this.logger.warn(
+                    `Quests already exist for ${walletAddress}, count: ${existing.length}`,
+                );
+                return Result.ok({ quests: existing });
+            }
+
+            const quests =
+                await this.questRepository.initializeQuestsForUser(
+                    walletAddress,
+                );
+
+            this.logger.log(
+                `Quests initialized for ${walletAddress}, count: ${quests.length}`,
+            );
+
+            return Result.ok({ quests });
+        } catch (error) {
+            this.logger.error(`Initialize quests failed: ${error.message}`);
+            return Result.fail(
+                '퀘스트 초기화에 실패했습니다.',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { WalletAddress } from 'src/common/decorators';
 import { QuestService } from './quest.service';
@@ -22,5 +22,13 @@ export class QuestController {
         @Param('questId') questId: number,
     ) {
         return this.questService.claimQuest(walletAddress, questId);
+    }
+
+    /**
+     * 퀘스트 초기화 (테스트용) - 지갑 주소에 4개 퀘스트 생성
+     */
+    @Post('/init')
+    async initializeQuests(@Body() body: { walletAddress: string }) {
+        return this.questService.initializeQuests(body.walletAddress);
     }
 }
