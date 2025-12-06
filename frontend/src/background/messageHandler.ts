@@ -4,7 +4,7 @@ import {
   SerializedGameInfo,
 } from "../contents/lib/backgroundApi";
 import type { JoinRequest } from "../types/request.types";
-import type { CommentListResponse } from "../types/response.types";
+import type { CommentListResponse, SaveCommentResponse } from "../types/response.types";
 import { apiCall, apiUpload } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -282,7 +282,7 @@ export function createMessageHandler() {
             try {
               const response = await apiCall<{
                 success: boolean;
-                data: { id: number };
+                data: SaveCommentResponse;
               }>("/v1/comments", {
                 method: "POST",
                 body: JSON.stringify(message.data),

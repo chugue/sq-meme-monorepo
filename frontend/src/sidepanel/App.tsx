@@ -8,6 +8,7 @@ import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { LeaderboardPage } from "./LeaderboardPage";
 import { LiveGamesPage } from "./LiveGamesPage";
 import { MyAssetsPage } from "./MyAssetsPage";
+import { ProfileModal } from "./ProfileModal";
 import StartingLoading from "./StartingLoading";
 
 type Page = "dashboard" | "leaderboard" | "liveGames" | "myAssets";
@@ -17,6 +18,7 @@ export function SidePanelApp() {
     const { isLoggedIn: isMemexLoggedIn, setLoggedIn: setMemexLoggedIn } = useMemexLogin();
     const [currentPage, setCurrentPage] = useState<Page>("dashboard");
     const [showStartingLoading, setShowStartingLoading] = useState(true);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드로 전환
     useEffect(() => {
@@ -64,20 +66,27 @@ export function SidePanelApp() {
             );
         }
         return (
-            <Dashboard
-                walletAddress={address || undefined}
-                onNavigateToLeaderboard={() => setCurrentPage("leaderboard")}
-                onNavigateToLiveGames={() => setCurrentPage("liveGames")}
-                onNavigateToMyAssets={() => setCurrentPage("myAssets")}
-                onNavigateToHowToPlay={() => {
-                    // TODO: How to Play 페이지 구현
-                    console.log("How to Play clicked");
-                }}
-                onNavigateToQuest={() => {
-                    // TODO: Quest 페이지 구현
-                    console.log("Quest clicked");
-                }}
-            />
+            <>
+                <Dashboard
+                    walletAddress={address || undefined}
+                    onNavigateToProfile={() => setIsProfileModalOpen(true)}
+                    onNavigateToLeaderboard={() => setCurrentPage("leaderboard")}
+                    onNavigateToLiveGames={() => setCurrentPage("liveGames")}
+                    onNavigateToMyAssets={() => setCurrentPage("myAssets")}
+                    onNavigateToHowToPlay={() => {
+                        // TODO: How to Play 페이지 구현
+                        console.log("How to Play clicked");
+                    }}
+                    onNavigateToQuest={() => {
+                        // TODO: Quest 페이지 구현
+                        console.log("Quest clicked");
+                    }}
+                />
+                <ProfileModal
+                    isOpen={isProfileModalOpen}
+                    onClose={() => setIsProfileModalOpen(false)}
+                />
+            </>
         );
     }
 
