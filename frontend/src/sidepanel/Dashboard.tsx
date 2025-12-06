@@ -21,8 +21,7 @@ import { getAllSessionStorage } from "./lib/sessionStorage";
 
 // Default data (세션 데이터가 없을 때 사용)
 const defaultUserData = {
-    profileImage:
-        "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
+    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
 };
 
 // mTokenBalance 포맷팅 (콤마 추가)
@@ -63,14 +62,7 @@ export function Dashboard({
     // 디버깅: 세션 데이터 변화 확인
     useEffect(() => {
         console.log("🏠 [Dashboard] session 전체:", JSON.stringify(session, null, 2));
-        console.log(
-            "🏠 [Dashboard] session user:",
-            user?.userName,
-            "profileImage:",
-            user?.profileImage,
-            "mTokenBalance:",
-            user?.mTokenBalance
-        );
+        console.log("🏠 [Dashboard] session user:", user?.userName, "profileImage:", user?.profileImage, "mTokenBalance:", user?.mTokenBalance);
         // 전체 세션 스토리지 데이터 확인
         getAllSessionStorage().then((data) => {
             console.log("🏠 [Dashboard] 전체 세션 스토리지:", JSON.stringify(data, null, 2));
@@ -95,38 +87,21 @@ export function Dashboard({
                     alt="Floor"
                     className="absolute bottom-0 left-0 right-0 w-full h-full z-10 transform duration-1000 translate-y-[20%] sm:translate-y-[50%]"
                     style={{
-                        animationDelay: '0.5s',
+                        animationDelay: "0.5s",
                     }}
                 />
             </div>
-
             {/* Left Top: Profile Box with Image */}
             <button className="profile-btn" onClick={onNavigateToProfile}>
                 <div className="profile-box-container">
-                    <img
-                        src={profileBox}
-                        alt="Profile Box"
-                        className="profile-box-frame"
-                    />
-                    <img
-                        src={user?.profileImage || defaultUserData.profileImage}
-                        alt="Profile"
-                        className="profile-box-image"
-                    />
+                    <img src={profileBox} alt="Profile Box" className="profile-box-frame" />
+                    <img src={user?.profileImage || defaultUserData.profileImage} alt="Profile" className="profile-box-image" />
                 </div>
-                <img
-                    src={profileBanner}
-                    alt="Profile Banner"
-                    className="profile-banner"
-                />
+                <img src={profileBanner} alt="Profile Banner" className="profile-banner" />
             </button>
             {/* Right: Menu Icons (Vertical) */}
             <div className="menu-icons-vertical">
-                <button
-                    className="menu-icon-btn"
-                    onClick={onNavigateToHowToPlay}
-                    title="How to Play"
-                >
+                <button className="menu-icon-btn" onClick={onNavigateToHowToPlay} title="How to Play">
                     <img src={howToPlayIcon} alt="How toPlay" />
                     <span className="menu-icon-btn-text">
                         How to
@@ -134,30 +109,18 @@ export function Dashboard({
                         Play
                     </span>
                 </button>
-                <button
-                    className="menu-icon-btn"
-                    onClick={onNavigateToQuest}
-                    title="Quest"
-                >
+                <button className="menu-icon-btn" onClick={onNavigateToQuest} title="Quest">
                     <img src={questIcon} alt="Quest" />
                     <span className="menu-icon-btn-text">Quest</span>
                 </button>
-                <button
-                    className="menu-icon-btn"
-                    onClick={onNavigateToLeaderboard}
-                    title="Leader Board"
-                >
+                <button className="menu-icon-btn" onClick={onNavigateToLeaderboard} title="Leader Board">
                     <img src={tropyIcon} alt="Leader Board" />
                     <span className="menu-icon-btn-text">
                         <span>Leader</span>
                         <span>Board</span>
                     </span>
                 </button>
-                <button
-                    className="menu-icon-btn"
-                    onClick={onNavigateToMyAssets}
-                    title="My Memecoins"
-                >
+                <button className="menu-icon-btn" onClick={onNavigateToMyAssets} title="My Memecoins">
                     <img src={moneyIcon} alt="My Memecoins" />
                     <span className="menu-icon-btn-text">
                         My
@@ -173,9 +136,7 @@ export function Dashboard({
                     <div className="asset-display-main">
                         <span className="asset-label-main">ASSET</span>
                         {/* <span className="asset-amount-main">{formatMTokenBalance(user?.mTokenBalance)}</span> */}
-                        <span className="asset-amount-main">
-                            {formatMTokenBalance("1000000000")}
-                        </span>
+                        <span className="asset-amount-main">{formatMTokenBalance("1000000000")}</span>
                     </div>
                 </div>
             </section>
