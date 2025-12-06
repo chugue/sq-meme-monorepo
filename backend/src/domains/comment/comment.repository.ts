@@ -19,6 +19,19 @@ export class CommentRepository {
     ) {}
 
     /**
+     * @description 특정 사용자의 총 댓글 수 조회 (최대 50)
+     */
+    async getUsersCommentsCount(commentor: string): Promise<number> {
+        const results = await this.db
+            .select({ id: schema.comments.id })
+            .from(schema.comments)
+            .where(eq(schema.comments.commentor, commentor.toLowerCase()))
+            .limit(50);
+
+        return results.length;
+    }
+
+    /**
      * @description 게임 ID로 댓글 목록 조회
      */
     async findByGameId(gameId: string) {

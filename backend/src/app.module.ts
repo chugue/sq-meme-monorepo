@@ -12,6 +12,7 @@ import { UploadModule } from './domains/upload/upload.module';
 import { WinnersModule } from './domains/winners/winners.module';
 import { FundersModule } from './domains/funders/funders.module';
 import { TokenModule } from './domains/token/token.module';
+import { QuestModule } from './domains/quests/quest.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -37,6 +38,7 @@ import { AppController } from './app.controller';
         WinnersModule,
         FundersModule,
         TokenModule,
+        QuestModule,
     ],
     controllers: [AppController],
     providers: [],

@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, inArray, lt } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -13,8 +13,6 @@ import {
 
 @Injectable()
 export class QuestRepository {
-    private readonly logger = new Logger(QuestRepository.name);
-
     constructor(
         @Inject(DrizzleAsyncProvider)
         private readonly db: NodePgDatabase<typeof schema>,
@@ -30,7 +28,9 @@ export class QuestRepository {
             userWalletAddress: walletAddress.toLowerCase(),
             questType,
             questTitle: QuestMeta[questType].title,
-            isEligible: false,
+            description: QuestMeta[questType].description,
+            currentNumber: 0,
+            targetNumber: QuestMeta[questType].target,
             isClaimed: false,
         }));
 
@@ -82,95 +82,81 @@ export class QuestRepository {
     }
 
     /**
-     * @description 퀘스트 자격 달성 처리
+     * @description ID로 퀘스트 조회
      */
-    async markEligible(
-        walletAddress: string,
-        questType: QuestTypeValue,
-    ): Promise<UserQuest | null> {
+    async findById(questId: number): Promise<UserQuest | null> {
         const [quest] = await this.db
-            .update(schema.userQuests)
-            .set({
-                isEligible: true,
-                eligibleAt: new Date(),
-            })
-            .where(
-                and(
-                    eq(
-                        schema.userQuests.userWalletAddress,
-                        walletAddress.toLowerCase(),
-                    ),
-                    eq(schema.userQuests.questType, questType),
-                ),
-            )
-            .returning();
+            .select()
+            .from(schema.userQuests)
+            .where(eq(schema.userQuests.id, questId))
+            .limit(1);
 
         return quest ?? null;
     }
 
     /**
-     * @description 퀘스트 보상 수령 처리
+     * @description 퀘스트 보상 수령 처리 (by ID)
      */
-    async markClaimed(
-        walletAddress: string,
-        questType: QuestTypeValue,
-    ): Promise<UserQuest | null> {
+    async markClaimedById(questId: number): Promise<UserQuest | null> {
         const [quest] = await this.db
             .update(schema.userQuests)
             .set({
                 isClaimed: true,
                 claimedAt: new Date(),
             })
-            .where(
-                and(
-                    eq(
-                        schema.userQuests.userWalletAddress,
-                        walletAddress.toLowerCase(),
-                    ),
-                    eq(schema.userQuests.questType, questType),
-                ),
-            )
+            .where(eq(schema.userQuests.id, questId))
             .returning();
 
         return quest ?? null;
     }
 
     /**
-     * @description 출석 streak 기반 퀘스트 eligible 업데이트
+     * @description 출석 streak 기반 퀘스트 currentNumber 업데이트
      */
     async updateAttendanceQuests(user: schema.User): Promise<void> {
         const history = user.checkInHistory ?? [];
         const lastCheckIn = history[history.length - 1];
         const currentStreak = lastCheckIn?.currentStreak ?? 0;
-
         const walletAddress = user.walletAddress.toLowerCase();
 
-        // 5일 연속 출석 달성 체크
-        if (currentStreak >= 5) {
-            const quest5 = await this.findByWalletAndType(
-                walletAddress,
-                QuestType.ATTENDANCE_5,
+        await this.db
+            .update(schema.userQuests)
+            .set({ currentNumber: currentStreak })
+            .where(
+                and(
+                    eq(schema.userQuests.userWalletAddress, walletAddress),
+                    eq(schema.userQuests.isClaimed, false),
+                    lt(schema.userQuests.currentNumber, currentStreak),
+                    inArray(schema.userQuests.questType, [
+                        QuestType.ATTENDANCE_5,
+                        QuestType.ATTENDANCE_20,
+                    ]),
+                ),
             );
-            if (quest5 && !quest5.isEligible) {
-                await this.markEligible(walletAddress, QuestType.ATTENDANCE_5);
-                this.logger.log(
-                    `ATTENDANCE_5 eligible: ${walletAddress} (streak: ${currentStreak})`,
-                );
-            }
-        }
+    }
 
-        // 10일 연속 출석 달성 체크
-        if (currentStreak >= 10) {
-            const quest10 = await this.findByWalletAndType(
-                walletAddress,
-                QuestType.ATTENDANCE_10,
+    /**
+     * @description 댓글 수 기반 퀘스트 currentNumber 업데이트
+     */
+    async updateCommentQuestsForUser(
+        commentor: string,
+        commentCount: number,
+    ): Promise<void> {
+        const walletAddress = commentor.toLowerCase();
+
+        await this.db
+            .update(schema.userQuests)
+            .set({ currentNumber: commentCount })
+            .where(
+                and(
+                    eq(schema.userQuests.userWalletAddress, walletAddress),
+                    eq(schema.userQuests.isClaimed, false),
+                    lt(schema.userQuests.currentNumber, commentCount),
+                    inArray(schema.userQuests.questType, [
+                        QuestType.COMMENT_20,
+                        QuestType.COMMENT_50,
+                    ]),
+                ),
             );
-            if (quest10 && !quest10.isEligible) {
-                await this.markEligible(walletAddress, QuestType.ATTENDANCE_10);
-                this.logger.log(
-                    `ATTENDANCE_10 eligible: ${walletAddress} (streak: ${currentStreak})`,
-                );
-            }
-        }
     }
 }

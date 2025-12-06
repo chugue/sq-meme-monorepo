@@ -376,10 +376,10 @@ export class GameService {
             const token = tokenMap.get(game.tokenAddress.toLowerCase());
             return {
                 ...game,
-                tokenUsername: token?.tokenUsername,
-                tokenUsertag: token?.tokenUsertag,
-                tokenImageUrl: token?.tokenImageUrl,
-                tokenSymbol: token?.tokenSymbol,
+                tokenUsername: token?.tokenUsername ?? null,
+                tokenUsertag: token?.tokenUsertag ?? null,
+                tokenImageUrl: token?.tokenImageUrl ?? null,
+                tokenSymbol: token?.tokenSymbol ?? null,
             };
         });
 

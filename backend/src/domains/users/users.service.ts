@@ -11,7 +11,6 @@ import {
     MyActiveGameItem,
     PrizeRankItem,
     ProfilePageData,
-    QuestRespDto,
 } from './dto/users.resp.dto';
 import { UsersRepository } from './users.repository';
 
@@ -43,6 +42,8 @@ export class UsersService {
                 await this.questRepository.initializeQuestsForUser(
                     user.walletAddress,
                 );
+                // 첫 체크인(streak=1) 반영하여 출석 퀘스트 업데이트
+                await this.questRepository.updateAttendanceQuests(user);
                 this.logger.log(`User created: ${dto.walletAddress}`);
                 return Result.ok({ user, isNew });
             }
@@ -50,8 +51,6 @@ export class UsersService {
             // 기존 사용자 - 체크인 업데이트
             const updatedUser = await this.updateCheckIn(user);
 
-            // 출석 퀘스트 eligible 체크
-            await this.questRepository.updateAttendanceQuests(updatedUser);
             this.logger.log(`User found: ${dto.walletAddress}`);
             return Result.ok({ user: updatedUser, isNew });
         } catch (error) {
@@ -95,6 +94,10 @@ export class UsersService {
         const updated = await this.usersRepository.update(user.walletAddress, {
             checkInHistory: newHistory,
         });
+
+        if (updated) {
+            await this.questRepository.updateAttendanceQuests(updated);
+        }
 
         return updated!;
     }
@@ -182,6 +185,7 @@ export class UsersService {
                 );
             }
 
+            //
             const commentCounts =
                 await this.commentRepository.countByWalletAddress(
                     walletAddress,
@@ -291,29 +295,6 @@ export class UsersService {
     }
 
     /**
-     * @description 퀘스트 목록 조회 (Quests 탭)
-     */
-    async getQuests(walletAddress: string): Promise<Result<QuestRespDto>> {
-        try {
-            const user =
-                await this.usersRepository.findByWalletAddress(walletAddress);
-            const commentCount =
-                await this.commentRepository.countByWalletAddress(
-                    walletAddress,
-                );
-            const questData = this.calculateQuests(user, commentCount);
-
-            return Result.ok(questData);
-        } catch (error) {
-            this.logger.error(`Get quests failed: ${error.message}`);
-            return Result.fail(
-                '퀘스트 조회에 실패했습니다.',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-        }
-    }
-
-    /**
      * @description 내가 참여 중인 활성 게임 목록 조회 (참여 중인 게임 탭)
      */
     async getMyActiveGames(
@@ -368,45 +349,5 @@ export class UsersService {
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
-    }
-
-    /**
-     * @description 퀘스트 진행 상황 계산
-     * TODO: 이거 나중에 퀘스트 쉽게 등록할려면 따로 테이블 만들어서 관리하면 좋을 것 같음
-     */
-    private calculateQuests(
-        user: User | null,
-        commentCount: number = 0,
-    ): QuestRespDto {
-        const history: CheckInRecord[] = user?.checkInHistory ?? [];
-        const lastCheckIn = history[history.length - 1];
-        const currentStreak = lastCheckIn?.currentStreak ?? 0;
-
-        return {
-            today: new Date().toISOString(),
-            quests: [
-                {
-                    type: 'streak',
-                    isEligible: currentStreak >= 5,
-                    isClaimed: false,
-                },
-                {
-                    type: 'streak',
-                    isEligible: currentStreak >= 10,
-                    isClaimed: false,
-                },
-
-                {
-                    type: 'comments',
-                    isEligible: commentCount >= 20,
-                    isClaimed: false,
-                },
-                {
-                    type: 'comments',
-                    isEligible: commentCount >= 50,
-                    isClaimed: false,
-                },
-            ],
-        };
     }
 }

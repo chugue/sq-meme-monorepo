@@ -5,12 +5,12 @@ import { UsersRepository } from './users.repository';
 import { CommentModule } from '../comment/comment.module';
 import { GameModule } from '../game/game.module';
 import { TokenModule } from '../token/token.module';
-import { QuestRepository } from '../quests/quest.repository';
+import { QuestModule } from '../quests/quest.module';
 
 @Module({
-    imports: [CommentModule, GameModule, TokenModule],
+    imports: [CommentModule, GameModule, TokenModule, QuestModule],
     controllers: [UsersController],
-    providers: [UsersService, UsersRepository, QuestRepository],
+    providers: [UsersService, UsersRepository],
     exports: [UsersRepository, UsersService],
 })
 export class UsersModule {}

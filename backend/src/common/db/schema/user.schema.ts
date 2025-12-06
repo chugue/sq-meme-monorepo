@@ -2,6 +2,7 @@ import { InferInsertModel, InferSelectModel, relations } from 'drizzle-orm';
 import {
     boolean,
     index,
+    integer,
     json,
     serial,
     text,
@@ -66,6 +67,9 @@ export const users = squidSchema.table(
 
         // 약관 동의 여부
         isPolicyAgreed: boolean('is_policy_agreed').default(false).notNull(),
+
+        // 총 댓글 수
+        totalComments: integer('total_comments').default(0).notNull(),
 
         createdAt: timestamp('created_at').defaultNow(),
         updatedAt: timestamp('updated_at')

@@ -34,17 +34,3 @@ export interface MyActiveGameItem {
     currentPrizePool: string | null;
     endTime: string | null;
 }
-
-export type QuestTypes = 'streak' | 'comments';
-
-export interface QuestRespDto {
-    today: string;
-    quests: QuestItem[];
-}
-
-// 퀘스트 아이템
-export interface QuestItem {
-    type: QuestTypes;
-    isEligible: boolean;
-    isClaimed: boolean;
-}
