@@ -5,7 +5,7 @@
  * - 게임 생성 및 상금 수령 기능 제공
  */
 
-import { getExtensionImageUrl } from "@/contents/utils/get-extension-image-url";
+import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
 import { formatAddress } from "@/contents/utils/messageFormatter";
 import { motion } from "framer-motion";
 import { useAtomValue, useSetAtom } from "jotai";

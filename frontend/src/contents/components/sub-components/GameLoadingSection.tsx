@@ -1,4 +1,4 @@
-import { getExtensionImageUrl } from "@/contents/utils/get-extension-image-url";
+import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
 import { motion } from "framer-motion";
 import { useAtomValue } from "jotai";
 import { useEffect } from "react";
@@ -23,7 +23,9 @@ function loadFont() {
             chrome?: { runtime?: { getURL?: (path: string) => string } };
         };
         if (chromeGlobal.chrome?.runtime?.getURL) {
-            fontUrl = chromeGlobal.chrome.runtime.getURL("font/PressStart2P.ttf");
+            fontUrl = chromeGlobal.chrome.runtime.getURL(
+                "font/PressStart2P.ttf",
+            );
         }
     } catch {
         // 무시
@@ -43,7 +45,6 @@ function loadFont() {
     `;
     document.head.appendChild(style);
 }
-
 
 /**
  * 게임 정보 로딩 중 화면
