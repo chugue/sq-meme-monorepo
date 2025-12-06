@@ -13,6 +13,7 @@ import tropyIcon from "../../assets/tropy.png";
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
+import { profileModalOpenAtom } from "./atoms/modalAtoms";
 import { PAGES, setPageAtom } from "./atoms/pageAtoms";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
@@ -44,6 +45,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
     const session = useAtomValue(sessionAtom);
     const { user } = session;
     const setPage = useSetAtom(setPageAtom);
+    const setProfileModalOpen = useSetAtom(profileModalOpenAtom);
 
     // 디버깅: 세션 데이터 변화 확인
     useEffect(() => {
@@ -66,7 +68,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
     return (
         <div className="dashboard-container relative z-20">
             {/* Left Top: Profile Box with Image */}
-            <button className="profile-btn">
+            <button className="profile-btn" onClick={() => setProfileModalOpen(true)}>
                 <div className="profile-box-container">
                     <img src={profileBox} alt="Profile Box" className="profile-box-frame" />
                     <img src={user?.profileImage || defaultUserData.profileImage} alt="Profile" className="profile-box-image" />

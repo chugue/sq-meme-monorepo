@@ -2,7 +2,7 @@ import ProfileBox from "@/assets/profile_box.png";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { sessionAtom } from "../atoms/sessionAtoms";
-import { ProfileModal } from "../ProfileModal";
+import { ProfileModal } from "./ProfileModal/ProfileModal";
 
 export default function ProfileSection() {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);

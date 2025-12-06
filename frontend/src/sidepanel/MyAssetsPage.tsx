@@ -4,7 +4,7 @@ import { useState } from "react";
 import { navigateBackAtom } from "./atoms/pageAtoms";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { useWalletAssets } from "./hooks/useWalletAssets";
-import { ProfileModal } from "./ProfileModal";
+import { ProfileModal } from "./components/ProfileModal/ProfileModal";
 import "./MyAssetsPage.css";
 
 // Mock data
