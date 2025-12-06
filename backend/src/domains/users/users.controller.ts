@@ -80,7 +80,7 @@ export class UsersController {
      */
     @Get('most-comments')
     async getMostComments() {
-        return this.usersService.getMostComments();
+        return this.usersService.getMostCommentors();
     }
 
     /**
@@ -89,5 +89,10 @@ export class UsersController {
     @Get('my-active-games')
     async getMyActiveGames(@WalletAddress() walletAddress: string) {
         return this.usersService.getMyActiveGames(walletAddress);
+    }
+
+    @Get('my-assets')
+    async getMyAssets(@WalletAddress() walletAddress: string) {
+        return this.usersService.getMyAssets(walletAddress);
     }
 }

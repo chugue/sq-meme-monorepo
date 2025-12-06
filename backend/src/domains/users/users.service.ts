@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
+import { mockMyAssets, MyAsset, MyAssetsRespDto } from 'src/common/mock/my-assets';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
@@ -28,6 +29,59 @@ export class UsersService {
         private readonly questRepository: QuestRepository,
         private readonly winnersRepository: WinnersRepository,
     ) {}
+
+    /**
+     * @description 내 자산 조회 (memex/otherTokens는 mock, myToken은 DB 조회)
+     */
+    async getMyAssets(walletAddress: string): Promise<Result<MyAssetsRespDto>> {
+        try {
+            const [memexMock, ...otherMocks] = mockMyAssets;
+
+            const memex: MyAsset = {
+                tokenAddress: memexMock.tokenAddress,
+                tokenSymbol: memexMock.tokenSymbol,
+                balance: memexMock.balance,
+                tokenImage: memexMock.tokenImage,
+            };
+
+            // 내 토큰은 DB에서 조회
+            let myToken: MyAsset = {
+                tokenAddress: '',
+                tokenSymbol: '',
+                balance: '0',
+                tokenImage: '',
+            };
+
+            const user =
+                await this.usersRepository.findByWalletAddress(walletAddress);
+            if (user?.myTokenAddr) {
+                const tokenInfo = await this.tokenRepository.findByTokenAddress(
+                    user.myTokenAddr,
+                );
+                myToken = {
+                    tokenAddress: user.myTokenAddr,
+                    tokenSymbol: user.myTokenSymbol ?? '',
+                    balance: user.myTokenBalance ?? '0',
+                    tokenImage: tokenInfo?.tokenImageUrl ?? '',
+                };
+            }
+
+            const otherTokens: MyAsset[] = otherMocks.map((m) => ({
+                tokenAddress: m.tokenAddress,
+                tokenSymbol: m.tokenSymbol,
+                balance: m.balance,
+                tokenImage: m.tokenImage,
+            }));
+
+            return Result.ok({ memex, myToken, otherTokens });
+        } catch (error) {
+            this.logger.error(`Get my assets failed: ${error.message}`);
+            return Result.fail(
+                '내 자산 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 
     /**
      * @description 댓글 수 기준 유저 랭킹 조회

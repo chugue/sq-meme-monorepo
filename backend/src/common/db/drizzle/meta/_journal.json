@@ -183,6 +183,13 @@
       "when": 1765026538860,
       "tag": "0025_windy_tusk",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1765034530757,
+      "tag": "0026_worthless_bill_hollister",
+      "breakpoints": true
     }
   ]
 }
