@@ -1,5 +1,6 @@
 import { backgroundApi } from "@/contents/lib/backgroundApi";
 import { useCallback, useEffect, useState } from "react";
+import { formatEther } from "viem";
 import {
     CommentLeaderItem,
     MyActiveGameItem,
@@ -107,7 +108,9 @@ export function LeaderboardPage() {
                                 )}
                             </div>
                             <span className="text-lg text-white flex-1">{game.tokenSymbol}</span>
-                            <div className={`relative z-20`}>{getPrizePoolStyle(rank, game?.currentPrizePool || '')}</div>
+                            <div className={`relative z-20`}>
+                                {getPrizePoolStyle(rank, Number(formatEther(BigInt(game?.currentPrizePool || '0'))).toLocaleString())}
+                            </div>
                         </div>
                     );
                 })
@@ -136,7 +139,7 @@ export function LeaderboardPage() {
                             className="w-10 h-10 rounded-full overflow-hidden "
                         />
                         <span className="text-base text-white flex-1">{user.username || "Anonymous"}</span>
-                        <div className={`relative `}>{getPrizePoolStyle(user.rank, user?.totalAmount || '')}</div>
+                        <div className={`relative `}>{getPrizePoolStyle(user.rank, Number(user?.totalAmount || '0').toLocaleString())}</div>
                     </div>
                 ))
             )}
