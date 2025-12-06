@@ -60,7 +60,9 @@ export function SidePanelApp() {
                 {currentPage === PAGES.LEADERBOARD && <LeaderboardPage />}
                 {currentPage === PAGES.LIVE_GAMES && <LiveGamesPage />}
                 {currentPage === PAGES.MY_ASSETS && <MyAssetsPage />}
-                {currentPage === PAGES.DASHBOARD && <Dashboard walletAddress={address || undefined} />}
+                {currentPage === PAGES.DASHBOARD || currentPage === undefined &&
+                    <Dashboard walletAddress={address || undefined} />
+                }
             </div>
         );
     }
