@@ -21,6 +21,7 @@ import {
 } from "../../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../../lib/injectedApi";
 import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
+import { ClaimPrizeFirstModal } from "./ClaimPrizeFirstModal";
 import "./NoGameSection.css";
 import { TransactionSuccessModal } from "./TransactionSuccessModal";
 
@@ -48,6 +49,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isClaimFirstModalOpen, setIsClaimFirstModalOpen] = useState(false);
 
     // Claim 관련 상태
     const [isClaiming, setIsClaiming] = useState(false);
@@ -130,6 +132,12 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             } catch (error) {
                 console.error("지갑 연결 실패", error);
             }
+            return;
+        }
+
+        // 우승자가 상금을 아직 수령하지 않은 경우 Claim First 모달 표시
+        if (isWinner) {
+            setIsClaimFirstModalOpen(true);
             return;
         }
 
@@ -377,6 +385,17 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                     description="Your prize has been successfully transferred to your wallet."
                 />
             )}
+
+            {/* Claim Prize First 모달 */}
+            <ClaimPrizeFirstModal
+                isOpen={isClaimFirstModalOpen}
+                onClose={() => setIsClaimFirstModalOpen(false)}
+                onClaimPrize={() => {
+                    setIsClaimFirstModalOpen(false);
+                    handleClaimPrize();
+                }}
+                isClaiming={isClaiming}
+            />
         </div>
     );
 }

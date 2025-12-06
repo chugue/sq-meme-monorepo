@@ -38,6 +38,7 @@
     flex-direction: row;
     align-items: center;
     padding: 10px;
+    min-height: 108px;
     gap: 8px;
 }
 
@@ -104,6 +105,7 @@
     padding: 10px;
     gap: 4px;
     min-width: 180px;
+    min-height: 57px;
 }
 
 .token-label {

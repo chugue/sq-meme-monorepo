@@ -11,58 +11,23 @@ import { useComments } from "../../hooks/useComments";
 import { useCommentSubmit } from "../../hooks/useCommentSubmit";
 import { useFunding } from "../../hooks/useFunding";
 import { useWallet } from "../../hooks/useWallet";
-import { logger } from "../../lib/injected/logger";
+import { formatRemainingTime } from "../../utils/gameTime";
 import { getExtensionImageUrl } from "../../utils/getExtensionImageUrl";
+import { FONTS, loadFont } from "../../utils/loadFont";
 import { GameEndedModal } from "../sub-components/GameEndedModal";
 import characterBg from "./assets/character-bg.svg";
 import legionBg from "./assets/legion-bg.svg";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
+import { FlipTimer } from "./FlipTimer";
 import { WalletConnectionUI } from "./WalletConnectionUI";
-
-// 로컬 폰트 로드 (Chrome extension용)
-function loadFont() {
-    if (document.getElementById("press-start-2p-font-style")) return;
-
-    let fontUrl = "font/PressStart2P.ttf";
-    try {
-        const chromeGlobal = globalThis as typeof globalThis & {
-            chrome?: { runtime?: { getURL?: (path: string) => string } };
-        };
-        if (chromeGlobal.chrome?.runtime?.getURL) {
-            fontUrl = chromeGlobal.chrome.runtime.getURL(
-                "font/PressStart2P.ttf",
-            );
-        }
-    } catch {
-        // 무시
-    }
-
-    const style = document.createElement("style");
-    style.id = "press-start-2p-font-style";
-    style.textContent = `
-        @font-face {
-            font-family: 'Press Start 2P';
-            src: url('${fontUrl}') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-    `;
-    document.head.appendChild(style);
-}
 
 export function CommentSection() {
     // 폰트 로드
     useEffect(() => {
-        loadFont();
+        loadFont(FONTS.PRESS_START_2P);
     }, []);
-
-    logger.debug("CommentSection 렌더링", {
-        timestamp: new Date().toISOString(),
-        location: window.location.href,
-    });
 
     const {
         isConnected,
@@ -86,8 +51,31 @@ export function CommentSection() {
     const [scrollTop, setScrollTop] = useState(0);
     const [scrollHeight, setScrollHeight] = useState(0);
     const [clientHeight, setClientHeight] = useState(0);
+    const [remainingTime, setRemainingTime] = useState("00:00:00");
     const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // 타이머 업데이트 (1초마다)
+    useEffect(() => {
+        console.log("[Timer Debug] activeGameInfo:", activeGameInfo);
+        console.log("[Timer Debug] endTime:", activeGameInfo?.endTime);
+
+        if (!activeGameInfo?.endTime) {
+            console.log("[Timer Debug] endTime이 없어서 타이머 비활성화");
+            return;
+        }
+
+        const updateTimer = () => {
+            const formatted = formatRemainingTime(activeGameInfo.endTime);
+            console.log("[Timer Debug] formatted time:", formatted);
+            setRemainingTime(formatted);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(interval);
+    }, [activeGameInfo?.endTime]);
 
     // 펀딩 훅
     const { fundingAmount, setFundingAmount, isFunding, handleFund } =
@@ -215,13 +203,13 @@ export function CommentSection() {
                                               18,
                                           )
                                         : "0"}{" "}
-                                    ${activeGameInfo?.tokenSymbol || "TOKEN"}
+                                    ${activeGameInfo?.tokenSymbol || "SQM"}
                                 </span>
                             </div>
                             <div className="squid-game-timer">
                                 <span className="squid-timer-label">TIMER</span>
                                 <span className="squid-timer-value">
-                                    22:22:22
+                                    <FlipTimer time={remainingTime} />
                                 </span>
                             </div>
                         </div>
