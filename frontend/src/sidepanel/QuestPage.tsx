@@ -32,7 +32,7 @@ export default function QuestPage() {
             {
                 type: 'attendance',
                 title: 'Daily Login',
-                description: '매일 로그인하여 출석체크를 완료하세요',
+                description: 'Log in daily to complete attendance check',
                 currentNumber: 5,
                 targetNumber: 7,
                 isClaimed: false,
@@ -40,7 +40,7 @@ export default function QuestPage() {
             {
                 type: 'attendance',
                 title: 'Weekly Challenge',
-                description: '일주일 동안 5일 이상 출석하세요',
+                description: 'Attend at least 5 days in a week',
                 currentNumber: 5,
                 targetNumber: 5,
                 isClaimed: false,
@@ -48,7 +48,7 @@ export default function QuestPage() {
             {
                 type: 'attendance',
                 title: 'Monthly Attendance',
-                description: '한 달 동안 출석하세요',
+                description: 'Attend for a full month',
                 currentNumber: 30,
                 targetNumber: 30,
                 isClaimed: true,
@@ -56,7 +56,7 @@ export default function QuestPage() {
             {
                 type: 'comments',
                 title: 'First Comment',
-                description: '첫 댓글을 작성하세요',
+                description: 'Write your first comment',
                 currentNumber: 1,
                 targetNumber: 1,
                 isClaimed: false,
@@ -64,7 +64,7 @@ export default function QuestPage() {
             {
                 type: 'comments',
                 title: '10 Comments',
-                description: '10개의 댓글을 작성하세요',
+                description: 'Write 10 comments',
                 currentNumber: 10,
                 targetNumber: 10,
                 isClaimed: true,
@@ -132,7 +132,7 @@ export default function QuestPage() {
 
             <div className="flex flex-col items-center justify-center gap-y-20 px-5 pt-10 flex-1 w-full overflow-y-auto">
                 {Object.keys(groupedQuests).length === 0 ? (
-                    <div className="text-pixel-gray">퀘스트가 없습니다.</div>
+                    <div className="text-pixel-gray">No quests available.</div>
                 ) : (
                     Object.entries(groupedQuests).map(([type, typeQuests]) => (
                         <div key={type} className="flex flex-col items-center justify-center gap-y-5 w-full max-w-xl">
