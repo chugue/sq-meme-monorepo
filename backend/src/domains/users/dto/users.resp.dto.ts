@@ -12,6 +12,8 @@ export interface GameRankItem {
     tokenImage: string | null;
     tokenAddress: string;
     tokenSymbol: string | null;
+    tokenUsername: string | null;
+    tokenUserTag: string | null;
     totalPrize: string;
 }
 

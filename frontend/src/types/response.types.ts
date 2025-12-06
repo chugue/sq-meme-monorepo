@@ -56,6 +56,8 @@ export interface GameRankItem {
     tokenImage: string | null;
     tokenAddress: string;
     tokenSymbol: string | null;
+    tokenUsername: string | null;
+    tokenUserTag: string | null;
     totalPrize: string;
 }
 
@@ -76,6 +78,8 @@ export interface CommentLeaderItem {
     commentCount: number;
 }
 
+export type QuestTypes = "attendance" | "comments";
+
 // 퀘스트 아이템
 export interface QuestItem {
     id: number;
@@ -95,6 +99,21 @@ export interface GameRankingResponse {
 // Prize Ranking API 응답 타입
 export interface PrizeRankingResponse {
     prizeRanking: PrizeRankItem[];
+}
+
+// 댓글 수 기준 유저 랭킹 아이템
+export interface MostCommentUserRankItem {
+    rank: number;
+    userWalletAddress: string;
+    username: string;
+    userTag: string;
+    profileImage: string | null;
+    commentCount: number;
+}
+
+// Most Comments API 응답 타입
+export interface MostCommentsResponse {
+    mostComments: MostCommentUserRankItem[];
 }
 
 // Quests API 응답 타입

@@ -147,11 +147,17 @@ export class UsersRepository {
      * @description totalComments 기준 상위 유저 랭킹 조회
      */
     async getTopUsersByComments(limit: number = 20): Promise<User[]> {
-        return await this.db
+        const result = await this.db
             .select()
             .from(schema.users)
             .where(gt(schema.users.totalComments, 0))
             .orderBy(desc(schema.users.totalComments))
             .limit(limit);
+
+        this.logger.debug(
+            `getTopUsersByComments: found ${result.length} users`,
+        );
+
+        return result;
     }
 }

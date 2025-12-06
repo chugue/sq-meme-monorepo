@@ -329,6 +329,8 @@ export class UsersService {
                         tokenAddress: item.tokenAddress,
                         tokenSymbol: item.tokenSymbol,
                         totalPrize: item.totalPrize,
+                        tokenUsername: token?.tokenUsername ?? null,
+                        tokenUserTag: token?.tokenUsertag ?? null,
                     };
                 },
             );

@@ -92,6 +92,7 @@ export type BackgroundMessage =
   | { type: "GET_QUESTS" }
   | { type: "GET_MY_ACTIVE_GAMES" }
   | { type: "GET_LIVE_GAMES" }
+  | { type: "GET_MOST_COMMENTS" }
   | { type: "TOGGLE_COMMENT_LIKE"; commentId: number; walletAddress: string }
   | { type: "GET_CURRENT_TAB_URL" };
 
@@ -436,8 +437,15 @@ export const backgroundApi = {
     });
   },
 
-  // 토큰별 상금 랭킹 조회 (Game Ranking 탭)
+  // 토큰별 상금 랭킹 조회 (Game Ranking 탭 / Best Memes)
   getGameRanking: async () => {
+    return sendToBackground<import("../../types/response.types").GameRankingResponse>({
+      type: "GET_GAME_RANKING",
+    });
+  },
+
+  // getBestMemes는 getGameRanking의 별칭
+  getBestMemes: async () => {
     return sendToBackground<import("../../types/response.types").GameRankingResponse>({
       type: "GET_GAME_RANKING",
     });
@@ -468,6 +476,13 @@ export const backgroundApi = {
   getLiveGames: async () => {
     return sendToBackground<import("../../types/response.types").LiveGamesResponse>({
       type: "GET_LIVE_GAMES",
+    });
+  },
+
+  // 댓글 수 기준 유저 랭킹 조회 (Most Comments)
+  getMostComments: async () => {
+    return sendToBackground<import("../../types/response.types").MostCommentsResponse>({
+      type: "GET_MOST_COMMENTS",
     });
   },
 

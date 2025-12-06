@@ -1,7 +1,7 @@
 import { backgroundApi } from "@/contents/lib/backgroundApi";
 import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "viem";
-import { CommentLeaderItem, MyActiveGameItem, PrizeRankItem } from "../types/response.types";
+import { GameRankItem, MostCommentUserRankItem, PrizeRankItem } from "../types/response.types";
 import { TopBar } from "./components";
 import RankBadge from "./components/RankBadge";
 import "./LeaderboardPage.css";
@@ -29,9 +29,9 @@ export function LeaderboardPage() {
     const [activeTab, setActiveTab] = useState<TabType>("best memes");
 
     // API 데이터 상태
-    const [myActiveGames, setMyActiveGames] = useState<MyActiveGameItem[]>([]);
+    const [bestMemes, setBestMemes] = useState<GameRankItem[]>([]);
     const [prizeRanking, setPrizeRanking] = useState<PrizeRankItem[]>([]);
-    const [commentLeaders, setCommentLeaders] = useState<CommentLeaderItem[]>([]);
+    const [commentLeaders, setCommentLeaders] = useState<MostCommentUserRankItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // 컴포넌트 로드 시 네 API 동시 호출
@@ -41,14 +41,14 @@ export function LeaderboardPage() {
 
             try {
                 const [myGamesRes, prizeRes, questRes] = await Promise.all([
-                    backgroundApi.getMyActiveGames(),
+                    backgroundApi.getBestMemes(),
                     backgroundApi.getPrizeRanking(),
-                    backgroundApi.getQuests(),
+                    backgroundApi.getMostComments(),
                 ]);
 
-                setMyActiveGames(myGamesRes.myActiveGames);
+                setBestMemes(myGamesRes.gameRanking);
                 setPrizeRanking(prizeRes.prizeRanking);
-                // setCommentLeaders(questRes.quests);
+                setCommentLeaders(questRes.mostComments);
                 console.log("✅ [LeaderboardPage] 데이터 로드 완료");
             } catch (error) {
                 console.error("❌ [LeaderboardPage] 데이터 로드 실패:", error);
@@ -86,31 +86,27 @@ export function LeaderboardPage() {
                         <div className="w-12 h-12 border-4 border-brown-3 border-t-gold-base rounded-full animate-spin mb-4"></div>
                         <span className="text-base text-brown-6 font-pretendard">Loading games...</span>
                     </div>
-                ) : myActiveGames.length === 0 ? (
+                ) : bestMemes.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20">
                         <span className="text-lg text-brown-6 font-pretendard">No memes yet</span>
                     </div>
                 ) : (
-                    myActiveGames.map((game, index) => {
-                        const rank = index + 1;
-
-                        return (
-                            <div key={game.gameId} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
-                                <RankBadge rank={rank} />
-                                <div className="w-10 h-10 rounded-full overflow-hidden">
-                                    {game.tokenImage ? <img src={game.tokenImage} alt={game.tokenSymbol || ""} /> : "🎮"}
-                                </div>
-                                <span className="text-lg text-white flex-1">{game.tokenSymbol}</span>
-                                <div className={`relative z-20`}>
-                                    {getPrizePoolStyle(rank, Number(formatEther(BigInt(game?.currentPrizePool || "0"))).toLocaleString())}
-                                </div>
+                    bestMemes.map((game) => (
+                        <div key={game.tokenAddress} className="flex items-center gap-2 bg-[#2D2119] p-3 rounded-xl w-full relative">
+                            <RankBadge rank={game.rank} />
+                            <div className="w-10 h-10 rounded-full overflow-hidden">
+                                {game.tokenImage ? <img src={game.tokenImage} alt={game.tokenSymbol || ""} /> : "🎮"}
                             </div>
-                        );
-                    })
+                            <span className="text-lg text-white flex-1">{game.tokenSymbol}</span>
+                            <div className={`relative z-20`}>
+                                {getPrizePoolStyle(game.rank, Number(formatEther(BigInt(game?.totalPrize || "0"))).toLocaleString())}
+                            </div>
+                        </div>
+                    ))
                 )}
             </div>
         ),
-        [myActiveGames, isLoading, getPrizePoolStyle],
+        [bestMemes, isLoading, getPrizePoolStyle],
     );
 
     const renderPrizeRankTab = () => (

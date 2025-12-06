@@ -31,9 +31,9 @@ export default function QuestPage() {
     const getQuestImage = (quest: QuestItem) => {
         // isClaimed이면 무조건 열린 박스
         if (quest.isClaimed) {
-            return '/icon/quests/quest_box_open.png';
+            return "/icon/quests/quest_box_open.png";
         }
-        return '/icon/quests/quest_box_close.png';
+        return "/icon/quests/quest_box_close.png";
     };
 
     // questType별로 그룹화
@@ -47,19 +47,17 @@ export default function QuestPage() {
 
     const handleClaim = (quest: QuestItem) => {
         // TODO: API 호출로 클레임 처리
-        console.log('Claim quest:', quest);
+        console.log("Claim quest:", quest);
     };
 
     // if (!user) return <div>Loading...</div>;
 
     return (
-        <div
-            className="flex flex-col items-center justify-center relative min-h-screen z-30 backdrop-blur bg-black/90"
-        >
+        <div className="flex flex-col items-center justify-center relative min-h-screen z-30 backdrop-blur bg-black/90">
             <TopBar />
 
             <div className="flex items-center justify-center gap-x-5 pb-5">
-                <img src='/icon/quests/quest_box_default.png' className="w-10 h-10" />
+                <img src="/icon/quests/quest_box_default.png" className="w-10 h-10" />
                 <span className="text-2xl font-bold text-pixel-orange-gold uppercase">Quest</span>
             </div>
 
@@ -73,9 +71,7 @@ export default function QuestPage() {
                 ) : (
                     Object.entries(groupedQuests).map(([type, typeQuests]) => (
                         <div key={type} className="flex flex-col items-center justify-center gap-y-5 w-full max-w-xl">
-                            <div className="text-xl font-bold text-pixel-orange-gold uppercase">
-                                {type} quest
-                            </div>
+                            <div className="text-xl font-bold text-pixel-orange-gold uppercase">{type} quest</div>
 
                             {typeQuests.map((quest, index) => {
                                 const progressPercentage = getProgressPercentage(quest.currentNumber, quest.targetNumber);
@@ -87,9 +83,9 @@ export default function QuestPage() {
                                         className="w-full p-5 flex items-center justify-between gap-x-5"
                                         style={{
                                             backgroundImage: `url('/icon/quests/quest_frame.png')`,
-                                            backgroundSize: '100% 100%',
-                                            backgroundPosition: 'center',
-                                            backgroundRepeat: 'no-repeat',
+                                            backgroundSize: "100% 100%",
+                                            backgroundPosition: "center",
+                                            backgroundRepeat: "no-repeat",
                                         }}
                                     >
                                         <div className="flex flex-col items-start gap-y-2 flex-1">
@@ -112,16 +108,19 @@ export default function QuestPage() {
                                             <button
                                                 disabled={!isEligible || quest.isClaimed}
                                                 onClick={() => handleClaim(quest)}
-                                                className={`w-16 h-16 rounded-xl flex items-center justify-center transition-opacity ${isEligible
-                                                    ? 'bg-gradient-main-5 hover:opacity-90'
-                                                    : 'bg-brown-0'
-                                                    } ${quest.isClaimed ? 'opacity-50' : ''} ${isEligible && !quest.isClaimed ? 'animate-treasure-glow' : ''}`}
+                                                className={`w-16 h-16 rounded-xl flex items-center justify-center transition-opacity ${
+                                                    isEligible ? "bg-gradient-main-5 hover:opacity-90" : "bg-brown-0"
+                                                } ${quest.isClaimed ? "opacity-50" : ""} ${
+                                                    isEligible && !quest.isClaimed ? "animate-treasure-glow" : ""
+                                                }`}
                                             >
                                                 <img
                                                     src={getQuestImage(quest)}
-                                                    className={`w-12 h-12 object-contain ${isEligible && !quest.isClaimed ? 'animate-treasure-pulse' : ''}`}
-                                                    style={{ imageRendering: 'pixelated' }}
-                                                    alt={quest.isClaimed ? 'Claimed' : isEligible ? 'Eligible' : 'In Progress'}
+                                                    className={`w-12 h-12 object-contain ${
+                                                        isEligible && !quest.isClaimed ? "animate-treasure-pulse" : ""
+                                                    }`}
+                                                    style={{ imageRendering: "pixelated" }}
+                                                    alt={quest.isClaimed ? "Claimed" : isEligible ? "Eligible" : "In Progress"}
                                                 />
                                             </button>
                                         </div>

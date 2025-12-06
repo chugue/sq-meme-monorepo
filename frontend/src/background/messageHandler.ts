@@ -1524,6 +1524,26 @@ export function createMessageHandler() {
                         break;
                     }
 
+                    case "GET_MOST_COMMENTS": {
+                        try {
+                            const response = await apiCall<{
+                                success: boolean;
+                                data: any[];
+                            }>("/v1/users/most-comments");
+                            result = { success: true, data: { mostComments: response.data } };
+                        } catch (error: any) {
+                            console.error("❌ 댓글 랭킹 조회 오류:", error);
+                            result = {
+                                success: false,
+                                error:
+                                    error instanceof Error
+                                        ? error.message
+                                        : "댓글 랭킹 조회 실패",
+                            };
+                        }
+                        break;
+                    }
+
                     case "GET_QUESTS": {
                         try {
                             const { browser } = await import("wxt/browser");
