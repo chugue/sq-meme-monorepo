@@ -31,7 +31,9 @@ export interface MyActiveGameItem {
     tokenImage: string | null;
     tokenAddress: string;
     tokenSymbol: string | null;
-    currentPrizePool: string | null;
+    tokenUsername: string | null;
+    tokenUsertag: string | null;
+    currentPrizePool: string;
     endTime: string | null;
 }
 

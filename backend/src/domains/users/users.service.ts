@@ -1,6 +1,10 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
-import { mockMyAssets, MyAsset, MyAssetsRespDto } from 'src/common/mock/my-assets';
+import {
+    mockMyAssets,
+    MyAsset,
+    MyAssetsRespDto,
+} from 'src/common/mock/my-assets';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
@@ -432,6 +436,8 @@ export class UsersService {
                         tokenImage: token?.tokenImageUrl ?? null,
                         tokenAddress: game.tokenAddress,
                         tokenSymbol: token?.tokenSymbol ?? null,
+                        tokenUsername: token?.tokenUsername ?? null,
+                        tokenUsertag: token?.tokenUsertag ?? null,
                         currentPrizePool: game.currentPrizePool,
                         endTime: game.endTime?.toISOString() ?? null,
                     };
