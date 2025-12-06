@@ -1,4 +1,3 @@
-import { User } from "@/types/response.types";
 import { useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 import "./ComingSoon.css";
@@ -34,7 +33,7 @@ interface ComingSoonProps {
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
   const { isConnected, address, isLoading, error, connect, refetch } =
     useSidepanelWallet();
-  const { setLoggingIn, setUser } = useMemexLogin();
+  const { setLoggingIn, setUser, tryLoginWithCachedUserInfo } = useMemexLogin();
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     isVisible: boolean;
@@ -80,8 +79,39 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
     }
   };
 
-  const handleConnectMemex = () => {
-    setIsTermsModalOpen(true);
+  // 훅의 tryLoginWithCachedUserInfo에 전달할 옵션
+  const loginOptions = {
+    walletAddress: address ?? undefined,
+    onSuccess: onMemexLoginComplete,
+    onRefetch: refetch,
+  };
+
+  const handleConnectMemex = async () => {
+    console.log("🔐 handleConnectMemex 시작, GTM 키 체크 중...");
+    // 1. GTM 키 먼저 체크
+    const cachedUserInfo = await getMemexUserInfo();
+    console.log("🔐 GTM 키 체크 결과:", cachedUserInfo);
+
+    if (cachedUserInfo) {
+      try {
+        const success = await tryLoginWithCachedUserInfo(cachedUserInfo, loginOptions);
+        if (success) {
+          return; // 로그인 성공
+        }
+        // 실패 시 Terms 모달 표시
+        setIsTermsModalOpen(true);
+      } catch (err) {
+        // content script 에러 처리
+        if (isContentScriptError(err)) {
+          showRefreshSnackbar();
+        }
+        return;
+      }
+    } else {
+      // GTM 키가 없으면 Terms 모달 표시
+      console.log("🔐 GTM 키 없음, Terms 모달 표시...");
+      setIsTermsModalOpen(true);
+    }
   };
 
   const handleCloseTermsModal = () => {
@@ -97,81 +127,19 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
       const cachedUserInfo = await getMemexUserInfo();
 
       if (cachedUserInfo) {
-        // GTM 키가 있으면 바로 백엔드에서 user 정보 조회
-        console.log("✅ GTM 키 발견, 백엔드에서 user 조회:", cachedUserInfo);
-        setLoggingIn(true);
-
         try {
-          // 백엔드에서 user 정보 조회
-          const checkResult = (await backgroundApi.getUserByUsername(
-            cachedUserInfo.username,
-            cachedUserInfo.user_tag
-          )) as { user: User | null };
-
-          if (checkResult?.user && onMemexLoginComplete) {
-            console.log("✅ MEMEX 로그인 완료:", checkResult.user.userName);
-            setUser(checkResult.user);
-            setLoggingIn(false);
-            await refetch();
-            onMemexLoginComplete(cachedUserInfo.username, cachedUserInfo.user_tag);
-            return;
+          const success = await tryLoginWithCachedUserInfo(cachedUserInfo, loginOptions);
+          if (success) {
+            return; // 로그인 성공
           }
-
-          // 백엔드에 user가 없으면 신규 사용자 - 자동 회원가입 시도
-          console.log("🆕 [cachedUserInfo] 백엔드에 user 없음, 자동 회원가입 시도...");
-
-          // 1. 프로필 정보 fetch
-          const profileInfo = await backgroundApi.fetchMemexProfileInfo(
-            cachedUserInfo.username,
-            cachedUserInfo.user_tag
-          );
-          console.log("📋 [cachedUserInfo] 프로필 정보:", profileInfo);
-
-          // 2. 지갑 주소 확인
-          if (!address) {
-            console.warn("⚠️ [cachedUserInfo] 지갑 연결 필요");
-            setLoggingIn(false);
-            // 지갑 미연결 상태에서는 memexLogin으로 계속 진행
-          } else if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
-            // 3. 필수 정보 확인 후 Join 요청
-            const joinResult = await backgroundApi.join({
-              username: cachedUserInfo.username,
-              userTag: cachedUserInfo.user_tag,
-              walletAddress: address,
-              profileImageUrl: profileInfo.profileImageUrl,
-              memeXLink: `https://app.memex.xyz/profile/${cachedUserInfo.username}/${cachedUserInfo.user_tag}`,
-              myTokenAddr: profileInfo.tokenAddr,
-              myTokenSymbol: profileInfo.tokenSymbol || "",
-              memexWalletAddress: profileInfo.memexWalletAddress,
-              isPolicyAgreed: true,
-            });
-
-            if (joinResult?.user && onMemexLoginComplete) {
-              setUser(joinResult.user);
-              console.log("✅ [cachedUserInfo] 자동 회원가입 완료:", joinResult.user.userName);
-              setLoggingIn(false);
-              await refetch();
-              onMemexLoginComplete(cachedUserInfo.username, cachedUserInfo.user_tag);
-              return;
-            }
-          } else {
-            console.warn("⚠️ [cachedUserInfo] 프로필 정보 부족, 회원가입 불가:", {
-              profileImageUrl: profileInfo?.profileImageUrl,
-              tokenAddr: profileInfo?.tokenAddr,
-              memexWalletAddress: profileInfo?.memexWalletAddress,
-            });
-          }
-
-          // 회원가입 실패 시 memexLogin으로 계속 진행
+          // 실패 시 Google 로그인으로 계속 진행
           console.log("⚠️ [cachedUserInfo] 자동 회원가입 실패, memexLogin으로 계속 진행...");
-          setLoggingIn(false);
         } catch (err) {
-          console.error("❌ [cachedUserInfo] 처리 실패:", err);
-          setLoggingIn(false);
+          // content script 에러 처리
           if (isContentScriptError(err)) {
             showRefreshSnackbar();
-            return;
           }
+          return;
         }
       } else {
         // GTM 키가 없으면 app.memex.xyz로 이동하여 Google 로그인 버튼 클릭

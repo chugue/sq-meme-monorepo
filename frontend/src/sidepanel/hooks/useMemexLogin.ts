@@ -28,6 +28,12 @@ import {
     setUserAtom,
 } from "../atoms/sessionAtoms";
 
+export interface TryLoginOptions {
+  walletAddress?: string;
+  onSuccess?: (username: string, userTag: string) => void;
+  onRefetch?: () => Promise<unknown>;
+}
+
 export interface UseMemexLoginReturn {
   isLoggedIn: boolean;
   isLoggingIn: boolean;
@@ -40,6 +46,10 @@ export interface UseMemexLoginReturn {
   setLoggedIn: (value: boolean, username?: string, userTag?: string) => void;
   setLoggingIn: (value: boolean) => void;
   setUser: (user: User | null) => void;
+  tryLoginWithCachedUserInfo: (
+    cachedUserInfo: { username: string; user_tag: string },
+    options?: TryLoginOptions
+  ) => Promise<boolean>;
 }
 
 export function useMemexLogin(): UseMemexLoginReturn {
@@ -308,6 +318,92 @@ export function useMemexLogin(): UseMemexLoginReturn {
     [setMemexLoggedIn]
   );
 
+  // GTM 키로 로그인/회원가입 시도하는 함수
+  // 성공 시 true, 실패/미완료 시 false 반환
+  const tryLoginWithCachedUserInfo = useCallback(
+    async (
+      cachedUserInfo: { username: string; user_tag: string },
+      options?: TryLoginOptions
+    ): Promise<boolean> => {
+      const { walletAddress: walletAddr, onSuccess, onRefetch } = options || {};
+
+      console.log("✅ GTM 키 발견, 백엔드에서 user 조회:", cachedUserInfo);
+      setLoggingIn(true);
+
+      try {
+        // 백엔드에서 user 정보 조회
+        const checkResult = (await backgroundApi.getUserByUsername(
+          cachedUserInfo.username,
+          cachedUserInfo.user_tag
+        )) as { user: User | null };
+
+        if (checkResult?.user) {
+          console.log("✅ MEMEX 로그인 완료:", checkResult.user.userName);
+          setUser(checkResult.user);
+          setLoggingIn(false);
+          if (onRefetch) await onRefetch();
+          if (onSuccess) onSuccess(cachedUserInfo.username, cachedUserInfo.user_tag);
+          return true;
+        }
+
+        // 백엔드에 user가 없으면 신규 사용자 - 자동 회원가입 시도
+        console.log("🆕 [cachedUserInfo] 백엔드에 user 없음, 자동 회원가입 시도...");
+
+        // 1. 프로필 정보 fetch
+        const profileInfo = await backgroundApi.fetchMemexProfileInfo(
+          cachedUserInfo.username,
+          cachedUserInfo.user_tag
+        );
+        console.log("📋 [cachedUserInfo] 프로필 정보:", profileInfo);
+
+        // 2. 지갑 주소 확인
+        if (!walletAddr) {
+          console.warn("⚠️ [cachedUserInfo] 지갑 연결 필요");
+          setLoggingIn(false);
+          return false;
+        } else if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
+          // 3. 필수 정보 확인 후 Join 요청
+          const joinResult = await backgroundApi.join({
+            username: cachedUserInfo.username,
+            userTag: cachedUserInfo.user_tag,
+            walletAddress: walletAddr,
+            profileImageUrl: profileInfo.profileImageUrl,
+            memeXLink: `https://app.memex.xyz/profile/${cachedUserInfo.username}/${cachedUserInfo.user_tag}`,
+            myTokenAddr: profileInfo.tokenAddr,
+            myTokenSymbol: profileInfo.tokenSymbol || "",
+            memexWalletAddress: profileInfo.memexWalletAddress,
+            isPolicyAgreed: true,
+          });
+
+          if (joinResult?.user) {
+            setUser(joinResult.user);
+            console.log("✅ [cachedUserInfo] 자동 회원가입 완료:", joinResult.user.userName);
+            setLoggingIn(false);
+            if (onRefetch) await onRefetch();
+            if (onSuccess) onSuccess(cachedUserInfo.username, cachedUserInfo.user_tag);
+            return true;
+          }
+        } else {
+          console.warn("⚠️ [cachedUserInfo] 프로필 정보 부족, 회원가입 불가:", {
+            profileImageUrl: profileInfo?.profileImageUrl,
+            tokenAddr: profileInfo?.tokenAddr,
+            memexWalletAddress: profileInfo?.memexWalletAddress,
+          });
+        }
+
+        // 회원가입 실패
+        console.log("⚠️ [cachedUserInfo] 자동 회원가입 실패");
+        setLoggingIn(false);
+        return false;
+      } catch (err) {
+        console.error("❌ [cachedUserInfo] 처리 실패:", err);
+        setLoggingIn(false);
+        throw err; // 에러를 다시 던져서 호출자가 처리하도록
+      }
+    },
+    [setLoggingIn, setUser]
+  );
+
   return {
     isLoggedIn,
     isLoggingIn,
@@ -320,5 +416,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
     setLoggedIn: handleSetLoggedIn,
     setLoggingIn,
     setUser,
+    tryLoginWithCachedUserInfo,
   };
 }
