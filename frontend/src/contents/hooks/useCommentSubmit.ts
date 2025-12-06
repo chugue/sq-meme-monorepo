@@ -19,6 +19,7 @@ import { ERROR_CODES, injectedApi } from "../lib/injectedApi";
 
 export interface UseCommentSubmitParams {
     activeGameInfo: ActiveGameInfo | null;
+    setActiveGameInfo: (info: ActiveGameInfo | null) => void;
     address: string | null;
     isConnected: boolean;
     ensureNetwork: () => Promise<void>;
@@ -37,6 +38,7 @@ export interface UseCommentSubmitReturn {
 
 export function useCommentSubmit({
     activeGameInfo,
+    setActiveGameInfo,
     address,
     isConnected,
     ensureNetwork,
@@ -172,7 +174,20 @@ export function useCommentSubmit({
                 );
                 logger.info("백엔드에 댓글 저장 완료", {
                     commentId: savedComment?.id,
+                    newEndTime: savedComment?.newEndTime,
                 });
+
+                // newEndTime으로 타이머 업데이트
+                if (savedComment?.newEndTime && activeGameInfo) {
+                    const newEndTimeMs = Number(savedComment.newEndTime) * 1000;
+                    setActiveGameInfo({
+                        ...activeGameInfo,
+                        endTime: new Date(newEndTimeMs).toISOString(),
+                    });
+                    logger.info("타이머 업데이트 완료", {
+                        newEndTime: new Date(newEndTimeMs).toISOString(),
+                    });
+                }
             } catch (apiError) {
                 logger.warn("백엔드 댓글 저장 실패 (트랜잭션은 성공)", {
                     error: apiError,
@@ -212,6 +227,7 @@ export function useCommentSubmit({
         address,
         ensureNetwork,
         activeGameInfo,
+        setActiveGameInfo,
         refetch,
         onGameEnded,
     ]);

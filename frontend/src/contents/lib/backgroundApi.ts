@@ -5,7 +5,7 @@ import type {
   CreateGameRequest,
   JoinRequest,
 } from "../../types/request.types";
-import type { CommentListResponse, JoinResponse } from "../../types/response.types";
+import type { CommentListResponse, JoinResponse, SaveCommentResponse } from "../../types/response.types";
 
 // Re-export types for convenience
 export type {
@@ -265,7 +265,7 @@ export const backgroundApi = {
 
   // 댓글 데이터를 백엔드에 저장
   saveComment: async (data: CreateCommentRequest) => {
-    return sendToBackground<{ id: number }>({
+    return sendToBackground<SaveCommentResponse>({
       type: "SAVE_COMMENT",
       data,
     });

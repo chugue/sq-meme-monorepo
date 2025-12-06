@@ -124,6 +124,7 @@ export function CommentSection() {
         handleSubmit,
     } = useCommentSubmit({
         activeGameInfo,
+        setActiveGameInfo,
         address,
         isConnected,
         ensureNetwork,

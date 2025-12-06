@@ -4,7 +4,10 @@ import {
     SerializedGameInfo,
 } from "../contents/lib/backgroundApi";
 import type { JoinRequest } from "../types/request.types";
-import type { CommentListResponse } from "../types/response.types";
+import type {
+    CommentListResponse,
+    SaveCommentResponse,
+} from "../types/response.types";
 import { apiCall, apiUpload } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -12,7 +15,7 @@ export function createMessageHandler() {
     return (
         message: BackgroundMessage,
         sender: any,
-        sendResponse: (response: BackgroundResponse) => void
+        sendResponse: (response: BackgroundResponse) => void,
     ): boolean => {
         // 디버그: 모든 메시지 로깅
         console.log("📨 [Background] 메시지 수신:", message.type);
@@ -28,26 +31,34 @@ export function createMessageHandler() {
                         const response = await apiCall<{
                             success: boolean;
                             data: CommentListResponse;
-                        }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`, {
-                            headers: walletAddress
-                                ? { "x-wallet-address": walletAddress }
-                                : undefined,
-                        });
+                        }>(
+                            `/v1/comments/game/${encodeURIComponent(
+                                message.gameId,
+                            )}`,
+                            {
+                                headers: walletAddress
+                                    ? { "x-wallet-address": walletAddress }
+                                    : undefined,
+                            },
+                        );
                         result = { success: true, data: response.data };
                         break;
                     }
 
                     case "CREATE_COMMENT": {
-                        const response = await apiCall<{ comment: any }>("/api/comments", {
-                            method: "POST",
-                            body: JSON.stringify({
-                                challenge_id: message.challengeId,
-                                player_address: message.playerAddress,
-                                content: message.content,
-                                signature: (message as any).signature,
-                                message: (message as any).message,
-                            }),
-                        });
+                        const response = await apiCall<{ comment: any }>(
+                            "/api/comments",
+                            {
+                                method: "POST",
+                                body: JSON.stringify({
+                                    challenge_id: message.challengeId,
+                                    player_address: message.playerAddress,
+                                    content: message.content,
+                                    signature: (message as any).signature,
+                                    message: (message as any).message,
+                                }),
+                            },
+                        );
                         result = { success: true, data: response.comment };
                         break;
                     }
@@ -83,22 +94,39 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
                             const area = (message as any).area || "session";
                             const storageArea =
-                                area === "local" ? storage.local : storage.session;
+                                area === "local"
+                                    ? storage.local
+                                    : storage.session;
 
-                            const data = await new Promise<any>((resolve, reject) => {
-                                storageArea.get([(message as any).key], (result: any) => {
-                                    const runtime =
-                                        browser?.runtime || (globalThis as any).chrome?.runtime;
-                                    if (runtime?.lastError) {
-                                        reject(new Error(runtime.lastError.message));
-                                        return;
-                                    }
-                                    resolve(result[(message as any).key] || null);
-                                });
-                            });
+                            const data = await new Promise<any>(
+                                (resolve, reject) => {
+                                    storageArea.get(
+                                        [(message as any).key],
+                                        (result: any) => {
+                                            const runtime =
+                                                browser?.runtime ||
+                                                (globalThis as any).chrome
+                                                    ?.runtime;
+                                            if (runtime?.lastError) {
+                                                reject(
+                                                    new Error(
+                                                        runtime.lastError.message,
+                                                    ),
+                                                );
+                                                return;
+                                            }
+                                            resolve(
+                                                result[(message as any).key] ||
+                                                    null,
+                                            );
+                                        },
+                                    );
+                                },
+                            );
 
                             result = { success: true, data };
                         } catch (error: any) {
@@ -106,7 +134,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "Storage 읽기 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Storage 읽기 실패",
                             };
                         }
                         break;
@@ -119,8 +149,7 @@ export function createMessageHandler() {
                         if (sender.id !== runtime?.id) {
                             result = {
                                 success: false,
-                                error:
-                                    "Storage 쓰기 권한이 없습니다. 익스텐션 내부에서만 가능합니다.",
+                                error: "Storage 쓰기 권한이 없습니다. 익스텐션 내부에서만 가능합니다.",
                             };
                             break;
                         }
@@ -128,23 +157,34 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
                             const area = (message as any).area || "session";
                             const storageArea =
-                                area === "local" ? storage.local : storage.session;
+                                area === "local"
+                                    ? storage.local
+                                    : storage.session;
 
                             await new Promise<void>((resolve, reject) => {
                                 storageArea.set(
-                                    { [(message as any).key]: (message as any).value },
+                                    {
+                                        [(message as any).key]: (message as any)
+                                            .value,
+                                    },
                                     () => {
                                         const runtime =
-                                            browser?.runtime || (globalThis as any).chrome?.runtime;
+                                            browser?.runtime ||
+                                            (globalThis as any).chrome?.runtime;
                                         if (runtime?.lastError) {
-                                            reject(new Error(runtime.lastError.message));
+                                            reject(
+                                                new Error(
+                                                    runtime.lastError.message,
+                                                ),
+                                            );
                                             return;
                                         }
                                         resolve();
-                                    }
+                                    },
                                 );
                             });
 
@@ -154,7 +194,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "Storage 저장 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Storage 저장 실패",
                             };
                         }
                         break;
@@ -167,8 +209,7 @@ export function createMessageHandler() {
                         if (sender.id !== runtime?.id) {
                             result = {
                                 success: false,
-                                error:
-                                    "Storage 삭제 권한이 없습니다. 익스텐션 내부에서만 가능합니다.",
+                                error: "Storage 삭제 권한이 없습니다. 익스텐션 내부에서만 가능합니다.",
                             };
                             break;
                         }
@@ -176,21 +217,32 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
                             const area = (message as any).area || "session";
                             const storageArea =
-                                area === "local" ? storage.local : storage.session;
+                                area === "local"
+                                    ? storage.local
+                                    : storage.session;
 
                             await new Promise<void>((resolve, reject) => {
-                                storageArea.remove([(message as any).key], () => {
-                                    const runtime =
-                                        browser?.runtime || (globalThis as any).chrome?.runtime;
-                                    if (runtime?.lastError) {
-                                        reject(new Error(runtime.lastError.message));
-                                        return;
-                                    }
-                                    resolve();
-                                });
+                                storageArea.remove(
+                                    [(message as any).key],
+                                    () => {
+                                        const runtime =
+                                            browser?.runtime ||
+                                            (globalThis as any).chrome?.runtime;
+                                        if (runtime?.lastError) {
+                                            reject(
+                                                new Error(
+                                                    runtime.lastError.message,
+                                                ),
+                                            );
+                                            return;
+                                        }
+                                        resolve();
+                                    },
+                                );
                             });
 
                             result = { success: true, data: undefined };
@@ -199,7 +251,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "Storage 삭제 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Storage 삭제 실패",
                             };
                         }
                         break;
@@ -208,19 +262,26 @@ export function createMessageHandler() {
                     case "GET_GAME_BY_TOKEN": {
                         try {
                             const response = await apiCall<any>(
-                                `/v1/games/by-token/${encodeURIComponent(message.tokenAddress)}`
+                                `/v1/games/by-token/${encodeURIComponent(
+                                    message.tokenAddress,
+                                )}`,
                             );
                             result = { success: true, data: response };
                         } catch (error: any) {
                             const errorMsg = error.message || "";
-                            if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                            if (
+                                errorMsg.includes("404") ||
+                                errorMsg.includes("Not Found")
+                            ) {
                                 result = { success: true, data: null };
                             } else {
                                 console.error("❌ 게임 조회 오류:", error);
                                 result = {
                                     success: false,
                                     error:
-                                        error instanceof Error ? error.message : "게임 조회 실패",
+                                        error instanceof Error
+                                            ? error.message
+                                            : "게임 조회 실패",
                                 };
                             }
                         }
@@ -231,13 +292,16 @@ export function createMessageHandler() {
                         try {
                             const response = await apiCall<any>(
                                 `/v1/games/active/by-token/${encodeURIComponent(
-                                    message.tokenAddress
-                                )}`
+                                    message.tokenAddress,
+                                )}`,
                             );
                             result = { success: true, data: response };
                         } catch (error: any) {
                             const errorMsg = error.message || "";
-                            if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                            if (
+                                errorMsg.includes("404") ||
+                                errorMsg.includes("Not Found")
+                            ) {
                                 result = { success: true, data: null };
                             } else {
                                 console.error("❌ 활성 게임 조회 오류:", error);
@@ -257,15 +321,29 @@ export function createMessageHandler() {
                         try {
                             const response = await apiCall<{
                                 success: boolean;
-                                data: { gameId: string; endTime: string; isClaimed: boolean };
-                            }>(`/v1/games/active/${encodeURIComponent(message.gameId)}`);
+                                data: {
+                                    gameId: string;
+                                    endTime: string;
+                                    isClaimed: boolean;
+                                };
+                            }>(
+                                `/v1/games/active/${encodeURIComponent(
+                                    message.gameId,
+                                )}`,
+                            );
                             result = { success: true, data: response.data };
                         } catch (error: any) {
                             const errorMsg = error.message || "";
-                            if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
+                            if (
+                                errorMsg.includes("404") ||
+                                errorMsg.includes("Not Found")
+                            ) {
                                 result = { success: true, data: null };
                             } else {
-                                console.error("❌ 활성 게임 조회 (ID) 오류:", error);
+                                console.error(
+                                    "❌ 활성 게임 조회 (ID) 오류:",
+                                    error,
+                                );
                                 result = {
                                     success: false,
                                     error:
@@ -282,7 +360,7 @@ export function createMessageHandler() {
                         try {
                             const response = await apiCall<{
                                 success: boolean;
-                                data: { id: number };
+                                data: SaveCommentResponse;
                             }>("/v1/comments", {
                                 method: "POST",
                                 body: JSON.stringify(message.data),
@@ -293,7 +371,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "댓글 저장 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "댓글 저장 실패",
                             };
                         }
                         break;
@@ -314,7 +394,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "게임 저장 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "게임 저장 실패",
                             };
                         }
                         break;
@@ -354,7 +436,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "게임 등록 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "게임 등록 실패",
                             };
                         }
                         break;
@@ -380,7 +464,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "게임 생성 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "게임 생성 실패",
                             };
                         }
                         break;
@@ -388,12 +474,18 @@ export function createMessageHandler() {
 
                     case "REGISTER_CLAIM_PRIZE": {
                         try {
-                            const response = await apiCall<{ success: boolean }>(
-                                `/v1/games/${encodeURIComponent(message.gameId)}/claim`,
+                            const response = await apiCall<{
+                                success: boolean;
+                            }>(
+                                `/v1/games/${encodeURIComponent(
+                                    message.gameId,
+                                )}/claim`,
                                 {
                                     method: "POST",
-                                    body: JSON.stringify({ txHash: message.txHash }),
-                                }
+                                    body: JSON.stringify({
+                                        txHash: message.txHash,
+                                    }),
+                                },
                             );
                             result = { success: true, data: response };
                         } catch (error: any) {
@@ -436,19 +528,34 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
 
-                            const sessionState = await new Promise<any>((resolve, reject) => {
-                                storage.session.get(["squid_session_state"], (result: any) => {
-                                    const runtime =
-                                        browser?.runtime || (globalThis as any).chrome?.runtime;
-                                    if (runtime?.lastError) {
-                                        reject(new Error(runtime.lastError.message));
-                                        return;
-                                    }
-                                    resolve(result.squid_session_state || null);
-                                });
-                            });
+                            const sessionState = await new Promise<any>(
+                                (resolve, reject) => {
+                                    storage.session.get(
+                                        ["squid_session_state"],
+                                        (result: any) => {
+                                            const runtime =
+                                                browser?.runtime ||
+                                                (globalThis as any).chrome
+                                                    ?.runtime;
+                                            if (runtime?.lastError) {
+                                                reject(
+                                                    new Error(
+                                                        runtime.lastError.message,
+                                                    ),
+                                                );
+                                                return;
+                                            }
+                                            resolve(
+                                                result.squid_session_state ||
+                                                    null,
+                                            );
+                                        },
+                                    );
+                                },
+                            );
 
                             // currentUsername과 currentUserTag가 둘 다 있어야만 내 프로필인지 확인
                             // 웹에서 로그아웃 상태면 (currentUsername = null) 절대 내 프로필로 처리하지 않음
@@ -466,8 +573,10 @@ export function createMessageHandler() {
                                     isMemexLoggedIn: true,
                                     memexUsername: username,
                                     memexUserTag: userTag,
-                                    memexProfileImage: profileInfo.profileImageUrl,
-                                    memexWalletAddress: profileInfo.memexWalletAddress,
+                                    memexProfileImage:
+                                        profileInfo.profileImageUrl,
+                                    memexWalletAddress:
+                                        profileInfo.memexWalletAddress,
                                     myTokenAddr: profileInfo.tokenAddr,
                                     myTokenSymbol: profileInfo.tokenSymbol,
                                     myTokenImageUrl: profileInfo.tokenImageUrl,
@@ -478,13 +587,19 @@ export function createMessageHandler() {
                                         { squid_session_state: updatedState },
                                         () => {
                                             const runtime =
-                                                browser?.runtime || (globalThis as any).chrome?.runtime;
+                                                browser?.runtime ||
+                                                (globalThis as any).chrome
+                                                    ?.runtime;
                                             if (runtime?.lastError) {
-                                                reject(new Error(runtime.lastError.message));
+                                                reject(
+                                                    new Error(
+                                                        runtime.lastError.message,
+                                                    ),
+                                                );
                                                 return;
                                             }
                                             resolve();
-                                        }
+                                        },
                                     );
                                 });
                             }
@@ -492,8 +607,14 @@ export function createMessageHandler() {
 
                             // 토큰 정보가 있으면 백엔드 API에 저장 (upsert)
                             // tokenImageUrl이 있어야만 저장 (빈 값이면 스킵)
-                            console.log("🔍 [Background] profileInfo:", profileInfo);
-                            if (profileInfo.tokenAddr && profileInfo.tokenImageUrl) {
+                            console.log(
+                                "🔍 [Background] profileInfo:",
+                                profileInfo,
+                            );
+                            if (
+                                profileInfo.tokenAddr &&
+                                profileInfo.tokenImageUrl
+                            ) {
                                 try {
                                     await apiCall("/v1/tokens", {
                                         method: "POST",
@@ -501,29 +622,37 @@ export function createMessageHandler() {
                                             tokenAddress: profileInfo.tokenAddr,
                                             tokenUsername: username,
                                             tokenUsertag: userTag,
-                                            tokenImageUrl: profileInfo.tokenImageUrl,
-                                            tokenSymbol: profileInfo.tokenSymbol,
+                                            tokenImageUrl:
+                                                profileInfo.tokenImageUrl,
+                                            tokenSymbol:
+                                                profileInfo.tokenSymbol,
                                         }),
                                     });
                                     console.log(
-                                        `✅ [Background] 토큰 정보 저장 완료: ${profileInfo.tokenAddr}`
+                                        `✅ [Background] 토큰 정보 저장 완료: ${profileInfo.tokenAddr}`,
                                     );
                                 } catch (tokenError: any) {
                                     // 토큰 저장 실패는 무시 (주요 기능에 영향 없음)
                                     console.warn(
                                         "⚠️ [Background] 토큰 정보 저장 실패:",
-                                        tokenError.message
+                                        tokenError.message,
                                     );
                                 }
-                            } else if (profileInfo.tokenAddr && !profileInfo.tokenImageUrl) {
+                            } else if (
+                                profileInfo.tokenAddr &&
+                                !profileInfo.tokenImageUrl
+                            ) {
                                 console.log(
-                                    `⚠️ [Background] tokenImageUrl 없음, 토큰 저장 스킵: ${profileInfo.tokenAddr}`
+                                    `⚠️ [Background] tokenImageUrl 없음, 토큰 저장 스킵: ${profileInfo.tokenAddr}`,
                                 );
                             }
 
                             result = { success: true, data: { success: true } };
                         } catch (error: any) {
-                            console.error("❌ PROFILE_URL_CHANGED 오류:", error);
+                            console.error(
+                                "❌ PROFILE_URL_CHANGED 오류:",
+                                error,
+                            );
                             result = {
                                 success: false,
                                 error:
@@ -544,11 +673,16 @@ export function createMessageHandler() {
                         try {
                             // Background에서 직접 fetch (CORS 제약 없음, 페이지 이동 불필요)
                             const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
-                            console.log("🔍 [Background] 프로필 정보 fetch 시작:", profileUrl);
+                            console.log(
+                                "🔍 [Background] 프로필 정보 fetch 시작:",
+                                profileUrl,
+                            );
 
                             const response = await fetch(profileUrl);
                             if (!response.ok) {
-                                throw new Error(`Fetch failed: ${response.status}`);
+                                throw new Error(
+                                    `Fetch failed: ${response.status}`,
+                                );
                             }
 
                             const html = await response.text();
@@ -560,56 +694,78 @@ export function createMessageHandler() {
 
                             // tokenAddress 패턴 (이스케이프된 JSON 내부)
                             const tokenMatch = html.match(
-                                /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+                                /\\?"tokenAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/,
                             );
                             if (tokenMatch && tokenMatch[1]) {
                                 tokenAddr = tokenMatch[1];
-                                console.log("✅ [Background] tokenAddr 발견:", tokenAddr);
+                                console.log(
+                                    "✅ [Background] tokenAddr 발견:",
+                                    tokenAddr,
+                                );
                             }
 
                             // walletAddress 패턴
                             const walletMatch = html.match(
-                                /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/
+                                /\\?"walletAddress\\?"\\?:\s*\\?"(0x[a-fA-F0-9]{40})\\?"/,
                             );
                             if (walletMatch && walletMatch[1]) {
                                 memexWalletAddress = walletMatch[1];
-                                console.log("✅ [Background] memexWalletAddress 발견:", memexWalletAddress);
+                                console.log(
+                                    "✅ [Background] memexWalletAddress 발견:",
+                                    memexWalletAddress,
+                                );
                             }
 
                             // profileImage 패턴 - 디버그
-                            const profileImageIndex = html.indexOf("profileImage");
+                            const profileImageIndex =
+                                html.indexOf("profileImage");
                             if (profileImageIndex !== -1) {
-                                console.log("🔍 [Background] profileImage 컨텍스트:", html.substring(profileImageIndex, profileImageIndex + 150));
+                                console.log(
+                                    "🔍 [Background] profileImage 컨텍스트:",
+                                    html.substring(
+                                        profileImageIndex,
+                                        profileImageIndex + 150,
+                                    ),
+                                );
                             }
 
                             // profileImage 패턴 (여러 가지 시도)
                             let profileImgMatch = html.match(
-                                /\\?"profileImage\\?"\\?:\s*\\?"(https?:[^"\\]+)\\?"/
+                                /\\?"profileImage\\?"\\?:\s*\\?"(https?:[^"\\]+)\\?"/,
                             );
                             // 패턴 2: \"profileImage\":\"https:\/\/...\"
                             if (!profileImgMatch) {
                                 profileImgMatch = html.match(
-                                    /"profileImage":"(https?:\/\/[^"]+)"/
+                                    /"profileImage":"(https?:\/\/[^"]+)"/,
                                 );
                             }
                             // 패턴 3: 이스케이프된 URL (https:\\/\\/)
                             if (!profileImgMatch) {
                                 profileImgMatch = html.match(
-                                    /profileImage[^:]*:\s*[\\"]*(https?:\\?\/\\?\/[^"\\,\}]+)/
+                                    /profileImage[^:]*:\s*[\\"]*(https?:\\?\/\\?\/[^"\\,\}]+)/,
                                 );
                             }
                             if (profileImgMatch && profileImgMatch[1]) {
-                                profileImageUrl = profileImgMatch[1].replace(/\\\//g, "/");
-                                console.log("✅ [Background] profileImageUrl 발견:", profileImageUrl);
+                                profileImageUrl = profileImgMatch[1].replace(
+                                    /\\\//g,
+                                    "/",
+                                );
+                                console.log(
+                                    "✅ [Background] profileImageUrl 발견:",
+                                    profileImageUrl,
+                                );
                             }
 
                             // tokenSymbol 패턴
                             const symbolMatch = html.match(
-                                /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/
+                                /\\?"tokenSymbol\\?"\\?:\s*\\?"([^"\\]+)\\?"/,
                             );
                             if (symbolMatch && symbolMatch[1]) {
                                 tokenSymbol = symbolMatch[1];
-                                console.log("✅ [Background] tokenSymbol 발견:", tokenSymbol);
+                                console.log(
+                                    "✅ [Background] tokenSymbol 발견:",
+                                    tokenSymbol,
+                                );
                             }
 
                             result = {
@@ -623,7 +779,10 @@ export function createMessageHandler() {
                                 },
                             };
                         } catch (error: any) {
-                            console.error("❌ FETCH_MEMEX_PROFILE_INFO 오류:", error);
+                            console.error(
+                                "❌ FETCH_MEMEX_PROFILE_INFO 오류:",
+                                error,
+                            );
                             result = {
                                 success: true,
                                 data: {
@@ -639,7 +798,10 @@ export function createMessageHandler() {
                     }
 
                     case "JOIN": {
-                        const { data } = message as { type: string; data: JoinRequest };
+                        const { data } = message as {
+                            type: string;
+                            data: JoinRequest;
+                        };
 
                         if (!data) {
                             result = {
@@ -672,19 +834,26 @@ export function createMessageHandler() {
                             if (response.data?.user) {
                                 const { browser } = await import("wxt/browser");
                                 const storage =
-                                    browser?.storage || (globalThis as any).chrome?.storage;
+                                    browser?.storage ||
+                                    (globalThis as any).chrome?.storage;
                                 await new Promise<void>((resolve, reject) => {
                                     storage.session.set(
                                         { squid_user: response.data.user },
                                         () => {
                                             const runtime =
-                                                browser?.runtime || (globalThis as any).chrome?.runtime;
+                                                browser?.runtime ||
+                                                (globalThis as any).chrome
+                                                    ?.runtime;
                                             if (runtime?.lastError) {
-                                                reject(new Error(runtime.lastError.message));
+                                                reject(
+                                                    new Error(
+                                                        runtime.lastError.message,
+                                                    ),
+                                                );
                                                 return;
                                             }
                                             resolve();
-                                        }
+                                        },
                                     );
                                 });
                             }
@@ -701,7 +870,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "Join 요청 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "Join 요청 실패",
                             };
                         }
                         break;
@@ -711,8 +882,11 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
-                            const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
+                            const tabs =
+                                browser?.tabs ||
+                                (globalThis as any).chrome?.tabs;
 
                             await new Promise<void>((resolve, reject) => {
                                 storage.session.remove(
@@ -724,13 +898,18 @@ export function createMessageHandler() {
                                     ],
                                     () => {
                                         const runtime =
-                                            browser?.runtime || (globalThis as any).chrome?.runtime;
+                                            browser?.runtime ||
+                                            (globalThis as any).chrome?.runtime;
                                         if (runtime?.lastError) {
-                                            reject(new Error(runtime.lastError.message));
+                                            reject(
+                                                new Error(
+                                                    runtime.lastError.message,
+                                                ),
+                                            );
                                             return;
                                         }
                                         resolve();
-                                    }
+                                    },
                                 );
                             });
 
@@ -739,20 +918,28 @@ export function createMessageHandler() {
                                     ["walletAddress", "isWalletConnected"],
                                     () => {
                                         const runtime =
-                                            browser?.runtime || (globalThis as any).chrome?.runtime;
+                                            browser?.runtime ||
+                                            (globalThis as any).chrome?.runtime;
                                         if (runtime?.lastError) {
-                                            reject(new Error(runtime.lastError.message));
+                                            reject(
+                                                new Error(
+                                                    runtime.lastError.message,
+                                                ),
+                                            );
                                             return;
                                         }
                                         resolve();
-                                    }
+                                    },
                                 );
                             });
 
                             // 모든 MEMEX 탭에 로그아웃 메시지 전송 (UI 숨김 + inject script 캐시 초기화)
                             try {
                                 const memexTabs = await tabs.query({
-                                    url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                                    url: [
+                                        "https://app.memex.xyz/*",
+                                        "http://app.memex.xyz/*",
+                                    ],
                                 });
 
                                 // 모든 탭에 메시지 전송
@@ -781,7 +968,10 @@ export function createMessageHandler() {
                             console.error("❌ LOGOUT 오류:", error);
                             result = {
                                 success: false,
-                                error: error instanceof Error ? error.message : "로그아웃 실패",
+                                error:
+                                    error instanceof Error
+                                        ? error.message
+                                        : "로그아웃 실패",
                             };
                         }
                         break;
@@ -789,20 +979,25 @@ export function createMessageHandler() {
 
                     case "UPLOAD_IMAGE": {
                         try {
-                            const { fileData, fileName, mimeType } = message as {
-                                type: string;
-                                fileData: string;
-                                fileName: string;
-                                mimeType: string;
-                            };
+                            const { fileData, fileName, mimeType } =
+                                message as {
+                                    type: string;
+                                    fileData: string;
+                                    fileName: string;
+                                    mimeType: string;
+                                };
 
                             const byteCharacters = atob(fileData);
-                            const byteNumbers = new Array(byteCharacters.length);
+                            const byteNumbers = new Array(
+                                byteCharacters.length,
+                            );
                             for (let i = 0; i < byteCharacters.length; i++) {
                                 byteNumbers[i] = byteCharacters.charCodeAt(i);
                             }
                             const byteArray = new Uint8Array(byteNumbers);
-                            const blob = new Blob([byteArray], { type: mimeType });
+                            const blob = new Blob([byteArray], {
+                                type: mimeType,
+                            });
 
                             const formData = new FormData();
                             formData.append("file", blob, fileName);
@@ -818,7 +1013,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "이미지 업로드 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "이미지 업로드 실패",
                             };
                         }
                         break;
@@ -829,23 +1026,35 @@ export function createMessageHandler() {
                     case "WALLET_DISCONNECT": {
                         try {
                             const { browser } = await import("wxt/browser");
-                            const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
-                            const scripting = (globalThis as any).chrome?.scripting;
+                            const tabs =
+                                browser?.tabs ||
+                                (globalThis as any).chrome?.tabs;
+                            const scripting = (globalThis as any).chrome
+                                ?.scripting;
 
                             let memexTabs = await tabs.query({
-                                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                                url: [
+                                    "https://app.memex.xyz/*",
+                                    "http://app.memex.xyz/*",
+                                ],
                             });
 
                             if (memexTabs.length === 0) {
                                 if (message.type === "WALLET_GET_ACCOUNT") {
                                     result = {
                                         success: true,
-                                        data: { isConnected: false, address: null },
+                                        data: {
+                                            isConnected: false,
+                                            address: null,
+                                        },
                                     };
                                     break;
                                 }
                                 if (message.type === "WALLET_DISCONNECT") {
-                                    result = { success: true, data: { success: true } };
+                                    result = {
+                                        success: true,
+                                        data: { success: true },
+                                    };
                                     break;
                                 }
 
@@ -857,13 +1066,15 @@ export function createMessageHandler() {
                                 await new Promise<void>((resolve) => {
                                     const listener = (
                                         tabId: number,
-                                        changeInfo: { status?: string }
+                                        changeInfo: { status?: string },
                                     ) => {
                                         if (
                                             tabId === newTab.id &&
                                             changeInfo.status === "complete"
                                         ) {
-                                            tabs.onUpdated.removeListener(listener);
+                                            tabs.onUpdated.removeListener(
+                                                listener,
+                                            );
                                             setTimeout(resolve, 1500);
                                         }
                                     };
@@ -875,11 +1086,17 @@ export function createMessageHandler() {
                                 });
 
                                 memexTabs = await tabs.query({
-                                    url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                                    url: [
+                                        "https://app.memex.xyz/*",
+                                        "http://app.memex.xyz/*",
+                                    ],
                                 });
 
                                 if (memexTabs.length === 0) {
-                                    result = { success: false, error: "MEMEX 페이지 로딩 실패" };
+                                    result = {
+                                        success: false,
+                                        error: "MEMEX 페이지 로딩 실패",
+                                    };
                                     break;
                                 }
                             }
@@ -893,47 +1110,67 @@ export function createMessageHandler() {
                                 break;
                             }
 
-                            const injectionResults = await scripting.executeScript({
-                                target: { tabId: targetTab.id },
-                                world: "MAIN",
-                                func: async (action: string) => {
-                                    const ethereum = (window as any).ethereum;
-                                    if (!ethereum) {
-                                        return { error: "MetaMask가 설치되어 있지 않습니다." };
-                                    }
-
-                                    try {
-                                        if (action === "WALLET_CONNECT") {
-                                            const accounts = await ethereum.request({
-                                                method: "eth_requestAccounts",
-                                            });
+                            const injectionResults =
+                                await scripting.executeScript({
+                                    target: { tabId: targetTab.id },
+                                    world: "MAIN",
+                                    func: async (action: string) => {
+                                        const ethereum = (window as any)
+                                            .ethereum;
+                                        if (!ethereum) {
                                             return {
-                                                isConnected: true,
-                                                address: accounts[0] || null,
+                                                error: "MetaMask가 설치되어 있지 않습니다.",
                                             };
-                                        } else if (action === "WALLET_GET_ACCOUNT") {
-                                            const accounts = await ethereum.request({
-                                                method: "eth_accounts",
-                                            });
-                                            return {
-                                                isConnected: accounts.length > 0,
-                                                address: accounts[0] || null,
-                                            };
-                                        } else if (action === "WALLET_DISCONNECT") {
-                                            return { success: true };
                                         }
-                                        return { error: "Unknown action" };
-                                    } catch (err: any) {
-                                        return { error: err.message || "지갑 연결 실패" };
-                                    }
-                                },
-                                args: [message.type],
-                            });
+
+                                        try {
+                                            if (action === "WALLET_CONNECT") {
+                                                const accounts =
+                                                    await ethereum.request({
+                                                        method: "eth_requestAccounts",
+                                                    });
+                                                return {
+                                                    isConnected: true,
+                                                    address:
+                                                        accounts[0] || null,
+                                                };
+                                            } else if (
+                                                action === "WALLET_GET_ACCOUNT"
+                                            ) {
+                                                const accounts =
+                                                    await ethereum.request({
+                                                        method: "eth_accounts",
+                                                    });
+                                                return {
+                                                    isConnected:
+                                                        accounts.length > 0,
+                                                    address:
+                                                        accounts[0] || null,
+                                                };
+                                            } else if (
+                                                action === "WALLET_DISCONNECT"
+                                            ) {
+                                                return { success: true };
+                                            }
+                                            return { error: "Unknown action" };
+                                        } catch (err: any) {
+                                            return {
+                                                error:
+                                                    err.message ||
+                                                    "지갑 연결 실패",
+                                            };
+                                        }
+                                    },
+                                    args: [message.type],
+                                });
 
                             const scriptResult = injectionResults?.[0]?.result;
 
                             if (scriptResult?.error) {
-                                result = { success: false, error: scriptResult.error };
+                                result = {
+                                    success: false,
+                                    error: scriptResult.error,
+                                };
                             } else {
                                 result = { success: true, data: scriptResult };
                             }
@@ -945,12 +1182,17 @@ export function createMessageHandler() {
                                     data: { isConnected: false, address: null },
                                 };
                             } else if (message.type === "WALLET_DISCONNECT") {
-                                result = { success: true, data: { success: true } };
+                                result = {
+                                    success: true,
+                                    data: { success: true },
+                                };
                             } else {
                                 result = {
                                     success: false,
                                     error:
-                                        error instanceof Error ? error.message : "지갑 연결 실패",
+                                        error instanceof Error
+                                            ? error.message
+                                            : "지갑 연결 실패",
                                 };
                             }
                         }
@@ -959,17 +1201,25 @@ export function createMessageHandler() {
 
                     case "MEMEX_LOGIN": {
                         const { browser } = await import("wxt/browser");
-                        const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+                        const tabs =
+                            browser?.tabs || (globalThis as any).chrome?.tabs;
                         const scripting = (globalThis as any).chrome?.scripting;
 
-                        const triggerLogin = (message as any).triggerLogin ?? false;
+                        const triggerLogin =
+                            (message as any).triggerLogin ?? false;
 
                         const memexTabs = await tabs.query({
-                            url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                            url: [
+                                "https://app.memex.xyz/*",
+                                "http://app.memex.xyz/*",
+                            ],
                         });
 
                         if (memexTabs.length === 0) {
-                            result = { success: false, error: "MEMEX 탭을 찾을 수 없습니다." };
+                            result = {
+                                success: false,
+                                error: "MEMEX 탭을 찾을 수 없습니다.",
+                            };
                             break;
                         }
 
@@ -989,11 +1239,14 @@ export function createMessageHandler() {
                                 // 먼저 gtm_user_identifier 확인
                                 try {
                                     const data = window.sessionStorage.getItem(
-                                        "gtm_user_identifier"
+                                        "gtm_user_identifier",
                                     );
                                     if (data) {
                                         const parsed = JSON.parse(data);
-                                        if (parsed.username && parsed.user_tag) {
+                                        if (
+                                            parsed.username &&
+                                            parsed.user_tag
+                                        ) {
                                             return {
                                                 success: true,
                                                 isLoggedIn: true,
@@ -1005,15 +1258,16 @@ export function createMessageHandler() {
 
                                     // 로그인 되어있지 않고 triggerLogin이 true인 경우
                                     if (shouldTriggerLogin) {
-                                        const googleButton = (document.querySelector(
-                                            'button[class*="googleButton"]'
-                                        ) ||
-                                            document.querySelector(
-                                                'button:has(img[alt="Sign in with Google"])'
+                                        const googleButton =
+                                            (document.querySelector(
+                                                'button[class*="googleButton"]',
                                             ) ||
-                                            document.querySelector(
-                                                "button.page_googleButton__XByPk"
-                                            )) as HTMLButtonElement;
+                                                document.querySelector(
+                                                    'button:has(img[alt="Sign in with Google"])',
+                                                ) ||
+                                                document.querySelector(
+                                                    "button.page_googleButton__XByPk",
+                                                )) as HTMLButtonElement;
 
                                         if (googleButton) {
                                             googleButton.click();
@@ -1040,7 +1294,11 @@ export function createMessageHandler() {
                                         loginStarted: false,
                                     };
                                 } catch (error: any) {
-                                    return { error: error.message || "MEMEX 로그인 실패" };
+                                    return {
+                                        error:
+                                            error.message ||
+                                            "MEMEX 로그인 실패",
+                                    };
                                 }
                             },
                             args: [triggerLogin],
@@ -1056,10 +1314,15 @@ export function createMessageHandler() {
                     case "REFRESH_MEMEX_TAB": {
                         try {
                             const { browser } = await import("wxt/browser");
-                            const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+                            const tabs =
+                                browser?.tabs ||
+                                (globalThis as any).chrome?.tabs;
 
                             const memexTabs = await tabs.query({
-                                url: ["https://app.memex.xyz/*", "http://app.memex.xyz/*"],
+                                url: [
+                                    "https://app.memex.xyz/*",
+                                    "http://app.memex.xyz/*",
+                                ],
                             });
 
                             if (memexTabs.length === 0) {
@@ -1076,7 +1339,9 @@ export function createMessageHandler() {
 
                                 if (targetTab.id) {
                                     await tabs.reload(targetTab.id);
-                                    await tabs.update(targetTab.id, { active: true });
+                                    await tabs.update(targetTab.id, {
+                                        active: true,
+                                    });
                                 }
 
                                 result = {
@@ -1101,7 +1366,11 @@ export function createMessageHandler() {
                         try {
                             const response = await apiCall<{
                                 success: boolean;
-                                data: { id: number; totalFunding: string; userTotalFunding: string };
+                                data: {
+                                    id: number;
+                                    totalFunding: string;
+                                    userTotalFunding: string;
+                                };
                             }>("/v1/funders", {
                                 method: "POST",
                                 body: JSON.stringify(message.data),
@@ -1112,7 +1381,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "펀딩 저장 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "펀딩 저장 실패",
                             };
                         }
                         break;
@@ -1125,21 +1396,29 @@ export function createMessageHandler() {
                                 data: { user: any };
                             }>(
                                 `/v1/users/${encodeURIComponent(
-                                    message.username
-                                )}/${encodeURIComponent(message.userTag)}`
+                                    message.username,
+                                )}/${encodeURIComponent(message.userTag)}`,
                             );
                             result = { success: true, data: response.data };
                         } catch (error: any) {
                             const errorMsg = error.message || "";
                             // 404 Not Found는 정상 응답으로 처리 (신규 사용자)
-                            if (errorMsg.includes("404") || errorMsg.includes("Not Found")) {
-                                result = { success: true, data: { user: null } };
+                            if (
+                                errorMsg.includes("404") ||
+                                errorMsg.includes("Not Found")
+                            ) {
+                                result = {
+                                    success: true,
+                                    data: { user: null },
+                                };
                             } else {
                                 console.error("❌ 사용자 조회 오류:", error);
                                 result = {
                                     success: false,
                                     error:
-                                        error instanceof Error ? error.message : "사용자 조회 실패",
+                                        error instanceof Error
+                                            ? error.message
+                                            : "사용자 조회 실패",
                                 };
                             }
                         }
@@ -1150,14 +1429,23 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
 
                             // chrome.storage.session에서 walletAddress 가져오기
-                            const sessionState = await new Promise<any>((resolve) => {
-                                storage.session.get(["squid_session_state"], (result: any) => {
-                                    resolve(result.squid_session_state || null);
-                                });
-                            });
+                            const sessionState = await new Promise<any>(
+                                (resolve) => {
+                                    storage.session.get(
+                                        ["squid_session_state"],
+                                        (result: any) => {
+                                            resolve(
+                                                result.squid_session_state ||
+                                                    null,
+                                            );
+                                        },
+                                    );
+                                },
+                            );
 
                             const walletAddress = sessionState?.walletAddress;
                             if (!walletAddress) {
@@ -1188,7 +1476,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "프로필 조회 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "프로필 조회 실패",
                             };
                         }
                         break;
@@ -1238,13 +1528,22 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
 
-                            const sessionState = await new Promise<any>((resolve) => {
-                                storage.session.get(["squid_session_state"], (result: any) => {
-                                    resolve(result.squid_session_state || null);
-                                });
-                            });
+                            const sessionState = await new Promise<any>(
+                                (resolve) => {
+                                    storage.session.get(
+                                        ["squid_session_state"],
+                                        (result: any) => {
+                                            resolve(
+                                                result.squid_session_state ||
+                                                    null,
+                                            );
+                                        },
+                                    );
+                                },
+                            );
 
                             const walletAddress = sessionState?.walletAddress;
                             if (!walletAddress) {
@@ -1269,7 +1568,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "퀘스트 조회 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "퀘스트 조회 실패",
                             };
                         }
                         break;
@@ -1279,13 +1580,22 @@ export function createMessageHandler() {
                         try {
                             const { browser } = await import("wxt/browser");
                             const storage =
-                                browser?.storage || (globalThis as any).chrome?.storage;
+                                browser?.storage ||
+                                (globalThis as any).chrome?.storage;
 
-                            const sessionState = await new Promise<any>((resolve) => {
-                                storage.session.get(["squid_session_state"], (result: any) => {
-                                    resolve(result.squid_session_state || null);
-                                });
-                            });
+                            const sessionState = await new Promise<any>(
+                                (resolve) => {
+                                    storage.session.get(
+                                        ["squid_session_state"],
+                                        (result: any) => {
+                                            resolve(
+                                                result.squid_session_state ||
+                                                    null,
+                                            );
+                                        },
+                                    );
+                                },
+                            );
 
                             const walletAddress = sessionState?.walletAddress;
                             if (!walletAddress) {
@@ -1306,7 +1616,10 @@ export function createMessageHandler() {
                             });
                             result = { success: true, data: response.data };
                         } catch (error: any) {
-                            console.error("❌ 참여 중인 게임 조회 오류:", error);
+                            console.error(
+                                "❌ 참여 중인 게임 조회 오류:",
+                                error,
+                            );
                             result = {
                                 success: false,
                                 error:
@@ -1335,16 +1648,18 @@ export function createMessageHandler() {
                             }>("/v1/games/live");
 
                             // 백엔드 응답을 LiveGameItem 형식으로 매핑
-                            const liveGames = (response.data || []).map((game) => ({
-                                gameId: game.gameId,
-                                tokenAddress: game.tokenAddress,
-                                tokenUsername: game.tokenUsername,
-                                tokenUsertag: game.tokenUsertag,
-                                tokenImageUrl: game.tokenImageUrl,
-                                tokenSymbol: game.tokenSymbol,
-                                currentPrizePool: game.currentPrizePool,
-                                endTime: game.endTime,
-                            }));
+                            const liveGames = (response.data || []).map(
+                                (game) => ({
+                                    gameId: game.gameId,
+                                    tokenAddress: game.tokenAddress,
+                                    tokenUsername: game.tokenUsername,
+                                    tokenUsertag: game.tokenUsertag,
+                                    tokenImageUrl: game.tokenImageUrl,
+                                    tokenSymbol: game.tokenSymbol,
+                                    currentPrizePool: game.currentPrizePool,
+                                    endTime: game.endTime,
+                                }),
+                            );
 
                             result = { success: true, data: { liveGames } };
                         } catch (error: any) {
@@ -1362,7 +1677,8 @@ export function createMessageHandler() {
 
                     case "TOGGLE_COMMENT_LIKE": {
                         try {
-                            const walletAddress = (message as any).walletAddress;
+                            const walletAddress = (message as any)
+                                .walletAddress;
                             if (!walletAddress) {
                                 result = {
                                     success: false,
@@ -1386,7 +1702,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "좋아요 토글 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "좋아요 토글 실패",
                             };
                         }
                         break;
@@ -1395,7 +1713,9 @@ export function createMessageHandler() {
                     case "NAVIGATE_TO_URL": {
                         try {
                             const { browser } = await import("wxt/browser");
-                            const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+                            const tabs =
+                                browser?.tabs ||
+                                (globalThis as any).chrome?.tabs;
 
                             // 현재 활성 탭의 URL을 변경
                             const [activeTab] = await tabs.query({
@@ -1404,8 +1724,13 @@ export function createMessageHandler() {
                             });
 
                             if (activeTab?.id) {
-                                await tabs.update(activeTab.id, { url: message.url });
-                                result = { success: true, data: { success: true } };
+                                await tabs.update(activeTab.id, {
+                                    url: message.url,
+                                });
+                                result = {
+                                    success: true,
+                                    data: { success: true },
+                                };
                             } else {
                                 result = {
                                     success: false,
@@ -1417,7 +1742,9 @@ export function createMessageHandler() {
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "URL 이동 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "URL 이동 실패",
                             };
                         }
                         break;
@@ -1426,7 +1753,9 @@ export function createMessageHandler() {
                     case "GET_CURRENT_TAB_URL": {
                         try {
                             const { browser } = await import("wxt/browser");
-                            const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+                            const tabs =
+                                browser?.tabs ||
+                                (globalThis as any).chrome?.tabs;
 
                             // 현재 활성 탭의 URL 가져오기
                             const [activeTab] = await tabs.query({
@@ -1435,16 +1764,24 @@ export function createMessageHandler() {
                             });
 
                             if (activeTab?.url) {
-                                result = { success: true, data: { url: activeTab.url } };
+                                result = {
+                                    success: true,
+                                    data: { url: activeTab.url },
+                                };
                             } else {
                                 result = { success: true, data: { url: null } };
                             }
                         } catch (error: any) {
-                            console.error("❌ GET_CURRENT_TAB_URL 오류:", error);
+                            console.error(
+                                "❌ GET_CURRENT_TAB_URL 오류:",
+                                error,
+                            );
                             result = {
                                 success: false,
                                 error:
-                                    error instanceof Error ? error.message : "URL 조회 실패",
+                                    error instanceof Error
+                                        ? error.message
+                                        : "URL 조회 실패",
                             };
                         }
                         break;

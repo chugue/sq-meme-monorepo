@@ -158,3 +158,9 @@ export interface CommentListResponse {
   userTotalFunding: string;
   commentsListDTO: CommentListItem[];
 }
+
+// 댓글 저장 API 응답 타입
+export interface SaveCommentResponse {
+  id: number;
+  newEndTime: string;
+}
