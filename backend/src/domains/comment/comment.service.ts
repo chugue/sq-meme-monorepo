@@ -43,23 +43,14 @@ export class CommentService {
             const comments =
                 await this.commentRepository.findByGameIdWithUserInfo(gameId);
 
-            // 사용자 펀딩 점유율 계산
-            let userFundingShare = 0;
+            // 사용자 총 펀딩 금액 조회
+            let userTotalFunding = '0';
             if (userAddress) {
                 const normalizedAddress = userAddress.toLowerCase();
-                const [totalFunding, userFunding] = await Promise.all([
-                    this.commentRepository.getTotalFundingByGameId(gameId),
-                    this.commentRepository.getUserFundingByGameId(
-                        gameId,
-                        normalizedAddress,
-                    ),
-                ]);
-
-                const total = parseFloat(totalFunding);
-                const user = parseFloat(userFunding);
-                if (total > 0) {
-                    userFundingShare = (user / total) * 100;
-                }
+                userTotalFunding = await this.commentRepository.getUserFundingByGameId(
+                    gameId,
+                    normalizedAddress,
+                );
             }
 
             // 좋아요 여부 조회
@@ -79,7 +70,7 @@ export class CommentService {
                 hasUserLiked: likedMap.get(c.comment.id) ?? false,
             }));
 
-            return Result.ok({ userFundingShare, commentsListDTO });
+            return Result.ok({ userTotalFunding, commentsListDTO });
         } catch (error) {
             this.logger.error(`Get comments by game failed: ${error.message}`);
             return Result.fail(

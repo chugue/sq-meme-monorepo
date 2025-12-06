@@ -167,7 +167,7 @@ export function useFunding({
                 blockNumber: receipt.blockNumber,
             });
 
-            // 백엔드에 펀딩 저장 및 totalFunding, userFundingShare 업데이트
+            // 백엔드에 펀딩 저장 및 totalFunding, userTotalFunding 업데이트
             try {
                 const fundingResult = await backgroundApi.saveFunding({
                     txHash: fundResult.hash,
@@ -176,30 +176,30 @@ export function useFunding({
                 logger.info("백엔드에 펀딩 저장 완료", {
                     fundingResult,
                     totalFunding: fundingResult?.totalFunding,
-                    userFundingShare: fundingResult?.userFundingShare,
+                    userTotalFunding: fundingResult?.userTotalFunding,
                     activeGameInfoId: activeGameInfo?.id,
                 });
 
-                // useComments 캐시의 userFundingShare 업데이트
+                // useComments 캐시의 userTotalFunding 업데이트
                 if (
-                    fundingResult?.userFundingShare !== undefined &&
+                    fundingResult?.userTotalFunding !== undefined &&
                     activeGameInfo?.id
                 ) {
                     queryClient.setQueryData<{
                         comments: Comment[];
-                        userFundingShare: number;
+                        userTotalFunding: string;
                     }>(
                         ["comments", activeGameInfo.id, address],
                         (oldData) => {
                             if (!oldData) return oldData;
                             return {
                                 ...oldData,
-                                userFundingShare: fundingResult.userFundingShare,
+                                userTotalFunding: fundingResult.userTotalFunding,
                             };
                         },
                     );
-                    logger.info("userFundingShare 캐시 업데이트", {
-                        userFundingShare: fundingResult.userFundingShare,
+                    logger.info("userTotalFunding 캐시 업데이트", {
+                        userTotalFunding: fundingResult.userTotalFunding,
                     });
                 }
 

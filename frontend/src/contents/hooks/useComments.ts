@@ -74,7 +74,7 @@ export function useComments(
         queryFn: async () => {
             if (!gameId) {
                 logger.warn("useComments: gameId가 없음");
-                return { comments: [] as Comment[], userFundingShare: 0 };
+                return { comments: [] as Comment[], userTotalFunding: "0" };
             }
             try {
                 logger.info("댓글 조회 시작 (DB)", { gameId });
@@ -83,16 +83,16 @@ export function useComments(
                     walletAddress || undefined,
                 );
                 const comments = (response?.commentsListDTO || []).map(mapToComment);
-                const userFundingShare = response?.userFundingShare || 0;
+                const userTotalFunding = response?.userTotalFunding || "0";
                 logger.info("댓글 조회 완료 (DB)", {
                     gameId,
                     count: comments.length,
-                    userFundingShare,
+                    userTotalFunding,
                 });
                 // 중복 댓글 제거 후 반환 (이미지 있는 것 우선)
                 return {
                     comments: deduplicateComments(comments),
-                    userFundingShare,
+                    userTotalFunding,
                 };
             } catch (error) {
                 console.error("댓글 조회 실패:", error);
@@ -106,7 +106,7 @@ export function useComments(
     });
 
     const comments = queryData?.comments || [];
-    const userFundingShare = queryData?.userFundingShare || 0;
+    const userTotalFunding = queryData?.userTotalFunding || "0";
 
     // 댓글 작성
     const createCommentMutation = useMutation({
@@ -160,13 +160,13 @@ export function useComments(
             // 이전 상태 스냅샷
             const previousData = queryClient.getQueryData<{
                 comments: Comment[];
-                userFundingShare: number;
+                userTotalFunding: string;
             }>(["comments", gameId, walletAddress]);
 
             // 옵티미스틱 업데이트
             queryClient.setQueryData<{
                 comments: Comment[];
-                userFundingShare: number;
+                userTotalFunding: string;
             }>(["comments", gameId, walletAddress], (oldData) => {
                 if (!oldData) return oldData;
                 return {
@@ -201,7 +201,7 @@ export function useComments(
 
     return {
         comments,
-        userFundingShare,
+        userTotalFunding,
         isLoading,
         refetch,
         createComment: createCommentMutation.mutateAsync,

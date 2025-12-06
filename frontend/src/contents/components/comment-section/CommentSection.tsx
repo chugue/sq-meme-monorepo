@@ -56,7 +56,7 @@ export function CommentSection() {
     const gameId = hasValidGame ? activeGameInfo.id : null;
     const {
         comments,
-        userFundingShare,
+        userTotalFunding,
         isLoading,
         refetch,
         toggleLike,
@@ -308,7 +308,9 @@ export function CommentSection() {
                                     My Share
                                 </span>
                                 <span className="squid-my-share-value">
-                                    {userFundingShare.toFixed(1)}%
+                                    {activeGameInfo?.totalFunding && BigInt(activeGameInfo.totalFunding) > 0n
+                                        ? ((Number(userTotalFunding) / Number(activeGameInfo.totalFunding)) * 100).toFixed(1)
+                                        : "0.0"}%
                                 </span>
                             </div>
                         </div>

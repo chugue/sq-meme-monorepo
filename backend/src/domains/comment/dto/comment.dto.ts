@@ -8,6 +8,6 @@ export interface CommentListDTO {
 }
 
 export interface CommentListRespDto {
-    userFundingShare: number;
+    userTotalFunding: string;
     commentsListDTO: CommentListDTO[];
 }

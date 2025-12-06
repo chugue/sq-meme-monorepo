@@ -155,6 +155,6 @@ export interface CommentListItem {
 
 // 댓글 목록 API 응답 타입
 export interface CommentListResponse {
-  userFundingShare: number;
+  userTotalFunding: string;
   commentsListDTO: CommentListItem[];
 }
