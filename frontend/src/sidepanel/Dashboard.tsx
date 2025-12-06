@@ -13,8 +13,9 @@ import profileBox from "../../assets/profile_box.png";
 import questIcon from "../../assets/quest.png";
 import tropyIcon from "../../assets/tropy.png";
 
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
+import { PAGES, setPageAtom } from "./atoms/pageAtoms";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { getAllSessionStorage } from "./lib/sessionStorage";
@@ -37,27 +38,14 @@ function formatMTokenBalance(balance: string | undefined): string {
 
 interface DashboardProps {
     walletAddress?: string;
-    onNavigateToProfile?: () => void;
-    onNavigateToLeaderboard?: () => void;
-    onNavigateToLiveGames?: () => void;
-    onNavigateToMyAssets?: () => void;
-    onNavigateToHowToPlay?: () => void;
-    onNavigateToQuest?: () => void;
 }
 
-export function Dashboard({
-    walletAddress: walletAddressProp,
-    onNavigateToProfile,
-    onNavigateToLeaderboard,
-    onNavigateToLiveGames,
-    onNavigateToMyAssets,
-    onNavigateToHowToPlay,
-    onNavigateToQuest,
-}: DashboardProps) {
+export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) {
     const { logout } = useMemexLogin();
     const { address: walletAddressFromHook } = useSidepanelWallet();
     const session = useAtomValue(sessionAtom);
     const { user } = session;
+    const setPage = useSetAtom(setPageAtom);
 
     // 디버깅: 세션 데이터 변화 확인
     useEffect(() => {
@@ -92,7 +80,7 @@ export function Dashboard({
                 />
             </div>
             {/* Left Top: Profile Box with Image */}
-            <button className="profile-btn" onClick={onNavigateToProfile}>
+            <button className="profile-btn">
                 <div className="profile-box-container">
                     <img src={profileBox} alt="Profile Box" className="profile-box-frame" />
                     <img src={user?.profileImage || defaultUserData.profileImage} alt="Profile" className="profile-box-image" />
@@ -101,7 +89,14 @@ export function Dashboard({
             </button>
             {/* Right: Menu Icons (Vertical) */}
             <div className="menu-icons-vertical">
-                <button className="menu-icon-btn" onClick={onNavigateToHowToPlay} title="How to Play">
+                <button
+                    className="menu-icon-btn"
+                    onClick={() => {
+                        // TODO: How to Play 페이지 구현
+                        console.log("How to Play clicked");
+                    }}
+                    title="How to Play"
+                >
                     <img src={howToPlayIcon} alt="How toPlay" />
                     <span className="menu-icon-btn-text">
                         How to
@@ -109,18 +104,18 @@ export function Dashboard({
                         Play
                     </span>
                 </button>
-                <button className="menu-icon-btn" onClick={onNavigateToQuest} title="Quest">
+                <button className="menu-icon-btn" onClick={() => setPage(PAGES.QUESTS)} title="Quest">
                     <img src={questIcon} alt="Quest" />
                     <span className="menu-icon-btn-text">Quest</span>
                 </button>
-                <button className="menu-icon-btn" onClick={onNavigateToLeaderboard} title="Leader Board">
+                <button className="menu-icon-btn" onClick={() => setPage(PAGES.LEADERBOARD)} title="Leader Board">
                     <img src={tropyIcon} alt="Leader Board" />
                     <span className="menu-icon-btn-text">
                         <span>Leader</span>
                         <span>Board</span>
                     </span>
                 </button>
-                <button className="menu-icon-btn" onClick={onNavigateToMyAssets} title="My Memecoins">
+                <button className="menu-icon-btn" onClick={() => setPage(PAGES.MY_ASSETS)} title="My Memecoins">
                     <img src={moneyIcon} alt="My Memecoins" />
                     <span className="menu-icon-btn-text">
                         My
@@ -140,8 +135,8 @@ export function Dashboard({
                     </div>
                 </div>
             </section>
-            ㄴ{/* Bottom: Logo and Live Game Banner */}
-            <button className="bottom-section" onClick={onNavigateToLiveGames}>
+            {/* Bottom: Logo and Live Game Banner */}
+            <button className="bottom-section" onClick={() => setPage(PAGES.LIVE_GAMES)}>
                 <img src={logoIcon} alt="Logo" className="logo-image" />
                 <div className="live-game-banner">
                     <img src={homeBanner} alt="Live Games" className="banner-image" />
