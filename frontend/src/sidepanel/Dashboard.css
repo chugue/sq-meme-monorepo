@@ -43,17 +43,6 @@
     transform-origin: center center;
 }
 
-
-@keyframes slideUpFromBottom {
-    from {
-        transform: translateY(50%);
-    }
-
-    to {
-        transform: translateY(0);
-    }
-}
-
 /* Profile Button - Left Top */
 .profile-btn {
     position: absolute;
