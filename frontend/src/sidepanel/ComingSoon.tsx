@@ -70,6 +70,8 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
   const handleConnectWallet = async () => {
     try {
       await connect();
+      // 지갑 연결 성공 시 현재 탭을 app.memex.xyz로 이동
+      await backgroundApi.navigateToUrl("https://app.memex.xyz");
     } catch (err) {
       console.error("Wallet connection failed:", err);
       if (isContentScriptError(err)) {
