@@ -281,9 +281,9 @@ export class CommentService {
                 await this.usersRepository.findByWalletAddress(commentor);
 
             if (user) {
-                const newTotalComments = user.totalComments + 1;
-                this.usersRepository.updateTotalComments(commentor);
-                this.questRepository.updateCommentQuestsForUser(
+                const newTotalComments = (user.totalComments ?? 0) + 1;
+                await this.usersRepository.updateTotalComments(commentor);
+                await this.questRepository.updateCommentQuestsForUser(
                     commentor,
                     newTotalComments,
                 );

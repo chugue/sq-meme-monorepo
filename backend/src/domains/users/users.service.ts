@@ -5,9 +5,11 @@ import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
 import { QuestRepository } from '../quests/quest.repository';
 import { TokenRepository } from '../token/token.repository';
+import { WinnersRepository } from '../winners/winners.repository';
 import { JoinDto } from './dto/join.dto';
 import {
     GameRankItem,
+    MostCommentUserRankDto,
     MyActiveGameItem,
     PrizeRankItem,
     ProfilePageData,
@@ -24,7 +26,40 @@ export class UsersService {
         private readonly gameRepository: GameRepository,
         private readonly tokenRepository: TokenRepository,
         private readonly questRepository: QuestRepository,
+        private readonly winnersRepository: WinnersRepository,
     ) {}
+
+    /**
+     * @description 댓글 수 기준 유저 랭킹 조회
+     */
+    async getMostCommentors(
+        limit?: number,
+    ): Promise<Result<MostCommentUserRankDto[]>> {
+        try {
+            const topUsers = await this.usersRepository.getTopUsersByComments(
+                limit ?? 20,
+            );
+
+            const result: MostCommentUserRankDto[] = topUsers.map(
+                (user, index) => ({
+                    rank: index + 1,
+                    userWalletAddress: user.walletAddress,
+                    username: user.userName ?? '',
+                    userTag: user.userTag ?? '',
+                    profileImage: user.profileImage ?? null,
+                    commentCount: user.totalComments ?? 0,
+                }),
+            );
+
+            return Result.ok(result);
+        } catch (error) {
+            this.logger.error(`Get most commentors failed: ${error.message}`);
+            return Result.fail(
+                '댓글 랭킹 조회에 실패했습니다.',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
 
     /**
      * @description 회원가입 (없으면 생성, 있으면 체크인 업데이트 후 반환)
@@ -217,7 +252,7 @@ export class UsersService {
     async getGameRanking(): Promise<Result<{ gameRanking: GameRankItem[] }>> {
         try {
             const gameRankingRaw =
-                await this.gameRepository.getGameRankingByToken(5);
+                await this.gameRepository.getGameRankingByToken(20);
 
             // 토큰 이미지 조회
             const tokenAddresses = gameRankingRaw.map((r) => r.tokenAddress);
@@ -251,35 +286,43 @@ export class UsersService {
     }
 
     /**
-     * @description 유저별 획득 상금 랭킹 조회 (Prize Ranking 탭)
+     * @description 게임별 상금 랭킹 조회 (Prize Ranking 탭)
+     * winners 테이블에서 개별 게임 단위로 상금 순 정렬
      */
     async getPrizeRanking(
         limit?: number,
     ): Promise<Result<{ prizeRanking: PrizeRankItem[] }>> {
         try {
-            const prizeRankingRaw =
-                await this.gameRepository.getPrizeRankingByUser(limit);
+            const topWinners = await this.winnersRepository.getTopWinners(
+                limit ?? 20,
+            );
 
             // 유저 정보 조회 (profileImage, username)
-            const walletAddresses = prizeRankingRaw.map((r) => r.walletAddress);
+            const walletAddresses = topWinners.map((w) => w.walletAddress);
             const users =
                 await this.usersRepository.findByWalletAddresses(
                     walletAddresses,
                 );
             const userMap = new Map(
-                users.map((u: User) => [u.walletAddress, u]),
+                users.map((u: User) => [u.walletAddress.toLowerCase(), u]),
             );
 
-            const prizeRanking: PrizeRankItem[] = prizeRankingRaw.map(
-                (item, index) => {
-                    const userInfo = userMap.get(item.walletAddress);
+            const prizeRanking: PrizeRankItem[] = topWinners.map(
+                (winner, index) => {
+                    const userInfo = userMap.get(
+                        winner.walletAddress.toLowerCase(),
+                    );
+                    // wei -> ETH 변환 (소수점 없이 정수로)
+                    const prizeInEth = Math.floor(
+                        Number(BigInt(winner.prize) / BigInt(10 ** 18)),
+                    ).toString();
                     return {
                         rank: index + 1,
                         profileImage: userInfo?.profileImage ?? null,
                         username: userInfo?.userName ?? null,
-                        totalAmount: item.totalAmount,
-                        tokenAddress: '',
-                        tokenSymbol: 'ETH',
+                        totalAmount: prizeInEth,
+                        tokenAddress: winner.tokenAddress,
+                        tokenSymbol: winner.tokenSymbol,
                     };
                 },
             );

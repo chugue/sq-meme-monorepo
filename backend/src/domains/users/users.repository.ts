@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { desc, eq, gt, inArray, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -141,5 +141,17 @@ export class UsersRepository {
                 totalComments: sql`${schema.users.totalComments} + 1`,
             })
             .where(eq(schema.users.walletAddress, walletAddress.toLowerCase()));
+    }
+
+    /**
+     * @description totalComments 기준 상위 유저 랭킹 조회
+     */
+    async getTopUsersByComments(limit: number = 20): Promise<User[]> {
+        return await this.db
+            .select()
+            .from(schema.users)
+            .where(gt(schema.users.totalComments, 0))
+            .orderBy(desc(schema.users.totalComments))
+            .limit(limit);
     }
 }

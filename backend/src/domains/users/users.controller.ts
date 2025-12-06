@@ -76,6 +76,14 @@ export class UsersController {
     }
 
     /**
+     * 댓글 많은 유저 랭킹 조회 (Most Comments 탭)
+     */
+    @Get('most-comments')
+    async getMostComments() {
+        return this.usersService.getMostComments();
+    }
+
+    /**
      * 내가 참여 중인 활성 게임 목록 조회 (참여 중인 게임 탭)
      */
     @Get('my-active-games')

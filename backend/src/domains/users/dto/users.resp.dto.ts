@@ -34,3 +34,12 @@ export interface MyActiveGameItem {
     currentPrizePool: string | null;
     endTime: string | null;
 }
+
+export interface MostCommentUserRankDto {
+    rank: number;
+    userWalletAddress: string;
+    username: string;
+    userTag: string;
+    profileImage: string | null;
+    commentCount: number;
+}
