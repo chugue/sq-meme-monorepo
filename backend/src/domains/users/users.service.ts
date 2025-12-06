@@ -3,59 +3,17 @@ import { CheckInRecord, User } from 'src/common/db/schema/user.schema';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
+import { QuestRepository } from '../quests/quest.repository';
 import { TokenRepository } from '../token/token.repository';
 import { JoinDto } from './dto/join.dto';
+import {
+    GameRankItem,
+    MyActiveGameItem,
+    PrizeRankItem,
+    ProfilePageData,
+    QuestRespDto,
+} from './dto/users.resp.dto';
 import { UsersRepository } from './users.repository';
-
-export interface ProfilePageData {
-    username: string | null;
-    connectedWallet: string;
-    memexWallet: string | null;
-    commentCounts: number;
-    streakDays: number;
-}
-
-// 리더보드 - 게임(토큰)별 총 상금 랭킹
-export interface GameRankItem {
-    rank: number;
-    tokenImage: string | null;
-    tokenAddress: string;
-    tokenSymbol: string | null;
-    totalPrize: string;
-}
-
-// 리더보드 - 유저별 총 획득 상금 랭킹
-export interface PrizeRankItem {
-    rank: number;
-    profileImage: string | null;
-    username: string | null;
-    totalAmount: string;
-    tokenAddress: string;
-    tokenSymbol: string;
-}
-
-// 퀘스트 아이템
-export interface QuestItem {
-    title: string;
-    claimed: boolean;
-    isEligible: boolean;
-}
-
-// 퀘스트 카테고리
-export interface QuestCategory {
-    category: string;
-    items: QuestItem[];
-}
-
-// 내가 참여 중인 게임 아이템
-export interface MyActiveGameItem {
-    gameId: string;
-    tokenImage: string | null;
-    tokenAddress: string;
-    tokenSymbol: string | null;
-    currentPrizePool: string | null;
-    endTime: string | null;
-}
 
 @Injectable()
 export class UsersService {
@@ -66,6 +24,7 @@ export class UsersService {
         private readonly commentRepository: CommentRepository,
         private readonly gameRepository: GameRepository,
         private readonly tokenRepository: TokenRepository,
+        private readonly questRepository: QuestRepository,
     ) {}
 
     /**
@@ -80,12 +39,19 @@ export class UsersService {
             );
 
             if (isNew) {
+                // 신규 유저에게 퀘스트 4개 초기화
+                await this.questRepository.initializeQuestsForUser(
+                    user.walletAddress,
+                );
                 this.logger.log(`User created: ${dto.walletAddress}`);
                 return Result.ok({ user, isNew });
             }
 
             // 기존 사용자 - 체크인 업데이트
             const updatedUser = await this.updateCheckIn(user);
+
+            // 출석 퀘스트 eligible 체크
+            await this.questRepository.updateAttendanceQuests(updatedUser);
             this.logger.log(`User found: ${dto.walletAddress}`);
             return Result.ok({ user: updatedUser, isNew });
         } catch (error) {
@@ -327,9 +293,7 @@ export class UsersService {
     /**
      * @description 퀘스트 목록 조회 (Quests 탭)
      */
-    async getQuests(
-        walletAddress: string,
-    ): Promise<Result<{ quests: QuestCategory[] }>> {
+    async getQuests(walletAddress: string): Promise<Result<QuestRespDto>> {
         try {
             const user =
                 await this.usersRepository.findByWalletAddress(walletAddress);
@@ -337,9 +301,9 @@ export class UsersService {
                 await this.commentRepository.countByWalletAddress(
                     walletAddress,
                 );
-            const quests = this.calculateQuests(user, commentCount);
+            const questData = this.calculateQuests(user, commentCount);
 
-            return Result.ok({ quests });
+            return Result.ok(questData);
         } catch (error) {
             this.logger.error(`Get quests failed: ${error.message}`);
             return Result.fail(
@@ -413,42 +377,36 @@ export class UsersService {
     private calculateQuests(
         user: User | null,
         commentCount: number = 0,
-    ): QuestCategory[] {
+    ): QuestRespDto {
         const history: CheckInRecord[] = user?.checkInHistory ?? [];
         const lastCheckIn = history[history.length - 1];
         const currentStreak = lastCheckIn?.currentStreak ?? 0;
 
-        return [
-            {
-                category: 'Check In Quest',
-                items: [
-                    {
-                        title: '5 Days Streak!',
-                        claimed: false, // TODO: 퀘스트 클레임 상태 저장 필요
-                        isEligible: currentStreak >= 5,
-                    },
-                    {
-                        title: '10 Days Streak!',
-                        claimed: false,
-                        isEligible: currentStreak >= 10,
-                    },
-                ],
-            },
-            {
-                category: 'Comment Quest',
-                items: [
-                    {
-                        title: '20 comments',
-                        claimed: false,
-                        isEligible: commentCount >= 20,
-                    },
-                    {
-                        title: '50 comments',
-                        claimed: false,
-                        isEligible: commentCount >= 50,
-                    },
-                ],
-            },
-        ];
+        return {
+            today: new Date().toISOString(),
+            quests: [
+                {
+                    type: 'streak',
+                    isEligible: currentStreak >= 5,
+                    isClaimed: false,
+                },
+                {
+                    type: 'streak',
+                    isEligible: currentStreak >= 10,
+                    isClaimed: false,
+                },
+
+                {
+                    type: 'comments',
+                    isEligible: commentCount >= 20,
+                    isClaimed: false,
+                },
+                {
+                    type: 'comments',
+                    isEligible: commentCount >= 50,
+                    isClaimed: false,
+                },
+            ],
+        };
     }
 }

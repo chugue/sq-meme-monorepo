@@ -10,6 +10,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { squidSchema } from './common';
 import { comments } from './comment.schema';
+import { userQuests } from './quest.schema';
 
 // Check-in record type
 export interface CheckInRecord {
@@ -79,9 +80,10 @@ export const users = squidSchema.table(
     },
 );
 
-// Relations: users -> comments (one-to-many via walletAddress)
+// Relations: users -> comments, userQuests (one-to-many via walletAddress)
 export const usersRelations = relations(users, ({ many }) => ({
     comments: many(comments),
+    quests: many(userQuests),
 }));
 
 export type User = InferSelectModel<typeof users>;
