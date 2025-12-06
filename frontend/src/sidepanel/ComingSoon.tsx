@@ -28,12 +28,15 @@ interface ComingSoonProps {
 }
 
 export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
-    const { isConnected, address, isLoading, error, connect, refetch } = useSidepanelWallet();
-    const { isLoggingIn, setLoggingIn, setUser, tryLoginWithCachedUserInfo } = useMemexLogin();
+    const { isConnected, address, isLoading, error, connect, refetch } =
+        useSidepanelWallet();
+    const { isLoggingIn, setLoggingIn, setUser, tryLoginWithCachedUserInfo } =
+        useMemexLogin();
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [snackbar, setSnackbar] = useState<{
         isVisible: boolean;
         message: string;
+
         type: "error" | "warning" | "info" | "success";
     }>({
         isVisible: false,
