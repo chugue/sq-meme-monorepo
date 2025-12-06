@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { API_BASE_URL } from "../../background/config";
 import { useSidepanelWallet } from "./useSidepanelWallet";
 
 export interface MyAsset {
@@ -36,7 +37,7 @@ export function useUserAssets() {
 
             // API 호출과 최소 로딩 시간을 동시에 실행
             const [response] = await Promise.all([
-                fetch(`${import.meta.env.VITE_API_URL}/v1/users/my-assets`, {
+                fetch(`${API_BASE_URL}/v1/users/my-assets`, {
                     headers: {
                         "x-wallet-address": memexWalletAddress,
                     },

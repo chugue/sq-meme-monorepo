@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
-import { QuestItem } from "../types/response.types";
+import { QuestItem, QuestTypes } from "../types/response.types";
 import TopBar from "./components/TopBar";
 
 export default function QuestPage() {
