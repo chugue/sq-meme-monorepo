@@ -1,6 +1,8 @@
 import { ChevronLeft, Home, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { useWalletAssets } from "./hooks/useWalletAssets";
+import { ProfileModal } from "./ProfileModal";
 import "./MyAssetsPage.css";
 
 // Mock data
@@ -10,12 +12,12 @@ const mockUserData = {
 
 interface MyAssetsPageProps {
   onBack: () => void;
-  onNavigateToProfile?: () => void;
 }
 
-export function MyAssetsPage({ onBack, onNavigateToProfile }: MyAssetsPageProps) {
+export function MyAssetsPage({ onBack }: MyAssetsPageProps) {
   const { username, profileImageUrl, tokenSymbol } = useMemexLogin();
   const { assets, isLoading, error, refetch } = useWalletAssets();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   return (
     <div className="my-assets-container">
@@ -39,11 +41,17 @@ export function MyAssetsPage({ onBack, onNavigateToProfile }: MyAssetsPageProps)
             src={profileImageUrl || mockUserData.profileImage}
             alt="Profile"
             className="header-profile-image"
-            onClick={onNavigateToProfile}
-            style={{ cursor: onNavigateToProfile ? "pointer" : "default" }}
+            onClick={() => setIsProfileModalOpen(true)}
+            style={{ cursor: "pointer" }}
           />
         </div>
       </header>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
 
       {/* Assets List */}
       <section className="my-assets-content">

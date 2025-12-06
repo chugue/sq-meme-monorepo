@@ -1,5 +1,6 @@
 import "./Dashboard.css";
 import { useMemexLogin } from "./hooks/useMemexLogin";
+import { ProfileModal } from "./ProfileModal";
 
 // Assets imports
 import homeBg from "../../assets/home.png";
@@ -14,7 +15,7 @@ import questIcon from "../../assets/quest.png";
 import tropyIcon from "../../assets/tropy.png";
 
 import { useAtomValue } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { sessionAtom } from "./atoms/sessionAtoms";
 import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { getAllSessionStorage } from "./lib/sessionStorage";
@@ -38,7 +39,6 @@ function formatMTokenBalance(balance: string | undefined): string {
 
 interface DashboardProps {
   walletAddress?: string;
-  onNavigateToProfile?: () => void;
   onNavigateToLeaderboard?: () => void;
   onNavigateToLiveGames?: () => void;
   onNavigateToMyAssets?: () => void;
@@ -48,7 +48,6 @@ interface DashboardProps {
 
 export function Dashboard({
   walletAddress: walletAddressProp,
-  onNavigateToProfile,
   onNavigateToLeaderboard,
   onNavigateToLiveGames,
   onNavigateToMyAssets,
@@ -59,6 +58,7 @@ export function Dashboard({
   const { address: walletAddressFromHook } = useSidepanelWallet();
   const session = useAtomValue(sessionAtom);
   const { user } = session;
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // 디버깅: 세션 데이터 변화 확인
   useEffect(() => {
@@ -93,7 +93,7 @@ export function Dashboard({
         <img src={homeFloor} alt="Floor" className="floor-image" />
       </div>
       {/* Left Top: Profile Box with Image */}
-      <button className="profile-btn" onClick={onNavigateToProfile}>
+      <button className="profile-btn" onClick={() => setIsProfileModalOpen(true)}>
         <div className="profile-box-container">
           <img
             src={profileBox}
@@ -187,6 +187,12 @@ export function Dashboard({
           Logout
         </button>
       </footer>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </div>
   );
 }
