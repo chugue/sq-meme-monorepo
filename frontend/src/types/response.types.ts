@@ -69,8 +69,12 @@ export interface PrizeRankItem {
     tokenSymbol: string;
 }
 
-// 퀘스트 타입
-export type QuestTypes = "attendance" | "comments";
+export interface CommentLeaderItem {
+    rank: number;
+    profileImage?: string;
+    username?: string;
+    commentCount: number;
+}
 
 // 퀘스트 아이템
 export interface QuestItem {
