@@ -180,19 +180,6 @@ export function useFunding({
                     activeGameInfoId: activeGameInfo?.id,
                 });
 
-                // activeGameInfo의 totalFunding 업데이트
-                if (fundingResult?.totalFunding && activeGameInfo) {
-                    const updatedGameInfo = {
-                        ...activeGameInfo,
-                        totalFunding: fundingResult.totalFunding,
-                    };
-                    logger.info("activeGameInfo 업데이트", {
-                        before: activeGameInfo.totalFunding,
-                        after: updatedGameInfo.totalFunding,
-                    });
-                    setActiveGameInfo(updatedGameInfo);
-                }
-
                 // useComments 캐시의 userFundingShare 업데이트
                 if (
                     fundingResult?.userFundingShare !== undefined &&
@@ -215,14 +202,27 @@ export function useFunding({
                         userFundingShare: fundingResult.userFundingShare,
                     });
                 }
+
+                setFundingAmount("");
+                alert("펀딩이 완료되었습니다!");
+
+                // activeGameInfo의 totalFunding 업데이트 (alert 닫힌 후)
+                if (fundingResult?.totalFunding && activeGameInfo) {
+                    const updatedGameInfo = {
+                        ...activeGameInfo,
+                        totalFunding: fundingResult.totalFunding,
+                    };
+                    logger.info("activeGameInfo 업데이트", {
+                        before: activeGameInfo.totalFunding,
+                        after: updatedGameInfo.totalFunding,
+                    });
+                    setActiveGameInfo(updatedGameInfo);
+                }
             } catch (apiError) {
                 logger.warn("백엔드 펀딩 저장 실패 (트랜잭션은 성공)", {
                     error: apiError,
                 });
             }
-
-            setFundingAmount("");
-            alert("펀딩이 완료되었습니다!");
         } catch (error) {
             logger.error("펀딩 오류", error);
 

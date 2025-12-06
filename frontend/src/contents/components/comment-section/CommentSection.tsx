@@ -21,6 +21,7 @@ import legionBg from "./assets/legion-bg.svg";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
+import { FlipPrize } from "./FlipPrize";
 import { FlipTimer } from "./FlipTimer";
 import { WalletConnectionUI } from "./WalletConnectionUI";
 
@@ -65,6 +66,14 @@ export function CommentSection() {
     const [showGameEndedModal, setShowGameEndedModal] = useState(false);
     const [fundingInputError, setFundingInputError] = useState(false);
     const [scrollbarOpacity, setScrollbarOpacity] = useState(0);
+
+    // totalFunding 값 (FlipPrize에서 애니메이션 처리)
+    const totalFundingFormatted = activeGameInfo?.totalFunding
+        ? formatCompactNumber(
+              Number(formatUnits(BigInt(activeGameInfo.totalFunding), 18))
+          )
+        : "0";
+
     const [scrollTop, setScrollTop] = useState(0);
     const [scrollHeight, setScrollHeight] = useState(0);
     const [clientHeight, setClientHeight] = useState(0);
@@ -212,19 +221,8 @@ export function CommentSection() {
                         <div className="squid-timer-wrapper">
                             <div className="squid-prize-display">
                                 <span className="squid-prize-value">
-                                    {activeGameInfo?.totalFunding
-                                        ? formatCompactNumber(
-                                              Number(
-                                                  formatUnits(
-                                                      BigInt(
-                                                          activeGameInfo.totalFunding,
-                                                      ),
-                                                      18,
-                                                  ),
-                                              ),
-                                          )
-                                        : "0"}{" "}
-                                    ${activeGameInfo?.tokenSymbol || "SQM"}
+                                    <FlipPrize value={totalFundingFormatted} />{" "}
+                                    ${currentPageInfo?.symbol?.toUpperCase() || "TOKEN"}
                                 </span>
                             </div>
                             <div className="squid-game-timer">
@@ -258,7 +256,9 @@ export function CommentSection() {
                                     </div>
                                     <input
                                         type="text"
-                                        className={`squid-funding-input${fundingInputError ? " error" : ""}`}
+                                        className={`squid-funding-input${
+                                            fundingInputError ? " error" : ""
+                                        }`}
                                         value={
                                             fundingAmount
                                                 ? Number(
@@ -287,7 +287,10 @@ export function CommentSection() {
                                     type="button"
                                     className="squid-funding-button"
                                     onClick={() => {
-                                        if (!fundingAmount || fundingAmount === "0") {
+                                        if (
+                                            !fundingAmount ||
+                                            fundingAmount === "0"
+                                        ) {
                                             setFundingInputError(true);
                                             return;
                                         }
