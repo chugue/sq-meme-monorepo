@@ -1,5 +1,7 @@
 import { ChevronLeft, Home, RefreshCw } from "lucide-react";
+import { useSetAtom } from "jotai";
 import { useState } from "react";
+import { navigateBackAtom } from "./atoms/pageAtoms";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { useWalletAssets } from "./hooks/useWalletAssets";
 import { ProfileModal } from "./ProfileModal";
@@ -10,12 +12,9 @@ const mockUserData = {
   profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=squid",
 };
 
-interface MyAssetsPageProps {
-  onBack: () => void;
-}
-
-export function MyAssetsPage({ onBack }: MyAssetsPageProps) {
+export function MyAssetsPage() {
   const { username, profileImageUrl, tokenSymbol } = useMemexLogin();
+  const navigateBack = useSetAtom(navigateBackAtom);
   const { assets, isLoading, error, refetch } = useWalletAssets();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -23,7 +22,7 @@ export function MyAssetsPage({ onBack }: MyAssetsPageProps) {
     <div className="my-assets-container">
       {/* Header */}
       <header className="my-assets-header">
-        <button className="back-btn" onClick={onBack}>
+        <button className="back-btn" onClick={() => navigateBack()}>
           <ChevronLeft size={24} />
           <Home size={20} />
         </button>

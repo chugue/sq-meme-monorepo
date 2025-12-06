@@ -1,7 +1,9 @@
 import { ChevronLeft, Home } from "lucide-react";
+import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 import { LiveGameItem } from "../types/response.types";
+import { navigateBackAtom } from "./atoms/pageAtoms";
 import { useMemexLogin } from "./hooks/useMemexLogin";
 import { ProfileModal } from "./ProfileModal";
 import "./LiveGamesPage.css";
@@ -18,10 +20,6 @@ const DEFAULT_TOKEN = {
     username: "SquidMeme",
     usertag: "85674A",
 };
-
-interface LiveGamesPageProps {
-    onBack: () => void;
-}
 
 // wei를 ETH로 변환 (정수)
 function formatPrizePool(prizePool: string | null): string {
@@ -59,10 +57,9 @@ function formatTimeLeft(endTime: string | null): string {
     }
 }
 
-export function LiveGamesPage({
-    onBack,
-}: LiveGamesPageProps) {
+export function LiveGamesPage() {
     const { username, profileImageUrl } = useMemexLogin();
+    const navigateBack = useSetAtom(navigateBackAtom);
     const [liveGames, setLiveGames] = useState<LiveGameItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -94,7 +91,7 @@ export function LiveGamesPage({
         <div className="my-games-container">
             {/* Header */}
             <header className="my-games-header">
-                <button className="back-btn" onClick={onBack}>
+                <button className="back-btn" onClick={() => navigateBack()}>
                     <ChevronLeft size={24} />
                     <Home size={20} />
                 </button>
