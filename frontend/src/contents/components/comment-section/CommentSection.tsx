@@ -3,76 +3,41 @@
  * V2 컨트랙트 사용 - 스마트 컨트랙트 직접 호출
  */
 
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Address } from "viem";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
+import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
 import { useComments } from "../../hooks/useComments";
+import { useCommentSubmit } from "../../hooks/useCommentSubmit";
+import { useFunding } from "../../hooks/useFunding";
 import { useWallet } from "../../hooks/useWallet";
-import {
-    backgroundApi,
-    type CreateCommentRequest,
-} from "../../lib/backgroundApi";
-import {
-    COMMENT_GAME_V2_ADDRESS,
-    commentGameV2ABI,
-} from "../../lib/contract/abis/commentGameV2";
-import { erc20ABI } from "../../lib/contract/abis/erc20";
-import { createContractClient } from "../../lib/contract/contractClient";
-import { logger } from "../../lib/injected/logger";
-import { ERROR_CODES, injectedApi } from "../../lib/injectedApi";
-import { getExtensionImageUrl } from "../../utils/get-extension-image-url";
+import { formatRemainingTime } from "../../utils/gameTime";
+import { getExtensionImageUrl } from "../../utils/getExtensionImageUrl";
+import { FONTS, loadFont } from "../../utils/loadFont";
 import { GameEndedModal } from "../sub-components/GameEndedModal";
+import characterBg from "./assets/character-bg.svg";
+import legionBg from "./assets/legion-bg.svg";
 import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import "./CommentSection.css";
+import { FlipPrize } from "./FlipPrize";
+import { FlipTimer } from "./FlipTimer";
 import { WalletConnectionUI } from "./WalletConnectionUI";
-import characterBg from "./assets/character-bg.svg";
-import legionBg from "./assets/legion-bg.svg";
 
-// 로컬 폰트 로드 (Chrome extension용)
-function loadFont() {
-    if (document.getElementById("press-start-2p-font-style")) return;
-
-    let fontUrl = "font/PressStart2P.ttf";
-    try {
-        const chromeGlobal = globalThis as typeof globalThis & {
-            chrome?: { runtime?: { getURL?: (path: string) => string } };
-        };
-        if (chromeGlobal.chrome?.runtime?.getURL) {
-            fontUrl = chromeGlobal.chrome.runtime.getURL(
-                "font/PressStart2P.ttf",
-            );
-        }
-    } catch {
-        // 무시
+// 큰 숫자를 축약 표시 (예: 1,234,567 -> 1.23M)
+function formatCompactNumber(num: number): string {
+    if (num >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "M";
     }
-
-    const style = document.createElement("style");
-    style.id = "press-start-2p-font-style";
-    style.textContent = `
-        @font-face {
-            font-family: 'Press Start 2P';
-            src: url('${fontUrl}') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-    `;
-    document.head.appendChild(style);
+    return num.toLocaleString();
 }
 
 export function CommentSection() {
     // 폰트 로드
     useEffect(() => {
-        loadFont();
+        loadFont(FONTS.PRESS_START_2P);
     }, []);
-
-    logger.debug("CommentSection 렌더링", {
-        timestamp: new Date().toISOString(),
-        location: window.location.href,
-    });
 
     const {
         isConnected,
@@ -85,25 +50,86 @@ export function CommentSection() {
     } = useWallet();
 
     const [activeGameInfo, setActiveGameInfo] = useAtom(activeGameInfoAtom);
+    const currentPageInfo = useAtomValue(currentPageInfoAtom);
     // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
     const hasValidGame = !!activeGameInfo?.id;
     const gameId = hasValidGame ? activeGameInfo.id : null;
-    const { comments, isLoading, refetch, toggleLike, isTogglingLike } =
-        useComments(gameId, address);
-    const [newComment, setNewComment] = useState("");
-    const [commentImageUrl, setCommentImageUrl] = useState<
-        string | undefined
-    >();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [fundingAmount, setFundingAmount] = useState("");
-    const [isFunding, setIsFunding] = useState(false);
+    const {
+        comments,
+        userTotalFunding,
+        isLoading,
+        refetch,
+        toggleLike,
+        isTogglingLike,
+    } = useComments(gameId, address);
+
     const [showGameEndedModal, setShowGameEndedModal] = useState(false);
+    const [fundingInputError, setFundingInputError] = useState(false);
     const [scrollbarOpacity, setScrollbarOpacity] = useState(0);
+
+    // totalFunding 값 (FlipPrize에서 애니메이션 처리)
+    const totalFundingFormatted = activeGameInfo?.totalFunding
+        ? formatCompactNumber(
+              Number(formatUnits(BigInt(activeGameInfo.totalFunding), 18))
+          )
+        : "0";
+
     const [scrollTop, setScrollTop] = useState(0);
     const [scrollHeight, setScrollHeight] = useState(0);
     const [clientHeight, setClientHeight] = useState(0);
+    const [remainingTime, setRemainingTime] = useState("00:00:00");
     const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // 타이머 업데이트 (1초마다)
+    useEffect(() => {
+        console.log("[Timer Debug] activeGameInfo:", activeGameInfo);
+        console.log("[Timer Debug] endTime:", activeGameInfo?.endTime);
+
+        if (!activeGameInfo?.endTime) {
+            console.log("[Timer Debug] endTime이 없어서 타이머 비활성화");
+            return;
+        }
+
+        const updateTimer = () => {
+            const formatted = formatRemainingTime(activeGameInfo.endTime);
+            console.log("[Timer Debug] formatted time:", formatted);
+            setRemainingTime(formatted);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(interval);
+    }, [activeGameInfo?.endTime]);
+
+    // 펀딩 훅
+    const { fundingAmount, setFundingAmount, isFunding, handleFund } =
+        useFunding({
+            activeGameInfo,
+            setActiveGameInfo,
+            address,
+            isConnected,
+            connect,
+            ensureNetwork,
+        });
+
+    // 댓글 제출 훅
+    const {
+        newComment,
+        setNewComment,
+        commentImageUrl,
+        setCommentImageUrl,
+        isSubmitting,
+        handleSubmit,
+    } = useCommentSubmit({
+        activeGameInfo,
+        address,
+        isConnected,
+        ensureNetwork,
+        refetch,
+        onGameEnded: () => setShowGameEndedModal(true),
+    });
 
     // 스크롤 이벤트 핸들러 - 스크롤 시 스크롤바 표시
     const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -121,7 +147,7 @@ export function CommentSection() {
         }, 1000);
     }, []);
 
-    // 스크롤바 위치 및 크기 계산
+    // 스크롤바 위치 및 크기 계산ㄴ
     const scrollbarHeight =
         scrollHeight > 0
             ? Math.max((clientHeight / scrollHeight) * clientHeight, 30)
@@ -132,359 +158,6 @@ export function CommentSection() {
               (clientHeight - scrollbarHeight)
             : 0;
     const showScrollbar = scrollHeight > clientHeight;
-
-    // 펀딩 핸들러
-    const handleFund = useCallback(async () => {
-        if (!fundingAmount || Number(fundingAmount) <= 0) {
-            return;
-        }
-
-        if (!isConnected || !address) {
-            try {
-                await connect();
-            } catch (error) {
-                logger.error("지갑 연결 실패", error);
-            }
-            return;
-        }
-
-        if (!activeGameInfo?.id || !activeGameInfo?.gameToken) {
-            alert("게임 정보를 찾을 수 없습니다.");
-            return;
-        }
-
-        setIsFunding(true);
-
-        try {
-            await ensureNetwork();
-
-            const gameId = BigInt(activeGameInfo.id);
-            const tokenAddress = activeGameInfo.gameToken as Address;
-            const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
-
-            // 토큰 decimals 조회
-            const tokenClient = createContractClient({
-                address: tokenAddress,
-                abi: erc20ABI,
-            });
-
-            const decimalsResult = await tokenClient.read<number>({
-                functionName: "decimals",
-                args: [],
-            });
-            const decimals = decimalsResult.data ?? 18;
-
-            // 펀딩 금액 계산
-            const fundingAmountBigInt = parseUnits(fundingAmount, decimals);
-
-            logger.info("펀딩 시작", {
-                gameId: gameId.toString(),
-                tokenAddress,
-                amount: fundingAmountBigInt.toString(),
-            });
-
-            // 1. 잔액 확인
-            const balanceResult = await tokenClient.read<bigint>({
-                functionName: "balanceOf",
-                args: [address],
-            });
-
-            if (
-                !balanceResult.data ||
-                balanceResult.data < fundingAmountBigInt
-            ) {
-                alert("토큰 잔액이 부족합니다.");
-                return;
-            }
-
-            // 2. Allowance 확인
-            const allowanceResult = await tokenClient.read<bigint>({
-                functionName: "allowance",
-                args: [address, v2ContractAddress],
-            });
-
-            // 3. Approve 필요 시 실행
-            if (
-                !allowanceResult.data ||
-                allowanceResult.data < fundingAmountBigInt
-            ) {
-                logger.info("토큰 승인 필요", {
-                    currentAllowance: allowanceResult.data?.toString(),
-                    required: fundingAmountBigInt.toString(),
-                });
-
-                const approveResult = await tokenClient.write(
-                    {
-                        functionName: "approve",
-                        args: [v2ContractAddress, fundingAmountBigInt],
-                    },
-                    address as Address,
-                );
-
-                logger.info("승인 트랜잭션 전송됨", {
-                    hash: approveResult.hash,
-                });
-                await injectedApi.waitForTransaction(approveResult.hash);
-                logger.info("승인 완료");
-            }
-
-            // 4. fundPrizePool 호출
-            const v2Client = createContractClient({
-                address: v2ContractAddress,
-                abi: commentGameV2ABI,
-            });
-
-            const fundResult = await v2Client.write(
-                {
-                    functionName: "fundPrizePool",
-                    args: [gameId, fundingAmountBigInt],
-                    gas: 300000n,
-                },
-                address as Address,
-            );
-
-            logger.info("펀딩 트랜잭션 전송됨", { hash: fundResult.hash });
-
-            // 트랜잭션 확정 대기
-            const receipt = await injectedApi.waitForTransaction(
-                fundResult.hash,
-            );
-
-            logger.info("펀딩 트랜잭션 확정됨", {
-                hash: fundResult.hash,
-                blockNumber: receipt.blockNumber,
-            });
-
-            // 백엔드에 펀딩 저장 및 totalFunding 업데이트
-            try {
-                const fundingResult = await backgroundApi.saveFunding({
-                    txHash: fundResult.hash,
-                });
-                logger.info("백엔드에 펀딩 저장 완료", {
-                    fundingResult,
-                    totalFunding: fundingResult?.totalFunding,
-                    activeGameInfoId: activeGameInfo?.id,
-                });
-
-                // activeGameInfo의 totalFunding 업데이트
-                if (fundingResult?.totalFunding && activeGameInfo) {
-                    const updatedGameInfo = {
-                        ...activeGameInfo,
-                        totalFunding: fundingResult.totalFunding,
-                    };
-                    logger.info("activeGameInfo 업데이트", {
-                        before: activeGameInfo.totalFunding,
-                        after: updatedGameInfo.totalFunding,
-                    });
-                    setActiveGameInfo(updatedGameInfo);
-                }
-            } catch (apiError) {
-                logger.warn("백엔드 펀딩 저장 실패 (트랜잭션은 성공)", {
-                    error: apiError,
-                });
-            }
-
-            setFundingAmount("");
-            alert("펀딩이 완료되었습니다!");
-        } catch (error) {
-            logger.error("펀딩 오류", error);
-
-            if (error && typeof error === "object" && "code" in error) {
-                if (error.code === ERROR_CODES.USER_REJECTED) {
-                    return;
-                }
-                if (error.code === ERROR_CODES.PROVIDER_NOT_AVAILABLE) {
-                    alert(
-                        "네트워크 전환이 필요합니다. MetaMask에서 MemeCore 네트워크로 전환해주세요.",
-                    );
-                    return;
-                }
-            }
-
-            const errorMessage =
-                error instanceof Error ? error.message : "알 수 없는 오류";
-            alert(`펀딩에 실패했습니다: ${errorMessage}`);
-        } finally {
-            setIsFunding(false);
-        }
-    }, [
-        fundingAmount,
-        isConnected,
-        address,
-        connect,
-        ensureNetwork,
-        activeGameInfo,
-        setActiveGameInfo,
-    ]);
-
-    const handleSubmit = useCallback(async () => {
-        logger.debug("handleSubmit 호출됨", {
-            newComment: newComment.trim(),
-            activeGameInfo,
-            isConnected,
-            address,
-        });
-
-        if (!newComment.trim()) {
-            return;
-        }
-
-        if (!activeGameInfo?.id) {
-            alert("게임 정보를 찾을 수 없습니다.");
-            return;
-        }
-
-        const gameIdStr = activeGameInfo.id;
-
-        // 지갑 연결 전에 먼저 게임 유효성 체크
-        try {
-            logger.debug("게임 유효성 체크 시작", { gameIdStr });
-            const gameInfo = await backgroundApi.getActiveGameById(gameIdStr);
-            logger.debug("게임 유효성 체크 결과", { gameInfo });
-            if (!gameInfo) {
-                logger.warn("게임을 찾을 수 없음", { gameId: gameIdStr });
-                setShowGameEndedModal(true);
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
-                return;
-            }
-
-            // 클라이언트 시간과 endTime 비교
-            const endTimeMs = new Date(gameInfo.endTime).getTime();
-            const isGameEnded = Date.now() >= endTimeMs || gameInfo.isClaimed;
-            if (isGameEnded) {
-                logger.warn("게임이 종료됨 (클라이언트 시간 비교)", {
-                    gameId: gameIdStr,
-                    endTime: gameInfo.endTime,
-                    isClaimed: gameInfo.isClaimed,
-                    now: new Date().toISOString(),
-                });
-                setShowGameEndedModal(true);
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
-                return;
-            }
-        } catch (error) {
-            logger.error("게임 정보 조회 실패", error);
-            alert("게임 정보를 확인할 수 없습니다. 다시 시도해주세요.");
-            return;
-        }
-
-        // 게임이 유효한 경우에만 지갑 연결 시도
-        let currentAddress = address;
-        if (!isConnected || !address) {
-            try {
-                const result = await backgroundApi.walletConnect();
-                currentAddress = result.address;
-                logger.info("지갑 연결 성공", { address: currentAddress });
-            } catch (error) {
-                logger.error("지갑 연결 실패", error);
-                return;
-            }
-        }
-
-        if (!currentAddress) {
-            logger.error("지갑 주소를 가져올 수 없음");
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            await ensureNetwork();
-
-            const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
-
-            logger.info("댓글 작성 시작 (V2)", {
-                gameId: gameIdStr,
-                userAddress: currentAddress,
-                messageLength: newComment.trim().length,
-            });
-
-            // V2 컨트랙트 클라이언트 생성
-            const v2Client = createContractClient({
-                address: v2ContractAddress,
-                abi: commentGameV2ABI,
-            });
-            const gameId = BigInt(gameIdStr);
-
-            // addComment(gameId, message) 호출
-            const result = await v2Client.write(
-                {
-                    functionName: "addComment",
-                    args: [gameId, newComment.trim()],
-                    gas: 500000n,
-                },
-                currentAddress as Address,
-            );
-
-            logger.info("댓글 트랜잭션 전송됨", { hash: result.hash });
-
-            // 트랜잭션 확정 대기
-            const receipt = await injectedApi.waitForTransaction(result.hash);
-
-            logger.info("댓글 트랜잭션 확정됨", {
-                hash: result.hash,
-                blockNumber: receipt.blockNumber,
-            });
-
-            // 백엔드에 댓글 저장 (txHash로 이벤트 파싱)
-            const apiRequest: CreateCommentRequest = {
-                txHash: result.hash,
-                imageUrl: commentImageUrl,
-            };
-
-            try {
-                const savedComment = await backgroundApi.saveComment(
-                    apiRequest,
-                );
-                logger.info("백엔드에 댓글 저장 완료", {
-                    commentId: savedComment?.id,
-                });
-            } catch (apiError) {
-                logger.warn("백엔드 댓글 저장 실패 (트랜잭션은 성공)", {
-                    error: apiError,
-                });
-            }
-
-            // 댓글 목록 새로고침
-            await refetch();
-
-            setNewComment("");
-            setCommentImageUrl(undefined);
-        } catch (error) {
-            logger.error("댓글 작성 오류", error);
-
-            if (error && typeof error === "object" && "code" in error) {
-                if (error.code === ERROR_CODES.USER_REJECTED) {
-                    return;
-                }
-                if (error.code === ERROR_CODES.PROVIDER_NOT_AVAILABLE) {
-                    alert(
-                        "네트워크 전환이 필요합니다. MetaMask에서 MemeCore 네트워크로 전환해주세요.",
-                    );
-                    return;
-                }
-            }
-
-            const errorMessage =
-                error instanceof Error ? error.message : "알 수 없는 오류";
-            alert(`댓글 작성에 실패했습니다: ${errorMessage}`);
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [
-        newComment,
-        commentImageUrl,
-        isConnected,
-        address,
-        connect,
-        ensureNetwork,
-        activeGameInfo,
-        refetch,
-    ]);
 
     return (
         <div
@@ -539,29 +212,23 @@ export function CommentSection() {
                                 WILL WIN THE PRIZE!
                             </span>
                         </div>
+                        <img
+                            src={getExtensionImageUrl("icon/legion.png")}
+                            alt=""
+                            className="squid-timer-bg"
+                        />
+
                         <div className="squid-timer-wrapper">
-                            <img
-                                src={getExtensionImageUrl("icon/legion.png")}
-                                alt=""
-                                className="squid-timer-bg"
-                            />
                             <div className="squid-prize-display">
                                 <span className="squid-prize-value">
-                                    {activeGameInfo?.totalFunding
-                                        ? formatUnits(
-                                              BigInt(
-                                                  activeGameInfo.totalFunding,
-                                              ),
-                                              18,
-                                          )
-                                        : "0"}{" "}
-                                    ${activeGameInfo?.tokenSymbol || "TOKEN"}
+                                    <FlipPrize value={totalFundingFormatted} />{" "}
+                                    ${currentPageInfo?.symbol?.toUpperCase() || "TOKEN"}
                                 </span>
                             </div>
                             <div className="squid-game-timer">
                                 <span className="squid-timer-label">TIMER</span>
                                 <span className="squid-timer-value">
-                                    22:22:22
+                                    <FlipTimer time={remainingTime} />
                                 </span>
                             </div>
                         </div>
@@ -569,39 +236,83 @@ export function CommentSection() {
 
                     {/* 펀딩 섹션 */}
                     <div className="squid-funding-section">
-                        <div className="squid-funding-header">
-                            <span className="squid-funding-title">
-                                FUND PRIZE POOL
-                            </span>
-                            <p className="squid-funding-desc">
-                                Earn comment fees based on your funding share
-                            </p>
+                        <div className="squid-funding-card">
+                            <div className="squid-funding-header">
+                                <span className="squid-funding-title">
+                                    Fund this Prize Pool
+                                </span>
+                                <p className="squid-funding-desc">
+                                    Earn comment fees based on your share
+                                </p>
+                            </div>
+                            <form className="squid-funding-form">
+                                <div className="squid-funding-amount-row">
+                                    <div className="squid-funding-token-badge">
+                                        <span>
+                                            $
+                                            {currentPageInfo?.symbol?.toUpperCase() ||
+                                                "TOKEN"}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        className={`squid-funding-input${
+                                            fundingInputError ? " error" : ""
+                                        }`}
+                                        value={
+                                            fundingAmount
+                                                ? Number(
+                                                      fundingAmount,
+                                                  ).toLocaleString()
+                                                : ""
+                                        }
+                                        onChange={(e) => {
+                                            const value =
+                                                e.target.value.replace(
+                                                    /,/g,
+                                                    "",
+                                                );
+                                            if (
+                                                value === "" ||
+                                                /^\d*\.?\d*$/.test(value)
+                                            ) {
+                                                setFundingAmount(value);
+                                                setFundingInputError(false);
+                                            }
+                                        }}
+                                        placeholder="Enter amount"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    className="squid-funding-button"
+                                    onClick={() => {
+                                        if (
+                                            !fundingAmount ||
+                                            fundingAmount === "0"
+                                        ) {
+                                            setFundingInputError(true);
+                                            return;
+                                        }
+                                        handleFund();
+                                    }}
+                                    disabled={isFunding}
+                                >
+                                    Fund
+                                </button>
+                            </form>
                         </div>
-                        <div className="squid-funding-form">
-                            <input
-                                type="number"
-                                className="squid-funding-input"
-                                placeholder="Amount to fund"
-                                value={fundingAmount}
-                                onChange={(e) =>
-                                    setFundingAmount(e.target.value)
-                                }
-                                disabled={isFunding}
-                                min="0"
-                                step="any"
-                            />
-                            <button
-                                type="button"
-                                className="squid-funding-button"
-                                onClick={handleFund}
-                                disabled={
-                                    isFunding ||
-                                    !fundingAmount ||
-                                    Number(fundingAmount) <= 0
-                                }
-                            >
-                                {isFunding ? "FUNDING..." : "FUND"}
-                            </button>
+                        <div className="squid-my-share-card">
+                            <div className="squid-my-share-row">
+                                <span className="squid-my-share-label">
+                                    My Share
+                                </span>
+                                <span className="squid-my-share-value">
+                                    {activeGameInfo?.totalFunding && BigInt(activeGameInfo.totalFunding) > 0n
+                                        ? ((Number(userTotalFunding) / Number(activeGameInfo.totalFunding)) * 100).toFixed(1)
+                                        : "0.0"}%
+                                </span>
+                            </div>
                         </div>
                     </div>
 

@@ -7,6 +7,7 @@ import {
   QuestCategory,
 } from "../types/response.types";
 import { useMemexLogin } from "./hooks/useMemexLogin";
+import { ProfileModal } from "./ProfileModal";
 import "./LeaderboardPage.css";
 
 // Mock data
@@ -18,12 +19,12 @@ type TabType = "games" | "prizeRank" | "quest";
 
 interface LeaderboardPageProps {
   onBack: () => void;
-  onNavigateToProfile?: () => void;
 }
 
-export function LeaderboardPage({ onBack, onNavigateToProfile }: LeaderboardPageProps) {
+export function LeaderboardPage({ onBack }: LeaderboardPageProps) {
   const { username, profileImageUrl } = useMemexLogin();
   const [activeTab, setActiveTab] = useState<TabType>("games");
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // API 데이터 상태
   const [myActiveGames, setMyActiveGames] = useState<MyActiveGameItem[]>([]);
@@ -154,11 +155,17 @@ export function LeaderboardPage({ onBack, onNavigateToProfile }: LeaderboardPage
             src={profileImageUrl || mockUserData.profileImage}
             alt="Profile"
             className="header-profile-image"
-            onClick={onNavigateToProfile}
-            style={{ cursor: onNavigateToProfile ? "pointer" : "default" }}
+            onClick={() => setIsProfileModalOpen(true)}
+            style={{ cursor: "pointer" }}
           />
         </div>
       </header>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
 
       {/* Tabs */}
       <div className="leaderboard-tabs">

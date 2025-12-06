@@ -1,4 +1,5 @@
-import { getExtensionImageUrl } from "@/contents/utils/get-extension-image-url";
+import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
+import { FONTS, loadFont } from "@/contents/utils/loadFont";
 import { motion } from "framer-motion";
 import { useAtomValue } from "jotai";
 import { useEffect } from "react";
@@ -11,40 +12,6 @@ function shortenAddress(address: string): string {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-// 로컬 폰트 로드 (Chrome extension용)
-function loadFont() {
-    // 이미 로드되어 있으면 스킵
-    if (document.getElementById("press-start-2p-font-style")) return;
-
-    // Chrome extension에서 폰트 URL 가져오기
-    let fontUrl = "font/PressStart2P.ttf";
-    try {
-        const chromeGlobal = globalThis as typeof globalThis & {
-            chrome?: { runtime?: { getURL?: (path: string) => string } };
-        };
-        if (chromeGlobal.chrome?.runtime?.getURL) {
-            fontUrl = chromeGlobal.chrome.runtime.getURL("font/PressStart2P.ttf");
-        }
-    } catch {
-        // 무시
-    }
-
-    // @font-face로 로컬 폰트 등록
-    const style = document.createElement("style");
-    style.id = "press-start-2p-font-style";
-    style.textContent = `
-        @font-face {
-            font-family: 'Press Start 2P';
-            src: url('${fontUrl}') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-
 /**
  * 게임 정보 로딩 중 화면
  */
@@ -53,7 +20,7 @@ export function GameLoadingSection() {
 
     // 폰트 로드
     useEffect(() => {
-        loadFont();
+        loadFont(FONTS.PRESS_START_2P);
     }, []);
 
     const tokenAddress = currentPageInfo?.contractAddress || "";
@@ -85,6 +52,7 @@ export function GameLoadingSection() {
             {/* 토큰 정보 프레임 */}
             <motion.div
                 className="token-info-frame"
+                style={{ minHeight: "108px" }}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}

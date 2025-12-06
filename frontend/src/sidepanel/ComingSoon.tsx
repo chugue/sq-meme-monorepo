@@ -54,7 +54,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
     const closeSnackbar = () => {
         setSnackbar((prev) => ({ ...prev, isVisible: false }));
     };
-
     const handleRefreshMemexTab = async () => {
         try {
             await backgroundApi.refreshMemexTab();

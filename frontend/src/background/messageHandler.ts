@@ -4,6 +4,7 @@ import {
   SerializedGameInfo,
 } from "../contents/lib/backgroundApi";
 import type { JoinRequest } from "../types/request.types";
+import type { CommentListResponse } from "../types/response.types";
 import { apiCall, apiUpload } from "./api";
 import { openSidePanel } from "./sidepanel";
 
@@ -26,13 +27,13 @@ export function createMessageHandler() {
             const walletAddress = (message as any).walletAddress;
             const response = await apiCall<{
               success: boolean;
-              data: { comments: any[] };
+              data: CommentListResponse;
             }>(`/v1/comments/game/${encodeURIComponent(message.gameId)}`, {
               headers: walletAddress
                 ? { "x-wallet-address": walletAddress }
                 : undefined,
             });
-            result = { success: true, data: response.data?.comments || [] };
+            result = { success: true, data: response.data };
             break;
           }
 
@@ -1165,7 +1166,7 @@ export function createMessageHandler() {
             try {
               const response = await apiCall<{
                 success: boolean;
-                data: { id: number; totalFunding: string };
+                data: { id: number; totalFunding: string; userTotalFunding: string };
               }>("/v1/funders", {
                 method: "POST",
                 body: JSON.stringify(message.data),

@@ -65,7 +65,7 @@
     background: #060722;
     flex-direction: column;
     align-items: center;
-    /* padding: 20px 20px 0; */
+    height: 305px;
     position: relative;
     z-index: 1;
 }
@@ -75,7 +75,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin-top: 90px;
+    margin-top: 98px;
     padding: 10px 32px;
     gap: 4px;
     width: 366px;
@@ -87,6 +87,7 @@
     line-height: 150%;
     text-align: center;
     position: relative;
+    text-shadow: 0 0 17px #5006ff;
     z-index: 2;
 }
 
@@ -117,12 +118,9 @@
 .squid-timer-bg {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: 260px;
     transform: translate(-50%, -50%);
-    width: auto;
-    height: auto;
-    min-width: 100%;
-    min-height: 100%;
+    width: 100%;
     object-fit: cover;
     pointer-events: none;
     z-index: 0;
@@ -136,9 +134,8 @@
     align-items: center;
     padding: 14px 8px;
     width: 100%;
-    margin-top: 30px;
     max-width: 253px;
-    gap: 10px;
+    margin-top: 50px;
     background: rgba(0, 0, 0, 0.6);
     border: 2px dashed #003c26;
     border-radius: 10px;
@@ -158,10 +155,10 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 8px 20px;
-    margin-top: 25px;
-    gap: 8px;
-    width: fit-content;
+    padding: 4px 20px;
+    margin-top: 27px;
+    gap: 0;
+    max-width: 90%;
     background: rgba(19, 19, 19, 0.8);
     border: 2px dashed #003c26;
     border-radius: 51.81px;
@@ -171,6 +168,8 @@
     left: 50%;
     transform: translate(-50%, 30%);
     z-index: 3;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .squid-prize-label {
@@ -183,14 +182,13 @@
 
 .squid-prize-value {
     font-family: "Press Start 2P", cursive;
-    font-weight: 200;
-    font-size: 8px;
-    line-height: 100%;
+    font-weight: 400;
+    font-size: 11.5px;
+    line-height: 150%;
     background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0px 0px 7.24px #1f0e00;
 }
 
 .squid-prize-amount {
@@ -198,7 +196,7 @@
     font-weight: 400;
     font-size: 11.5px;
     line-height: 150%;
-    background: linear-gradient(112.47deg, #ffe9bd 37.39%, #e0b372 81.42%);
+    background: linear-gradient(112.47deg, #fff4d6 37.39%, #f0c97a 81.42%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -222,9 +220,9 @@
 .squid-timer-label {
     font-family: "Press Start 2P", cursive;
     font-weight: 400;
-    font-size: 9.68px;
+    font-size: 9px;
     line-height: 150%;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.1em;
     color: #7b3534;
     text-shadow: 0px 0px 6px #1f0e00;
 }
@@ -234,11 +232,11 @@
     font-weight: 400;
     font-size: 24px;
     line-height: 100%;
-    background: linear-gradient(180deg, #ff494d 42.24%, #c20004 92.35%);
+    background: linear-gradient(180deg, #ff494d 26.05%, #c20004 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0px 0px 11.41px #1f0e00;
+    filter: drop-shadow(0px 0px 11.41px #1f0e00);
 }
 
 /* ============================
@@ -249,7 +247,7 @@
     flex-direction: column;
     align-items: flex-start;
     padding: 0px;
-    width: 312px;
+    width: 326px;
     margin: 20px auto 0;
     position: relative;
     z-index: 1;
@@ -259,7 +257,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 8px 8px 8px 12px;
+    padding: 8px 8px 8px 16px;
     gap: 4px;
     width: 100%;
     background: #000000;
@@ -312,44 +310,48 @@
 }
 
 .squid-funding-token-badge {
+    box-sizing: border-box;
     display: flex;
-    flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 4px 8px;
-    gap: 10px;
+    padding: 3px 8px;
     border-radius: 100px;
     background: transparent;
+    border: 1.5px solid #b9a7ff;
 }
 
 .squid-funding-token-badge span {
     font-family: "Pretendard", sans-serif;
-    font-weight: 400;
+    font-weight: 500;
     font-size: 12px;
-    line-height: 14px;
     color: #b9a7ff;
 }
 
-.squid-funding-value {
+/* .squid-funding-input {
     font-family: "Pretendard", sans-serif;
     font-weight: 700;
     font-size: 20px;
     line-height: 150%;
     color: #b9a7ff;
-}
+    background-color: transparent;
+    border: none;
+    outline: none;
+} */
 
 .squid-funding-button {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 8px;
+    padding: 8px 8px;
     gap: 50px;
-    width: 34px;
-    height: 34px;
+    min-width: 25px;
+    height: 30px;
     background: #b9a7ff;
     border-radius: 10px;
     border: none;
+    font-weight: 500;
+    color: #000000;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -390,6 +392,7 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+    color: #b9a7ff;
     padding: 0px;
     gap: 2px;
     width: 100%;
@@ -397,17 +400,18 @@
 
 .squid-my-share-label {
     font-family: "Pretendard", sans-serif;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 14px;
     line-height: 150%;
     color: #b9a7ff;
 }
 
 .squid-my-share-value {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 0px;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 150%;
+    color: #b9a7ff;
 }
 
 .squid-my-share-value span {
@@ -422,7 +426,7 @@
    댓글 입력 영역
    ============================ */
 .squid-comment-form {
-    margin: 12px 20px;
+    margin: 0px 20px;
     position: relative;
     z-index: 1;
 }
@@ -530,8 +534,8 @@
 
 .squid-comment-image {
     width: 100%;
-    max-height: 200px;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     border-radius: 10px;
 }
 
@@ -571,7 +575,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0px;
+    padding: 15px 20px 0 20px;
+    margin-top: 10px;
+    margin-bottom: 20px;
     gap: 8px;
     width: 100%;
     max-height: 500px;
@@ -613,22 +619,29 @@
     align-items: flex-start;
     padding: 10px 12px;
     gap: 8px;
-    width: 312px;
+    width: 100%;
     background: #000000;
+    border: 1px solid transparent;
     border-radius: 10px;
     box-sizing: border-box;
     position: relative;
+    background-image: linear-gradient(#000000, #000000),
+        linear-gradient(to left, #5555ba, #820eac);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
 }
 
 /* 우승자 댓글 스타일 */
-.squid-comment-item.winner {
+.squid-comment-item.squid-comment-winner {
     position: relative;
+    border: 2px solid #f5c400;
+    border-radius: 12px;
 }
 
-.squid-winner-badge {
+.squid-comment-winner .squid-winner-badge {
     position: absolute;
-    left: 0;
-    top: 6px;
+    left: -10px;
+    top: -10px;
     width: 26px;
     height: 26px;
     z-index: 2;
@@ -675,10 +688,24 @@
 .squid-comment-header-row {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     padding: 0px;
     gap: 8px;
     width: 100%;
+}
+
+.squid-comment-username-row {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    gap: 4px;
+}
+
+.squid-comment-username-colum {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
 }
 
 .squid-comment-username {
@@ -712,6 +739,7 @@
     line-height: 17px;
     color: #ffffff;
     word-break: break-word;
+    white-space: pre-wrap;
 }
 
 /* 댓글 이미지 */
@@ -730,7 +758,7 @@
 
 .squid-comment-image-preview {
     width: 100%;
-    max-height: 204px;
+    height: fit-content;
     object-fit: cover;
     border-radius: 10px;
 }
@@ -739,11 +767,10 @@
 .squid-comment-like {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     padding: 0px;
     gap: 10px;
     width: 22px;
-    height: 36px;
     flex-shrink: 0;
     background: none;
     border: none;
@@ -846,7 +873,7 @@
 .squid-funding-input {
     flex: 1;
     padding: 8px 12px;
-    background: #222222;
+    background: transparent;
     border: none;
     border-radius: 10px;
     font-family: "Pretendard", sans-serif;
@@ -857,6 +884,11 @@
 
 .squid-funding-input::placeholder {
     color: #8181a5;
+    transition: color 0.2s ease;
+}
+
+.squid-funding-input.error::placeholder {
+    color: #e93f61;
 }
 
 .squid-funding-input::-webkit-outer-spin-button,
@@ -877,10 +909,22 @@
     flex-direction: column;
     gap: 8px;
     width: 100%;
-    background: #000000;
+    background: #000000 !important;
+    border: 1px solid transparent !important;
     border-radius: 10px;
     padding: 12px;
     box-sizing: border-box;
+    background-image: linear-gradient(#000000, #000000),
+        linear-gradient(#000000, #000000) !important;
+    background-origin: border-box !important;
+    background-clip: padding-box, border-box !important;
+    transition: all 0.2s ease;
+}
+
+.squid-comment-card:focus-within {
+    background-image: linear-gradient(#000000, #000000),
+        linear-gradient(to left, #5555ba, #820eac) !important;
+    border-color: transparent !important;
 }
 
 .squid-comment-add-image-inline {
@@ -890,7 +934,6 @@
     width: 32px;
     height: 32px;
     background: transparent;
-    border: 1px dashed #8181a5;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -898,6 +941,8 @@
 
 .squid-comment-add-image-inline:hover:not(:disabled) {
     border-color: #b9a7ff;
+    background: #b9a7ff15;
+    transition: all 0.2s ease;
 }
 
 .squid-comment-add-image-inline:hover:not(:disabled) svg {
@@ -958,11 +1003,10 @@
     transform: translateX(-50%);
     width: auto;
     height: auto;
-    max-width: 100%;
+    max-width: 80%;
     object-fit: contain;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.6;
 }
 
 .squid-bg-legion {
@@ -1024,11 +1068,27 @@
 /* ============================
    댓글 정보 영역
    ============================ */
+
+.squid-comment-info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
 .squid-comment-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
     flex: 1;
+}
+
+.squid-comment-info-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2px;
 }
 
 .squid-comment-date {
@@ -1045,4 +1105,18 @@
     gap: 8px;
     width: 100%;
     padding-left: 44px;
+}
+
+.squid-comment-heart-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.squid-comment-heart-count-value {
+    color: #b9a7ff;
+    font-family: "Pretendard", sans-serif;
+    font-weight: 700;
+    font-size: 8px;
 }

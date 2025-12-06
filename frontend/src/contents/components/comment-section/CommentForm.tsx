@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
 import { ImagePlus } from "lucide-react";
+import { useRef, useState } from "react";
 import { backgroundApi } from "../../lib/backgroundApi";
 
 interface CommentFormProps {
@@ -33,16 +33,18 @@ export function CommentForm({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const getButtonText = () => {
-        if (!isConnected) return 'CONNECT WALLET FIRST';
-        if (isSigning) return 'SIGNING...';
-        if (isSubmitting) return 'SUBMITTING...';
+        if (!isConnected) return "CONNECT WALLET FIRST";
+        if (isSigning) return "SIGNING...";
+        if (isSubmitting) return "SUBMITTING...";
         if (tokenSymbol && commentCost) {
             return `SUBMIT (${commentCost} $${tokenSymbol})`;
         }
-        return 'SUBMIT';
+        return "SUBMIT";
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
         const file = e.target.files?.[0];
         if (!file || !onImageChange) return;
 
@@ -67,12 +69,18 @@ export function CommentForm({
     const isDisabled = disabled || isSubmitting || isSigning;
 
     return (
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="squid-comment-form">
+        <form
+            onSubmit={(e) => {
+                e.preventDefault();
+                onSubmit();
+            }}
+            className="squid-comment-form"
+        >
             <div className="squid-comment-card">
                 <textarea
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    placeholder="TYPE YOUR COMMENT..."
+                    placeholder="Join this game with comment!"
                     className="squid-comment-input"
                     rows={3}
                     disabled={isDisabled}
@@ -127,7 +135,9 @@ export function CommentForm({
             <button
                 type="submit"
                 className="squid-comment-submit-block"
-                disabled={!value.trim() || isSubmitting || isSigning || disabled}
+                disabled={
+                    !value.trim() || isSubmitting || isSigning || disabled
+                }
             >
                 {getButtonText()}
             </button>

@@ -5,7 +5,7 @@
  * - 게임 생성 및 상금 수령 기능 제공
  */
 
-import { getExtensionImageUrl } from "@/contents/utils/get-extension-image-url";
+import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
 import { formatAddress } from "@/contents/utils/messageFormatter";
 import { motion } from "framer-motion";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -21,6 +21,7 @@ import {
 } from "../../lib/contract/abis/commentGameV2";
 import { injectedApi } from "../../lib/injectedApi";
 import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
+import { ClaimPrizeFirstModal } from "./ClaimPrizeFirstModal";
 import "./NoGameSection.css";
 import { TransactionSuccessModal } from "./TransactionSuccessModal";
 
@@ -28,6 +29,14 @@ import { TransactionSuccessModal } from "./TransactionSuccessModal";
 function shortenAddress(address: string): string {
     if (!address || address.length < 10) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+// 큰 숫자를 축약 표시 (예: 1,234,567 -> 1.23M)
+function formatCompactNumber(num: number): string {
+    if (num >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "M";
+    }
+    return num.toLocaleString();
 }
 
 interface NoGameSectionProps {
@@ -48,6 +57,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isClaimFirstModalOpen, setIsClaimFirstModalOpen] = useState(false);
 
     // Claim 관련 상태
     const [isClaiming, setIsClaiming] = useState(false);
@@ -133,6 +143,12 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             return;
         }
 
+        // 우승자가 상금을 아직 수령하지 않은 경우 Claim First 모달 표시
+        if (isWinner) {
+            setIsClaimFirstModalOpen(true);
+            return;
+        }
+
         // 모달 오픈
         setIsModalOpen(true);
     };
@@ -143,10 +159,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     const handleGameCreated = (gameId: string) => {
         setIsModalOpen(false);
         onGameCreated?.(gameId);
-        // memex 포스팅 페이지로 리다이렉트
-        window.location.href =
-            "https://app.memex.xyz/posting?un=codingcat&ut=fE9Dd8";
-        console.log("게임 생성 완료");
+        window.location.reload();
     };
 
     const tokenSymbol = currentPageInfo?.symbol
@@ -311,12 +324,16 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                                 </span>
                             </div>
                             <div className="no-game-winner-prize">
-                                prize :{" "}
-                                {(
-                                    BigInt(endedGameInfo.prizePool) /
-                                    BigInt(10 ** 18)
-                                ).toString()}
-                                {tokenSymbol}
+                                <span>prize :</span>{" "}
+                                <span style={{ whiteSpace: "nowrap" }}>
+                                    {formatCompactNumber(
+                                        Number(
+                                            BigInt(endedGameInfo.prizePool) /
+                                                BigInt(10 ** 18),
+                                        ),
+                                    )}{" "}
+                                    {tokenSymbol}
+                                </span>
                             </div>
                         </div>
                         <img
@@ -380,6 +397,17 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                     description="Your prize has been successfully transferred to your wallet."
                 />
             )}
+
+            {/* Claim Prize First 모달 */}
+            <ClaimPrizeFirstModal
+                isOpen={isClaimFirstModalOpen}
+                onClose={() => setIsClaimFirstModalOpen(false)}
+                onClaimPrize={() => {
+                    setIsClaimFirstModalOpen(false);
+                    handleClaimPrize();
+                }}
+                isClaiming={isClaiming}
+            />
         </div>
     );
 }

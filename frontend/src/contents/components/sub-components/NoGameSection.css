@@ -6,7 +6,7 @@
     box-sizing: border-box;
     position: relative;
     width: 366px;
-    min-height: 600px;
+    height: fit-content;
     max-height: 90vh;
     padding: 40px 20px;
     background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
@@ -287,7 +287,7 @@
 
 .no-game-winner-character {
     position: relative;
-    width: 288px;
+    width: 100%;
     height: auto;
     top: 0;
     object-fit: contain;
@@ -367,6 +367,11 @@
     text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000,
         2px 2px 4px #000, 0 4px 40px rgba(0, 0, 0, 0.5);
     margin: 0;
+    word-break: break-word;
+}
+
+.no-game-winner-prize span {
+    font-family: inherit;
 }
 
 /* Claim 버튼 - 새 디자인 */

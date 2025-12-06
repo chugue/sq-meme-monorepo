@@ -1,8 +1,26 @@
 import { Comment } from "@/contents/types/comment";
+import { CommentListItem } from "@/types/response.types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { backgroundApi } from "../lib/backgroundApi";
 import { logger } from "../lib/injected/logger";
+
+// 백엔드 응답을 프론트엔드 Comment 타입으로 변환
+function mapToComment(item: CommentListItem): Comment {
+    return {
+        id: item.comment.id,
+        commentId: item.comment.id,
+        gameId: item.comment.gameId,
+        commentor: item.comment.commentor,
+        message: item.comment.message,
+        createdAt: item.comment.createdAt,
+        likeCount: item.comment.likeCount,
+        isLiked: item.hasUserLiked,
+        imageUrl: item.comment.imageUrl ?? undefined,
+        username: item.userName || undefined,
+        profileImage: item.commentorProfileUrl || undefined,
+    };
+}
 
 // 중복 댓글 제거 유틸리티 (id 기준, imageUrl 있는 것 우선)
 function deduplicateComments(comments: Comment[]): Comment[] {
@@ -48,7 +66,7 @@ export function useComments(
 
     // 댓글 조회 (gameId가 없으면 비활성화) - DB 먼저 조회
     const {
-        data: comments = [],
+        data: queryData,
         isLoading,
         refetch,
     } = useQuery({
@@ -56,20 +74,26 @@ export function useComments(
         queryFn: async () => {
             if (!gameId) {
                 logger.warn("useComments: gameId가 없음");
-                return [];
+                return { comments: [] as Comment[], userTotalFunding: "0" };
             }
             try {
                 logger.info("댓글 조회 시작 (DB)", { gameId });
-                const data = await backgroundApi.getComments(
+                const response = await backgroundApi.getComments(
                     gameId,
                     walletAddress || undefined,
                 );
+                const comments = (response?.commentsListDTO || []).map(mapToComment);
+                const userTotalFunding = response?.userTotalFunding || "0";
                 logger.info("댓글 조회 완료 (DB)", {
                     gameId,
-                    count: data?.length || 0,
+                    count: comments.length,
+                    userTotalFunding,
                 });
                 // 중복 댓글 제거 후 반환 (이미지 있는 것 우선)
-                return deduplicateComments(data as Comment[]);
+                return {
+                    comments: deduplicateComments(comments),
+                    userTotalFunding,
+                };
             } catch (error) {
                 console.error("댓글 조회 실패:", error);
                 throw error;
@@ -80,6 +104,9 @@ export function useComments(
         staleTime: 2000, // 2초간 fresh 상태 유지 (불필요한 refetch 방지)
         refetchOnWindowFocus: false, // 윈도우 포커스 시 자동 refetch 비활성화
     });
+
+    const comments = queryData?.comments || [];
+    const userTotalFunding = queryData?.userTotalFunding || "0";
 
     // 댓글 작성
     const createCommentMutation = useMutation({
@@ -131,18 +158,20 @@ export function useComments(
             });
 
             // 이전 상태 스냅샷
-            const previousComments = queryClient.getQueryData<Comment[]>([
-                "comments",
-                gameId,
-                walletAddress,
-            ]);
+            const previousData = queryClient.getQueryData<{
+                comments: Comment[];
+                userTotalFunding: string;
+            }>(["comments", gameId, walletAddress]);
 
             // 옵티미스틱 업데이트
-            queryClient.setQueryData<Comment[]>(
-                ["comments", gameId, walletAddress],
-                (oldComments) => {
-                    if (!oldComments) return oldComments;
-                    return oldComments.map((comment) =>
+            queryClient.setQueryData<{
+                comments: Comment[];
+                userTotalFunding: string;
+            }>(["comments", gameId, walletAddress], (oldData) => {
+                if (!oldData) return oldData;
+                return {
+                    ...oldData,
+                    comments: oldData.comments.map((comment) =>
                         comment.id === commentId
                             ? {
                                   ...comment,
@@ -152,19 +181,19 @@ export function useComments(
                                       : (comment.likeCount || 0) + 1,
                               }
                             : comment,
-                    );
-                },
-            );
+                    ),
+                };
+            });
 
             // 롤백을 위한 컨텍스트 반환
-            return { previousComments };
+            return { previousData };
         },
         onError: (_error, _variables, context) => {
             // 에러 발생 시 이전 상태로 롤백
-            if (context?.previousComments) {
+            if (context?.previousData) {
                 queryClient.setQueryData(
                     ["comments", gameId, walletAddress],
-                    context.previousComments,
+                    context.previousData,
                 );
             }
         },
@@ -172,6 +201,7 @@ export function useComments(
 
     return {
         comments,
+        userTotalFunding,
         isLoading,
         refetch,
         createComment: createCommentMutation.mutateAsync,

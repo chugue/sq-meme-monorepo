@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
 import { LiveGameItem } from "../types/response.types";
 import { useMemexLogin } from "./hooks/useMemexLogin";
+import { ProfileModal } from "./ProfileModal";
 import "./LiveGamesPage.css";
 
 // Mock data
@@ -20,7 +21,6 @@ const DEFAULT_TOKEN = {
 
 interface LiveGamesPageProps {
     onBack: () => void;
-    onNavigateToProfile?: () => void;
 }
 
 // wei를 ETH로 변환 (정수)
@@ -61,11 +61,11 @@ function formatTimeLeft(endTime: string | null): string {
 
 export function LiveGamesPage({
     onBack,
-    onNavigateToProfile,
 }: LiveGamesPageProps) {
     const { username, profileImageUrl } = useMemexLogin();
     const [liveGames, setLiveGames] = useState<LiveGameItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchLiveGames = async () => {
@@ -106,13 +106,17 @@ export function LiveGamesPage({
                         src={profileImageUrl || mockUserData.profileImage}
                         alt="Profile"
                         className="header-profile-image"
-                        onClick={onNavigateToProfile}
-                        style={{
-                            cursor: onNavigateToProfile ? "pointer" : "default",
-                        }}
+                        onClick={() => setIsProfileModalOpen(true)}
+                        style={{ cursor: "pointer" }}
                     />
                 </div>
             </header>
+
+            {/* Profile Modal */}
+            <ProfileModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+            />
 
             {/* Games List */}
             <section className="my-games-content">

@@ -32,10 +32,14 @@ export class FundersService {
     /**
      * @description txHash로 PrizePoolFunded 이벤트를 파싱하여 펀딩 정보 저장
      * @param txHash 트랜잭션 해시
+     * @param userAddress 사용자 주소 (userTotalFunding 조회용)
      */
     async saveFundingByTx(
         txHash: string,
-    ): Promise<Result<{ id: number; totalFunding: string }>> {
+        userAddress?: string,
+    ): Promise<
+        Result<{ id: number; totalFunding: string; userTotalFunding: string }>
+    > {
         if (!txHash) {
             return Result.fail('txHash is required', HttpStatus.BAD_REQUEST);
         }
@@ -146,11 +150,21 @@ export class FundersService {
                 prizePool: totalFunding,
             });
 
+            // 사용자 총 펀딩 금액 조회
+            let userTotalFunding = '0';
+            if (userAddress) {
+                userTotalFunding =
+                    await this.fundersRepository.getUserFundingByGameId(
+                        gameId,
+                        userAddress,
+                    );
+            }
+
             this.logger.log(
-                `✅ 펀딩 처리 완료: gameId=${gameId}, prizePool=${totalFunding}`,
+                `✅ 펀딩 처리 완료: gameId=${gameId}, prizePool=${totalFunding}, userTotalFunding=${userTotalFunding}`,
             );
 
-            return Result.ok({ id: result.id, totalFunding });
+            return Result.ok({ id: result.id, totalFunding, userTotalFunding });
         } catch (error) {
             this.logger.error(
                 `PrizePoolFunded 처리 실패: ${error.message}`,

@@ -1,4 +1,4 @@
-import { getExtensionImageUrl } from "@/contents/utils/get-extension-image-url";
+import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
 import { motion } from "framer-motion";
 
 /**

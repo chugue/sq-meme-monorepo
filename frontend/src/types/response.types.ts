@@ -128,3 +128,33 @@ export interface LiveGameItem {
 export interface LiveGamesResponse {
   liveGames: LiveGameItem[];
 }
+
+// ========================================
+// Comment Types
+// ========================================
+
+// 댓글 데이터 (백엔드 Comment 스키마와 동일)
+export interface Comment {
+  id: number;
+  txHash: string;
+  gameId: string;
+  commentor: string;
+  message: string;
+  imageUrl: string | null;
+  likeCount: number;
+  createdAt: string;
+}
+
+// 댓글 목록 아이템
+export interface CommentListItem {
+  comment: Comment;
+  commentorProfileUrl: string;
+  userName: string;
+  hasUserLiked: boolean;
+}
+
+// 댓글 목록 API 응답 타입
+export interface CommentListResponse {
+  userTotalFunding: string;
+  commentsListDTO: CommentListItem[];
+}

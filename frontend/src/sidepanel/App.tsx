@@ -8,10 +8,9 @@ import { useSidepanelWallet } from "./hooks/useSidepanelWallet";
 import { LeaderboardPage } from "./LeaderboardPage";
 import { LiveGamesPage } from "./LiveGamesPage";
 import { MyAssetsPage } from "./MyAssetsPage";
-import { ProfilePage } from "./ProfilePage";
 import StartingLoading from "./StartingLoading";
 
-type Page = "dashboard" | "profile" | "leaderboard" | "liveGames" | "myAssets";
+type Page = "dashboard" | "leaderboard" | "liveGames" | "myAssets";
 
 export function SidePanelApp() {
     const { isConnected, address, isLoading } = useSidepanelWallet();
@@ -36,27 +35,17 @@ export function SidePanelApp() {
         setShowStartingLoading(false);
     };
 
-    // StartingLoading 표시 중일 때
     if (showStartingLoading || isLoading) {
         return <StartingLoading onComplete={handleStartingLoadingComplete} duration={3000} />;
     }
-    
-    // 지갑 연결 + MEMEX 로그인 완료 시 대시보드 또는 프로필
+
+
+    // 지갑 연결 + MEMEX 로그인 완료 시 대시보드
     if (isConnected && isMemexLoggedIn) {
-        if (currentPage === "profile") {
-            return (
-                <ProfilePage
-                    walletAddress={address || undefined}
-                    onBack={() => setCurrentPage("dashboard")}
-                    onNavigateToMyAssets={() => setCurrentPage("myAssets")}
-                />
-            );
-        }
         if (currentPage === "leaderboard") {
             return (
                 <LeaderboardPage
                     onBack={() => setCurrentPage("dashboard")}
-                    onNavigateToProfile={() => setCurrentPage("profile")}
                 />
             );
         }
@@ -64,7 +53,6 @@ export function SidePanelApp() {
             return (
                 <LiveGamesPage
                     onBack={() => setCurrentPage("dashboard")}
-                    onNavigateToProfile={() => setCurrentPage("profile")}
                 />
             );
         }
@@ -72,14 +60,12 @@ export function SidePanelApp() {
             return (
                 <MyAssetsPage
                     onBack={() => setCurrentPage("dashboard")}
-                    onNavigateToProfile={() => setCurrentPage("profile")}
                 />
             );
         }
         return (
             <Dashboard
                 walletAddress={address || undefined}
-                onNavigateToProfile={() => setCurrentPage("profile")}
                 onNavigateToLeaderboard={() => setCurrentPage("leaderboard")}
                 onNavigateToLiveGames={() => setCurrentPage("liveGames")}
                 onNavigateToMyAssets={() => setCurrentPage("myAssets")}

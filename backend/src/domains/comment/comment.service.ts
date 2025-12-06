@@ -10,6 +10,7 @@ import {
     ToggleLikeResult,
     UserLikedResult,
 } from './comment.repository';
+import { CommentListRespDto } from './dto/comment.dto';
 
 // CommentAdded 이벤트 시그니처 (V2)
 const COMMENT_ADDED_EVENT =
@@ -34,29 +35,42 @@ export class CommentService {
     /**
      * @description 게임 ID로 댓글 목록 조회 (사용자 좋아요 여부 포함)
      */
-    async getCommentsByGameId(gameId: string, userAddress: string | null) {
+    async getCommentsByGameId(
+        gameId: string,
+        userAddress: string | null,
+    ): Promise<Result<CommentListRespDto>> {
         try {
-            const comments = await this.commentRepository.findByGameId(gameId);
+            const comments =
+                await this.commentRepository.findByGameIdWithUserInfo(gameId);
 
-            // 사용자 지갑 주소가 있으면 좋아요 여부 조회
+            // 사용자 총 펀딩 금액 조회
+            let userTotalFunding = '0';
             if (userAddress) {
                 const normalizedAddress = userAddress.toLowerCase();
-                const commentIds = comments.map((c) => c.id);
-                const likedMap = await this.commentRepository.getUserLikedMap(
+                userTotalFunding = await this.commentRepository.getUserFundingByGameId(
+                    gameId,
                     normalizedAddress,
-                    commentIds,
                 );
-
-                const commentsWithLiked = comments.map((comment) => ({
-                    ...comment,
-                    isLiked: likedMap.get(comment.id) ?? false,
-                    likeCount: comment.likeCount,
-                }));
-
-                return Result.ok({ comments: commentsWithLiked });
             }
 
-            return Result.ok({ comments });
+            // 좋아요 여부 조회
+            const commentIds = comments.map((c) => c.comment.id);
+            let likedMap = new Map<number, boolean>();
+            if (userAddress && commentIds.length > 0) {
+                likedMap = await this.commentRepository.getUserLikedMap(
+                    userAddress.toLowerCase(),
+                    commentIds,
+                );
+            }
+
+            const commentsListDTO = comments.map((c) => ({
+                comment: c.comment,
+                commentorProfileUrl: c.commentorProfileUrl ?? '',
+                userName: c.userName ?? '',
+                hasUserLiked: likedMap.get(c.comment.id) ?? false,
+            }));
+
+            return Result.ok({ userTotalFunding, commentsListDTO });
         } catch (error) {
             this.logger.error(`Get comments by game failed: ${error.message}`);
             return Result.fail(
