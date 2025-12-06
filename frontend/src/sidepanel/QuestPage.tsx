@@ -1,8 +1,5 @@
-import ProfileBox from "@/assets/profile_box.png";
-import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { navigateBackAtom } from "./atoms/pageAtoms";
-import { sessionAtom } from "./atoms/sessionAtoms";
+import TopBar from "./components/TopBar";
 
 export type QuestTypes = 'attendance' | 'comments';
 
@@ -17,9 +14,6 @@ export interface QuestItem {
 }
 
 export default function QuestPage() {
-    const navigateBack = useSetAtom(navigateBackAtom);
-    const session = useAtomValue(sessionAtom);
-    const { user } = session;
     const [quests, setQuests] = useState<QuestItem[]>([]);
 
     // TODO: API 호출로 실제 데이터 가져오기
@@ -102,26 +96,7 @@ export default function QuestPage() {
 
     return (
         <div className="flex flex-col items-center justify-center h-full">
-            <div className="flex items-center px-5 h-24 w-full">
-                <img src='/icon/back_icon.png' className="w-8 h-8" onClick={navigateBack} />
-
-                <div className="flex items-center ml-auto gap-x-2">
-                    <div className="flex flex-col items-end justify-center ">
-                        <span className="text-base font-regular text-gold-gradient-smooth">{user?.userName}</span>
-                        <span className="text-xs font-regular text-gold-gradient-smooth">#{user?.userTag}</span>
-                    </div>
-
-                    <div>
-                        {user && user?.profileImage &&
-                            <div className="relative w-16 h-16 overflow-hidden p-1">
-                                <img src={ProfileBox} className="w-full h-full absolute inset-0" />
-                                <img src={user.profileImage} alt="Profile" className="w-full h-full" />
-                            </div>
-
-                        }
-                    </div>
-                </div>
-            </div>
+            <TopBar />
 
             <div className="flex items-center justify-center gap-x-5 pb-5">
                 <img src='/icon/quests/quest_box_default.png' className="w-10 h-10" />
