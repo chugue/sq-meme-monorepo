@@ -1,0 +1,50 @@
+/* 별 반짝임 애니메이션 */
+.star {
+    animation: twinkle 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* 각 별이 다른 속도로 반짝이도록 */
+.star:nth-child(odd) {
+    animation-duration: 2s;
+}
+
+.star:nth-child(even) {
+    animation-duration: 4s;
+}
+
+
+/* 로고 float 애니메이션 */
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.animate-float {
+    animation: float 2s ease-in-out infinite;
+}
+
+/* 로고 이미지 렌더링 스타일 */
+.logo-pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+

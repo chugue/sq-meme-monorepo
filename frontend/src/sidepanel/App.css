@@ -1,12 +1,108 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import "tailwindcss";
+
+/* Pretendard 폰트 */
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Thin.woff2') format('woff2');
+    font-weight: 100;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraLight.woff2') format('woff2');
+    font-weight: 200;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Black.woff2') format('woff2');
+    font-weight: 900;
+    font-display: swap;
+}
 
 /* 픽셀 아트 폰트 import */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+
+@layer base {
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* 기본 rem 설정 - 화면 크기별로 조정 */
+    html {
+        font-size: 18px;
+        /* 기본 (큰 화면) */
+    }
+
+    /* 중간 화면 (태블릿) */
+    @media (max-width: 1024px) {
+        html {
+            font-size: 16px;
+        }
+    }
+
+    /* 작은 화면 (모바일) */
+    @media (max-width: 768px) {
+        html {
+            font-size: 14px;
+        }
+    }
+
+    /* 매우 작은 화면 */
+    @media (max-width: 480px) {
+        html {
+            font-size: 12px;
+        }
+    }
 }
+
 
 body {
     font-family: 'Press Start 2P', 'Courier New', monospace;
@@ -44,5 +140,275 @@ body {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes zoom-out {
+    0% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ============================================
+   Tailwind v4 Theme Configuration (CSS Variables)
+   ============================================ */
+
+:root {
+    /* 커스텀 폰트 패밀리 */
+    --font-family-pixel: "Press Start 2P", "Courier New", monospace;
+    --font-family-pixel-alt: "PressStart2P", "Courier New", monospace;
+    --font-family-pretendard: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+    /* 황금/갈색 색상 팔레트 */
+    --color-gold-light: #FFE9BD;
+    --color-gold-medium: #F5D89C;
+    --color-gold-base: #E0B372;
+    --color-gold-dark: #D4A574;
+    --color-gold-darker: #C9A961;
+    --color-gold-bold-light: #FFF8E7;
+    --color-gold-bold-base: #FFD700;
+    --color-gold-bold-dark: #8B6914;
+    --color-gold-stroke: #361807;
+
+    /* 오렌지/황금 색상 */
+    --color-orange: #ffa500;
+    --color-yellow: #ffff00;
+}
+
+/* 그라데이션 애니메이션 키프레임 */
+@keyframes gradient-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 200% 50%;
+    }
+}
+
+/* ============================================
+   Tailwind v4 Custom Utilities Layer
+   ============================================ */
+
+@layer utilities {
+
+    /* 배경 이미지 줌아웃 애니메이션 */
+    .animate-zoom-out {
+        animation: zoom-out 2s ease-out forwards;
+    }
+
+    /* 픽셀 폰트 유틸리티 */
+    .font-pixel {
+        font-family: var(--font-family-pixel);
+    }
+
+    .font-pixel-alt {
+        font-family: var(--font-family-pixel-alt);
+    }
+
+    /* Pretendard 폰트 유틸리티 */
+    .font-pretendard {
+        font-family: var(--font-family-pretendard);
+    }
+
+    /* 기본 황금/갈색 그라데이션 텍스트 */
+    .text-gold-gradient {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(112.47deg, var(--color-gold-light) 37.39%, var(--color-gold-base) 81.42%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        -webkit-paint-order: stroke fill;
+        paint-order: stroke fill;
+        -webkit-text-stroke: 0.5px var(--color-gold-stroke);
+    }
+
+    /* 부드러운 황금/갈색 그라데이션 (흐르는 애니메이션) */
+    .text-gold-gradient-smooth {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(112.47deg,
+                var(--color-gold-light) 0%,
+                var(--color-gold-medium) 20%,
+                var(--color-gold-base) 40%,
+                var(--color-gold-dark) 60%,
+                var(--color-gold-light) 80%,
+                var(--color-gold-base) 100%);
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        -webkit-paint-order: stroke fill;
+        paint-order: stroke fill;
+        -webkit-text-stroke: 0.5px var(--color-gold-stroke);
+        animation: gradient-flow 3s linear infinite;
+    }
+
+    /* 오렌지/황금 그라데이션 */
+    .text-orange-gold-gradient {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(45deg, var(--color-orange), var(--color-yellow), var(--color-orange));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        filter: drop-shadow(0 0 5px rgba(255, 165, 0, 0.8));
+    }
+
+    /* 강렬한 황금/갈색 그라데이션 */
+    .text-gold-gradient-bold {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(112.47deg,
+                var(--color-gold-bold-light) 0%,
+                var(--color-gold-bold-base) 12.5%,
+                var(--color-gold-darker) 25%,
+                var(--color-gold-bold-dark) 37.5%,
+                var(--color-gold-bold-light) 50%,
+                var(--color-gold-bold-base) 62.5%,
+                var(--color-gold-darker) 75%,
+                var(--color-gold-bold-dark) 87.5%,
+                var(--color-gold-bold-light) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+    }
+
+    /* 픽셀 폰트 + 황금 그라데이션 (조합) */
+    .text-pixel-gold {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(112.47deg, var(--color-gold-light) 37.39%, var(--color-gold-base) 81.42%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        -webkit-paint-order: stroke fill;
+        paint-order: stroke fill;
+        -webkit-text-stroke: 0.5px var(--color-gold-stroke);
+    }
+
+    /* 픽셀 폰트 + 오렌지/황금 그라데이션 (조합) */
+    .text-pixel-orange-gold {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(45deg, var(--color-orange), var(--color-yellow), var(--color-orange));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        filter: drop-shadow(0 0 5px rgba(255, 165, 0, 0.8));
+    }
+
+    /* 픽셀 폰트 + 흐르는 황금 그라데이션 (조합) */
+    .text-pixel-gold-flow {
+        font-family: var(--font-family-pixel);
+        background: linear-gradient(112.47deg,
+                var(--color-gold-light) 0%,
+                var(--color-gold-medium) 20%,
+                var(--color-gold-base) 40%,
+                var(--color-gold-dark) 60%,
+                var(--color-gold-light) 80%,
+                var(--color-gold-base) 100%);
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        -webkit-paint-order: stroke fill;
+        paint-order: stroke fill;
+        -webkit-text-stroke: 0.5px var(--color-gold-stroke);
+        animation: gradient-flow 3s linear infinite;
+    }
+
+    /* 픽셀 폰트 기본 (흰색) */
+    .text-pixel-white {
+        font-family: var(--font-family-pixel);
+        color: #fff;
+    }
+
+    /* 픽셀 폰트 기본 (회색) */
+    .text-pixel-gray {
+        font-family: var(--font-family-pixel);
+        color: #808080;
+    }
+
+
+    .chat-bubble {
+        position: relative;
+        background-color: #000000a0;
+        width: fit-content;
+    }
+
+    /* ::before: 흰색 테두리 꼬리 (불투명 검은색 꼬리 위에 덮임) */
+    .chat-bubble::before {
+        content: '';
+        position: absolute;
+        bottom: -17px;
+        right: calc(25% - 2px);
+
+        border-style: solid;
+        /* 17px 크기 */
+        border-width: 17px 17px 0 0;
+
+        /* 꼬리 테두리 색상: 흰색 (완전 불투명) */
+        border-color: white transparent transparent transparent;
+        z-index: 2;
+        /* 꼬리 본체(::after)보다 위에 위치해야 테두리가 보입니다. */
+    }
+
+    /* ::after: 꼬리 본체 (완전히 불투명한 검은색으로 비침 방지) */
+    .chat-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        right: 25%;
+
+        border-style: solid;
+        /* 15px 크기 */
+        border-width: 15px 15px 0 0;
+
+        /* 꼬리 배경색: 본체 반투명 색상(#000000a0)의 불투명 버전인 #000000을 사용합니다.
+       이 불투명 꼬리가 뒤의 요소를 가려주어 비침을 막고, 
+       그 위에 흰색 테두리가 올라타게 됩니다. */
+        border-color: #000000 transparent transparent transparent;
+        z-index: 3;
+        /* ::before 위에 위치하도록 수정 */
+    }
+
+
+    /* 다시 수정된 Z-INDEX */
+    .chat-bubble::before {
+        /* 꼬리 테두리 (흰색, 바깥쪽) */
+        z-index: 10;
+    }
+
+    .chat-bubble::after {
+        /* 꼬리 본체 (불투명 검은색, 안쪽) */
+        z-index: 11;
+        /* 흰색 테두리 꼬리보다 위에 있어서는 안 됩니다. 테두리를 구성하는 레이어입니다. */
+        z-index: 9;
+        /* 본체 아래로 내려서 테두리가 본체를 감싸도록 합니다. */
+    }
+
+    .chat-bubble::before {
+        /* 흰색 테두리 (큰 꼬리) */
+        border-color: white transparent transparent transparent;
+        z-index: 10;
+        bottom: -16px;
+        right: calc(25% - 2px);
+        border-width: 16px 16px 0 0;
+    }
+
+    .chat-bubble::after {
+        /* 불투명 검은색 꼬리 (작은 꼬리, 본체 색상 대용) */
+        border-color: #000000 transparent transparent transparent;
+        z-index: 11;
+        bottom: -15px;
+        right: 25%;
+        border-width: 14px 13px 1px 0;
     }
 }
