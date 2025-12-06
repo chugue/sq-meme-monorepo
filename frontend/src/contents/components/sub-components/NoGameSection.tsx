@@ -143,10 +143,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     const handleGameCreated = (gameId: string) => {
         setIsModalOpen(false);
         onGameCreated?.(gameId);
-        // memex 포스팅 페이지로 리다이렉트
-        window.location.href =
-            "https://app.memex.xyz/posting?un=codingcat&ut=fE9Dd8";
-        console.log("게임 생성 완료");
+        window.location.reload();
     };
 
     const tokenSymbol = currentPageInfo?.symbol
