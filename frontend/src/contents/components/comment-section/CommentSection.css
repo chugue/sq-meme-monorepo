@@ -135,8 +135,7 @@
     padding: 14px 8px;
     width: 100%;
     max-width: 253px;
-    gap: 2px;
-    margin-top: 36px;
+    margin-top: 50px;
     background: rgba(0, 0, 0, 0.6);
     border: 2px dashed #003c26;
     border-radius: 10px;
@@ -157,9 +156,9 @@
     justify-content: center;
     align-items: center;
     padding: 4px 20px;
-    margin-top: 22px;
-    gap: 8px;
-    width: fit-content;
+    margin-top: 27px;
+    gap: 0;
+    max-width: 90%;
     background: rgba(19, 19, 19, 0.8);
     border: 2px dashed #003c26;
     border-radius: 51.81px;
@@ -169,6 +168,8 @@
     left: 50%;
     transform: translate(-50%, 30%);
     z-index: 3;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .squid-prize-label {

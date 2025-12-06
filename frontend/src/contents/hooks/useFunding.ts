@@ -2,9 +2,11 @@
  * 펀딩 로직을 캡슐화하는 커스텀 훅
  */
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import type { Address } from "viem";
 import { parseUnits } from "viem";
+import type { Comment } from "../types/comment";
 import type { ActiveGameInfo } from "../atoms/commentAtoms";
 import { backgroundApi } from "../lib/backgroundApi";
 import {
@@ -40,6 +42,7 @@ export function useFunding({
     connect,
     ensureNetwork,
 }: UseFundingParams): UseFundingReturn {
+    const queryClient = useQueryClient();
     const [fundingAmount, setFundingAmount] = useState("");
     const [isFunding, setIsFunding] = useState(false);
 
@@ -164,14 +167,16 @@ export function useFunding({
                 blockNumber: receipt.blockNumber,
             });
 
-            // 백엔드에 펀딩 저장 및 totalFunding 업데이트
+            // 백엔드에 펀딩 저장 및 totalFunding, userFundingShare 업데이트
             try {
                 const fundingResult = await backgroundApi.saveFunding({
                     txHash: fundResult.hash,
+                    userAddress: address,
                 });
                 logger.info("백엔드에 펀딩 저장 완료", {
                     fundingResult,
                     totalFunding: fundingResult?.totalFunding,
+                    userFundingShare: fundingResult?.userFundingShare,
                     activeGameInfoId: activeGameInfo?.id,
                 });
 
@@ -186,6 +191,29 @@ export function useFunding({
                         after: updatedGameInfo.totalFunding,
                     });
                     setActiveGameInfo(updatedGameInfo);
+                }
+
+                // useComments 캐시의 userFundingShare 업데이트
+                if (
+                    fundingResult?.userFundingShare !== undefined &&
+                    activeGameInfo?.id
+                ) {
+                    queryClient.setQueryData<{
+                        comments: Comment[];
+                        userFundingShare: number;
+                    }>(
+                        ["comments", activeGameInfo.id, address],
+                        (oldData) => {
+                            if (!oldData) return oldData;
+                            return {
+                                ...oldData,
+                                userFundingShare: fundingResult.userFundingShare,
+                            };
+                        },
+                    );
+                    logger.info("userFundingShare 캐시 업데이트", {
+                        userFundingShare: fundingResult.userFundingShare,
+                    });
                 }
             } catch (apiError) {
                 logger.warn("백엔드 펀딩 저장 실패 (트랜잭션은 성공)", {
@@ -224,6 +252,7 @@ export function useFunding({
         ensureNetwork,
         activeGameInfo,
         setActiveGameInfo,
+        queryClient,
     ]);
 
     return {

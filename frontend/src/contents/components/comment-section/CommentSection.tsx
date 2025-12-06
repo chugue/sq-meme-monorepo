@@ -23,6 +23,14 @@ import "./CommentSection.css";
 import { FlipTimer } from "./FlipTimer";
 import { WalletConnectionUI } from "./WalletConnectionUI";
 
+// 큰 숫자를 축약 표시 (예: 1,234,567 -> 1.23M)
+function formatCompactNumber(num: number): string {
+    if (num >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "M";
+    }
+    return num.toLocaleString();
+}
+
 export function CommentSection() {
     // 폰트 로드
     useEffect(() => {
@@ -43,8 +51,14 @@ export function CommentSection() {
     // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
     const hasValidGame = !!activeGameInfo?.id;
     const gameId = hasValidGame ? activeGameInfo.id : null;
-    const { comments, isLoading, refetch, toggleLike, isTogglingLike } =
-        useComments(gameId, address);
+    const {
+        comments,
+        userFundingShare,
+        isLoading,
+        refetch,
+        toggleLike,
+        isTogglingLike,
+    } = useComments(gameId, address);
 
     const [showGameEndedModal, setShowGameEndedModal] = useState(false);
     const [scrollbarOpacity, setScrollbarOpacity] = useState(0);
@@ -196,11 +210,15 @@ export function CommentSection() {
                             <div className="squid-prize-display">
                                 <span className="squid-prize-value">
                                     {activeGameInfo?.totalFunding
-                                        ? formatUnits(
-                                              BigInt(
-                                                  activeGameInfo.totalFunding,
+                                        ? formatCompactNumber(
+                                              Number(
+                                                  formatUnits(
+                                                      BigInt(
+                                                          activeGameInfo.totalFunding,
+                                                      ),
+                                                      18,
+                                                  ),
                                               ),
-                                              18,
                                           )
                                         : "0"}{" "}
                                     ${activeGameInfo?.tokenSymbol || "SQM"}
@@ -277,7 +295,7 @@ export function CommentSection() {
                                     My Share
                                 </span>
                                 <span className="squid-my-share-value">
-                                    12.8%
+                                    {userFundingShare.toFixed(1)}%
                                 </span>
                             </div>
                         </div>

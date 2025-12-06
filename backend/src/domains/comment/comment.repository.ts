@@ -29,6 +29,59 @@ export class CommentRepository {
     }
 
     /**
+     * @description 게임 ID로 댓글 목록 + 사용자 정보 조회
+     */
+    async findByGameIdWithUserInfo(gameId: string) {
+        return await this.db
+            .select({
+                comment: schema.comments,
+                commentorProfileUrl: schema.users.profileImage,
+                userName: schema.users.userName,
+            })
+            .from(schema.comments)
+            .leftJoin(
+                schema.users,
+                eq(schema.comments.commentor, schema.users.walletAddress),
+            )
+            .where(eq(schema.comments.gameId, gameId))
+            .orderBy(desc(schema.comments.createdAt));
+    }
+
+    /**
+     * @description 게임의 총 펀딩 금액 조회 (games 테이블)
+     */
+    async getTotalFundingByGameId(gameId: string): Promise<string> {
+        const [result] = await this.db
+            .select({ totalFunding: schema.games.totalFunding })
+            .from(schema.games)
+            .where(eq(schema.games.gameId, gameId))
+            .limit(1);
+
+        return result?.totalFunding ?? '0';
+    }
+
+    /**
+     * @description 특정 사용자의 게임 펀딩 금액 조회
+     */
+    async getUserFundingByGameId(
+        gameId: string,
+        userAddress: string,
+    ): Promise<string> {
+        const [result] = await this.db
+            .select({ totalFunding: schema.funders.totalFunding })
+            .from(schema.funders)
+            .where(
+                and(
+                    eq(schema.funders.gameId, gameId),
+                    eq(schema.funders.funderAddress, userAddress),
+                ),
+            )
+            .limit(1);
+
+        return result?.totalFunding ?? '0';
+    }
+
+    /**
      * @description 댓글 존재 여부 확인
      */
     async findById(commentId: number): Promise<{ id: number } | null> {

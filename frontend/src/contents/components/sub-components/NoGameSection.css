@@ -367,6 +367,11 @@
     text-shadow: -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000,
         2px 2px 4px #000, 0 4px 40px rgba(0, 0, 0, 0.5);
     margin: 0;
+    word-break: break-word;
+}
+
+.no-game-winner-prize span {
+    font-family: inherit;
 }
 
 /* Claim 버튼 - 새 디자인 */

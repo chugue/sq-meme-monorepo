@@ -11,8 +11,8 @@ export class FundersController {
     @ApiOperation({
         summary: 'Save funding by txHash (parse PrizePoolFunded event)',
     })
-    async saveFunding(@Body() body: { txHash: string }) {
-        return this.fundersService.saveFundingByTx(body.txHash);
+    async saveFunding(@Body() body: { txHash: string; userAddress?: string }) {
+        return this.fundersService.saveFundingByTx(body.txHash, body.userAddress);
     }
 
     @Get('by-game/:gameId')

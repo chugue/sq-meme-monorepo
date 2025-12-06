@@ -121,4 +121,25 @@ export class FundersRepository {
             return null;
         }
     }
+
+    /**
+     * @description 특정 사용자의 게임 펀딩 금액 조회
+     */
+    async getUserFundingByGameId(
+        gameId: string,
+        userAddress: string,
+    ): Promise<string> {
+        const [result] = await this.db
+            .select({ totalFunding: schema.funders.totalFunding })
+            .from(schema.funders)
+            .where(
+                and(
+                    eq(schema.funders.gameId, gameId),
+                    eq(schema.funders.funderAddress, userAddress.toLowerCase()),
+                ),
+            )
+            .limit(1);
+
+        return result?.totalFunding ?? '0';
+    }
 }

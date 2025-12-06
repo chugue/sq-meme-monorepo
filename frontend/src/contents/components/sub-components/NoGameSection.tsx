@@ -31,6 +31,14 @@ function shortenAddress(address: string): string {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+// 큰 숫자를 축약 표시 (예: 1,234,567 -> 1.23M)
+function formatCompactNumber(num: number): string {
+    if (num >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2).replace(/\.?0+$/, "") + "M";
+    }
+    return num.toLocaleString();
+}
+
 interface NoGameSectionProps {
     onGameCreated?: (gameId: string) => void;
 }
@@ -316,12 +324,16 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                                 </span>
                             </div>
                             <div className="no-game-winner-prize">
-                                prize :{" "}
-                                {(
-                                    BigInt(endedGameInfo.prizePool) /
-                                    BigInt(10 ** 18)
-                                ).toString()}
-                                {tokenSymbol}
+                                <span>prize :</span>{" "}
+                                <span style={{ whiteSpace: "nowrap" }}>
+                                    {formatCompactNumber(
+                                        Number(
+                                            BigInt(endedGameInfo.prizePool) /
+                                                BigInt(10 ** 18),
+                                        ),
+                                    )}{" "}
+                                    {tokenSymbol}
+                                </span>
                             </div>
                         </div>
                         <img
