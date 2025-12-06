@@ -182,7 +182,7 @@ export class CommentService {
      */
     async createComment(
         dto: CreateCommentDto,
-    ): Promise<Result<{ id: number }>> {
+    ): Promise<Result<{ id: number; newEndTime: string }>> {
         try {
             // 1. 중복 체크
             const existing = await this.commentRepository.findByTxHash(
@@ -190,7 +190,7 @@ export class CommentService {
             );
             if (existing) {
                 this.logger.warn(`중복 댓글 요청: txHash ${dto.txHash}`);
-                return Result.ok(existing);
+                return Result.fail('이미 처리된 댓글입니다.', HttpStatus.CONFLICT);
             }
 
             // 2. 트랜잭션 영수증 조회
@@ -268,7 +268,7 @@ export class CommentService {
                 );
             }
 
-            return Result.ok(result);
+            return Result.ok({ id: result.id, newEndTime });
         } catch (error) {
             this.logger.error(`Create comment failed: ${error.message}`);
             return Result.fail(
