@@ -3,10 +3,11 @@
  * V2 컨트랙트 사용 - 스마트 컨트랙트 직접 호출
  */
 
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
+import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
 import { useComments } from "../../hooks/useComments";
 import { useCommentSubmit } from "../../hooks/useCommentSubmit";
 import { useFunding } from "../../hooks/useFunding";
@@ -48,6 +49,7 @@ export function CommentSection() {
     } = useWallet();
 
     const [activeGameInfo, setActiveGameInfo] = useAtom(activeGameInfoAtom);
+    const currentPageInfo = useAtomValue(currentPageInfoAtom);
     // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
     const hasValidGame = !!activeGameInfo?.id;
     const gameId = hasValidGame ? activeGameInfo.id : null;
@@ -61,6 +63,7 @@ export function CommentSection() {
     } = useComments(gameId, address);
 
     const [showGameEndedModal, setShowGameEndedModal] = useState(false);
+    const [fundingInputError, setFundingInputError] = useState(false);
     const [scrollbarOpacity, setScrollbarOpacity] = useState(0);
     const [scrollTop, setScrollTop] = useState(0);
     const [scrollHeight, setScrollHeight] = useState(0);
@@ -249,13 +252,13 @@ export function CommentSection() {
                                     <div className="squid-funding-token-badge">
                                         <span>
                                             $
-                                            {activeGameInfo?.tokenSymbol ||
-                                                "SQM"}
+                                            {currentPageInfo?.symbol?.toUpperCase() ||
+                                                "TOKEN"}
                                         </span>
                                     </div>
                                     <input
                                         type="text"
-                                        className="squid-funding-input"
+                                        className={`squid-funding-input${fundingInputError ? " error" : ""}`}
                                         value={
                                             fundingAmount
                                                 ? Number(
@@ -274,6 +277,7 @@ export function CommentSection() {
                                                 /^\d*\.?\d*$/.test(value)
                                             ) {
                                                 setFundingAmount(value);
+                                                setFundingInputError(false);
                                             }
                                         }}
                                         placeholder="Enter amount"
@@ -282,7 +286,13 @@ export function CommentSection() {
                                 <button
                                     type="button"
                                     className="squid-funding-button"
-                                    onClick={handleFund}
+                                    onClick={() => {
+                                        if (!fundingAmount || fundingAmount === "0") {
+                                            setFundingInputError(true);
+                                            return;
+                                        }
+                                        handleFund();
+                                    }}
                                     disabled={isFunding}
                                 >
                                     Fund
