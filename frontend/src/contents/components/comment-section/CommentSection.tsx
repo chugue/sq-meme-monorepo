@@ -39,29 +39,14 @@ export function CommentSection() {
         loadFont(FONTS.PRESS_START_2P);
     }, []);
 
-    const {
-        isConnected,
-        address,
-        connect,
-        disconnect,
-        ensureNetwork,
-        isLoading: walletLoading,
-        error: walletError,
-    } = useWallet();
+    const { isConnected, address, connect, disconnect, ensureNetwork, isLoading: walletLoading, error: walletError } = useWallet();
 
     const [activeGameInfo, setActiveGameInfo] = useAtom(activeGameInfoAtom);
     const currentPageInfo = useAtomValue(currentPageInfoAtom);
     // activeGameInfo가 있어도 id가 유효하지 않으면 게임이 없는 것으로 처리
     const hasValidGame = !!activeGameInfo?.id;
     const gameId = hasValidGame ? activeGameInfo.id : null;
-    const {
-        comments,
-        userTotalFunding,
-        isLoading,
-        refetch,
-        toggleLike,
-        isTogglingLike,
-    } = useComments(gameId, address);
+    const { comments, userTotalFunding, isLoading, refetch, toggleLike, isTogglingLike } = useComments(gameId, address);
 
     const [showGameEndedModal, setShowGameEndedModal] = useState(false);
     const [fundingInputError, setFundingInputError] = useState(false);
@@ -69,9 +54,7 @@ export function CommentSection() {
 
     // totalFunding 값 (FlipPrize에서 애니메이션 처리)
     const totalFundingFormatted = activeGameInfo?.totalFunding
-        ? formatCompactNumber(
-              Number(formatUnits(BigInt(activeGameInfo.totalFunding), 18))
-          )
+        ? formatCompactNumber(Number(formatUnits(BigInt(activeGameInfo.totalFunding), 18)))
         : "0";
 
     const [scrollTop, setScrollTop] = useState(0);
@@ -104,25 +87,17 @@ export function CommentSection() {
     }, [activeGameInfo?.endTime]);
 
     // 펀딩 훅
-    const { fundingAmount, setFundingAmount, isFunding, handleFund } =
-        useFunding({
-            activeGameInfo,
-            setActiveGameInfo,
-            address,
-            isConnected,
-            connect,
-            ensureNetwork,
-        });
+    const { fundingAmount, setFundingAmount, isFunding, handleFund } = useFunding({
+        activeGameInfo,
+        setActiveGameInfo,
+        address,
+        isConnected,
+        connect,
+        ensureNetwork,
+    });
 
     // 댓글 제출 훅
-    const {
-        newComment,
-        setNewComment,
-        commentImageUrl,
-        setCommentImageUrl,
-        isSubmitting,
-        handleSubmit,
-    } = useCommentSubmit({
+    const { newComment, setNewComment, commentImageUrl, setCommentImageUrl, isSubmitting, handleSubmit } = useCommentSubmit({
         activeGameInfo,
         setActiveGameInfo,
         address,
@@ -149,24 +124,12 @@ export function CommentSection() {
     }, []);
 
     // 스크롤바 위치 및 크기 계산ㄴ
-    const scrollbarHeight =
-        scrollHeight > 0
-            ? Math.max((clientHeight / scrollHeight) * clientHeight, 30)
-            : 0;
-    const scrollbarTop =
-        scrollHeight > clientHeight
-            ? (scrollTop / (scrollHeight - clientHeight)) *
-              (clientHeight - scrollbarHeight)
-            : 0;
+    const scrollbarHeight = scrollHeight > 0 ? Math.max((clientHeight / scrollHeight) * clientHeight, 30) : 0;
+    const scrollbarTop = scrollHeight > clientHeight ? (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - scrollbarHeight) : 0;
     const showScrollbar = scrollHeight > clientHeight;
 
     return (
-        <div
-            className="squid-comment-section"
-            data-testid="squid-comment-section"
-            onScroll={handleScroll}
-            ref={containerRef}
-        >
+        <div className="squid-comment-section" data-testid="squid-comment-section" onScroll={handleScroll} ref={containerRef}>
             {/* 커스텀 스크롤바 */}
             {showScrollbar && (
                 <div
@@ -200,30 +163,17 @@ export function CommentSection() {
                 <>
                     {/* 게임 헤더 섹션 */}
                     <div className="squid-game-header">
-                        <img
-                            src={getExtensionImageUrl("icon/pig.png")}
-                            alt=""
-                            className="squid-bg-pig"
-                        />
+                        <img src={getExtensionImageUrl("icon/pig.png")} alt="" className="squid-bg-pig" />
                         <div className="squid-game-title">
-                            <span className="squid-title-yellow">
-                                LAST COMMENTOR
-                            </span>
-                            <span className="squid-title-purple">
-                                WILL WIN THE PRIZE!
-                            </span>
+                            <span className="squid-title-yellow">LAST COMMENTOR</span>
+                            <span className="squid-title-purple">WILL WIN THE PRIZE!</span>
                         </div>
-                        <img
-                            src={getExtensionImageUrl("icon/legion.png")}
-                            alt=""
-                            className="squid-timer-bg"
-                        />
+                        <img src={getExtensionImageUrl("icon/legion.png")} alt="" className="squid-timer-bg" />
 
                         <div className="squid-timer-wrapper">
                             <div className="squid-prize-display">
                                 <span className="squid-prize-value">
-                                    <FlipPrize value={totalFundingFormatted} />{" "}
-                                    ${currentPageInfo?.symbol?.toUpperCase() || "TOKEN"}
+                                    <FlipPrize value={totalFundingFormatted} /> ${currentPageInfo?.symbol?.toUpperCase() || "TOKEN"}
                                 </span>
                             </div>
                             <div className="squid-game-timer">
@@ -239,44 +189,21 @@ export function CommentSection() {
                     <div className="squid-funding-section">
                         <div className="squid-funding-card">
                             <div className="squid-funding-header">
-                                <span className="squid-funding-title">
-                                    Fund this Prize Pool
-                                </span>
-                                <p className="squid-funding-desc">
-                                    Earn comment fees based on your share
-                                </p>
+                                <span className="squid-funding-title">Fund this Prize Pool</span>
+                                <p className="squid-funding-desc">Earn comment fees based on your share</p>
                             </div>
                             <form className="squid-funding-form">
                                 <div className="squid-funding-amount-row">
                                     <div className="squid-funding-token-badge">
-                                        <span>
-                                            $
-                                            {currentPageInfo?.symbol?.toUpperCase() ||
-                                                "TOKEN"}
-                                        </span>
+                                        <span>${currentPageInfo?.symbol?.toUpperCase() || "TOKEN"}</span>
                                     </div>
                                     <input
                                         type="text"
-                                        className={`squid-funding-input${
-                                            fundingInputError ? " error" : ""
-                                        }`}
-                                        value={
-                                            fundingAmount
-                                                ? Number(
-                                                      fundingAmount,
-                                                  ).toLocaleString()
-                                                : ""
-                                        }
+                                        className={`squid-funding-input${fundingInputError ? " error" : ""}`}
+                                        value={fundingAmount ? Number(fundingAmount).toLocaleString() : ""}
                                         onChange={(e) => {
-                                            const value =
-                                                e.target.value.replace(
-                                                    /,/g,
-                                                    "",
-                                                );
-                                            if (
-                                                value === "" ||
-                                                /^\d*\.?\d*$/.test(value)
-                                            ) {
+                                            const value = e.target.value.replace(/,/g, "");
+                                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
                                                 setFundingAmount(value);
                                                 setFundingInputError(false);
                                             }
@@ -288,10 +215,7 @@ export function CommentSection() {
                                     type="button"
                                     className="squid-funding-button"
                                     onClick={() => {
-                                        if (
-                                            !fundingAmount ||
-                                            fundingAmount === "0"
-                                        ) {
+                                        if (!fundingAmount || fundingAmount === "0") {
                                             setFundingInputError(true);
                                             return;
                                         }
@@ -305,13 +229,12 @@ export function CommentSection() {
                         </div>
                         <div className="squid-my-share-card">
                             <div className="squid-my-share-row">
-                                <span className="squid-my-share-label">
-                                    My Share
-                                </span>
+                                <span className="squid-my-share-label">My Share</span>
                                 <span className="squid-my-share-value">
                                     {activeGameInfo?.totalFunding && BigInt(activeGameInfo.totalFunding) > 0n
                                         ? ((Number(userTotalFunding) / Number(activeGameInfo.totalFunding)) * 100).toFixed(1)
-                                        : "0.0"}%
+                                        : "0.0"}
+                                    %
                                 </span>
                             </div>
                         </div>
@@ -320,9 +243,7 @@ export function CommentSection() {
                     {/* 댓글 섹션 헤더 */}
                     <div className="squid-comment-header">
                         <h3 className="squid-comment-title">COMMENTS</h3>
-                        <span className="squid-comment-count">
-                            {comments.length}
-                        </span>
+                        <span className="squid-comment-count">{comments.length}</span>
                     </div>
 
                     {/* 댓글 폼 */}
@@ -335,16 +256,8 @@ export function CommentSection() {
                         isSubmitting={isSubmitting}
                         isSigning={false}
                         isConnected={isConnected}
-                        tokenSymbol={activeGameInfo?.tokenSymbol}
-                        commentCost={
-                            activeGameInfo?.totalFunding
-                                ? formatUnits(
-                                      BigInt(activeGameInfo.totalFunding) /
-                                          10000n,
-                                      18,
-                                  )
-                                : undefined
-                        }
+                        tokenSymbol={currentPageInfo?.symbol ?? undefined}
+                        commentCost={activeGameInfo?.totalFunding ? formatUnits(BigInt(activeGameInfo.totalFunding) / 10000n, 18) : undefined}
                     />
 
                     {/* 댓글 리스트 */}
@@ -368,9 +281,7 @@ export function CommentSection() {
                 <div className="squid-no-game-section">
                     <div className="squid-no-game-icon">🎮</div>
                     <div className="squid-no-game-title">NO ACTIVE GAME</div>
-                    <p className="squid-no-game-description">
-                        There is no active game for this token yet.
-                    </p>
+                    <p className="squid-no-game-description">There is no active game for this token yet.</p>
                 </div>
             )}
 

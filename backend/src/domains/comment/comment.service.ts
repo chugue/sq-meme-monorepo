@@ -276,18 +276,19 @@ export class CommentService {
                 );
             }
 
-            // 사용자 totalComments 증가 및 퀘스트 업데이트
-            const user =
-                await this.usersRepository.findByWalletAddress(commentor);
+            // 사용자 totalComments 업데이트 및 퀘스트 업데이트
+            // 실제 댓글 수를 count해서 정확하게 업데이트
+            const actualCommentCount =
+                await this.commentRepository.getUsersCommentsCount(commentor);
 
-            if (user) {
-                const newTotalComments = (user.totalComments ?? 0) + 1;
-                await this.usersRepository.updateTotalComments(commentor);
-                await this.questRepository.updateCommentQuestsForUser(
-                    commentor,
-                    newTotalComments,
-                );
-            }
+            await this.usersRepository.updateTotalCommentsWithCount(
+                commentor,
+                actualCommentCount,
+            );
+            await this.questRepository.updateCommentQuestsForUser(
+                commentor,
+                actualCommentCount,
+            );
 
             return Result.ok({ id: result.id, newEndTime });
         } catch (error) {

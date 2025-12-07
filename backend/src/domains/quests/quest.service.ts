@@ -2,7 +2,18 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Result } from 'src/common/types';
 import { QuestItem, QuestRespDto } from './dto/quest.resp.dto';
 import { QuestRepository } from './quest.repository';
-import { UserQuest } from 'src/common/db/schema/quest.schema';
+import { QuestType, UserQuest } from 'src/common/db/schema/quest.schema';
+
+// 유효한 퀘스트 타입 목록
+const VALID_QUEST_TYPES = Object.values(QuestType);
+
+// 퀘스트 정렬 순서 (작은 목표가 먼저)
+const QUEST_ORDER: Record<string, number> = {
+    [QuestType.ATTENDANCE_5]: 1,
+    [QuestType.ATTENDANCE_20]: 2,
+    [QuestType.COMMENT_20]: 3,
+    [QuestType.COMMENT_50]: 4,
+};
 
 @Injectable()
 export class QuestService {
@@ -15,10 +26,19 @@ export class QuestService {
      */
     async getQuests(walletAddress: string): Promise<Result<QuestRespDto>> {
         try {
+            this.logger.log(`getQuests called with walletAddress: ${walletAddress}`);
+
             const userQuests =
                 await this.questRepository.findByWalletAddress(walletAddress);
 
-            const quests: QuestItem[] = userQuests.map((quest) => ({
+            // 유효한 퀘스트 타입만 필터링 후 정렬
+            const validQuests = userQuests
+                .filter((q) => VALID_QUEST_TYPES.includes(q.questType))
+                .sort((a, b) => (QUEST_ORDER[a.questType] ?? 99) - (QUEST_ORDER[b.questType] ?? 99));
+
+            this.logger.log(`Found ${validQuests.length} valid quests for ${walletAddress} (total: ${userQuests.length})`);
+
+            const quests: QuestItem[] = validQuests.map((quest) => ({
                 id: quest.id,
                 type: quest.questType.toLowerCase().startsWith('attendance')
                     ? 'attendance'

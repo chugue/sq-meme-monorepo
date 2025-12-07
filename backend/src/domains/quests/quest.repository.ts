@@ -20,12 +20,28 @@ export class QuestRepository {
 
     /**
      * @description 신규 유저에게 모든 퀘스트 초기화 (4개)
+     * 이미 퀘스트가 있으면 생성하지 않음
      */
     async initializeQuestsForUser(walletAddress: string): Promise<UserQuest[]> {
+        const normalizedAddress = walletAddress.toLowerCase();
+
+        // 이미 퀘스트가 있는지 확인
+        const existing = await this.db
+            .select()
+            .from(schema.userQuests)
+            .where(eq(schema.userQuests.userWalletAddress, normalizedAddress));
+
+        if (existing.length > 0) {
+            console.log(
+                `[QuestRepository] Quests already exist for ${normalizedAddress}, skipping initialization`,
+            );
+            return existing;
+        }
+
         const questTypes = Object.values(QuestType) as QuestTypeValue[];
 
         const newQuests: NewUserQuest[] = questTypes.map((questType) => ({
-            userWalletAddress: walletAddress.toLowerCase(),
+            userWalletAddress: normalizedAddress,
             questType,
             questTitle: QuestMeta[questType].title,
             description: QuestMeta[questType].description,
@@ -38,6 +54,10 @@ export class QuestRepository {
             .insert(schema.userQuests)
             .values(newQuests)
             .returning();
+
+        console.log(
+            `[QuestRepository] Created ${quests.length} quests for ${normalizedAddress}`,
+        );
 
         return quests;
     }
@@ -119,7 +139,43 @@ export class QuestRepository {
         const currentStreak = lastCheckIn?.currentStreak ?? 0;
         const walletAddress = user.walletAddress.toLowerCase();
 
-        await this.db
+        console.log(
+            `[QuestRepository] updateAttendanceQuests: wallet=${walletAddress}, streak=${currentStreak}`,
+        );
+
+        // 현재 퀘스트 상태 확인
+        const existingQuests = await this.db
+            .select()
+            .from(schema.userQuests)
+            .where(
+                and(
+                    eq(schema.userQuests.userWalletAddress, walletAddress),
+                    inArray(schema.userQuests.questType, [
+                        QuestType.ATTENDANCE_5,
+                        QuestType.ATTENDANCE_20,
+                    ]),
+                ),
+            );
+
+        console.log(
+            `[QuestRepository] existing attendance quests:`,
+            existingQuests.map((q) => ({
+                type: q.questType,
+                current: q.currentNumber,
+                target: q.targetNumber,
+                claimed: q.isClaimed,
+            })),
+        );
+
+        // 퀘스트가 없으면 초기화
+        if (existingQuests.length === 0) {
+            console.log(
+                `[QuestRepository] No quests found, initializing for ${walletAddress}`,
+            );
+            await this.initializeQuestsForUser(walletAddress);
+        }
+
+        const result = await this.db
             .update(schema.userQuests)
             .set({ currentNumber: currentStreak })
             .where(
@@ -132,7 +188,12 @@ export class QuestRepository {
                         QuestType.ATTENDANCE_20,
                     ]),
                 ),
-            );
+            )
+            .returning();
+
+        console.log(
+            `[QuestRepository] updateAttendanceQuests result: ${result.length} rows updated`,
+        );
     }
 
     /**
@@ -144,7 +205,26 @@ export class QuestRepository {
     ): Promise<void> {
         const walletAddress = commentor.toLowerCase();
 
-        await this.db
+        // 현재 퀘스트 상태 확인
+        const existingQuests = await this.db
+            .select()
+            .from(schema.userQuests)
+            .where(
+                and(
+                    eq(schema.userQuests.userWalletAddress, walletAddress),
+                    inArray(schema.userQuests.questType, [
+                        QuestType.COMMENT_20,
+                        QuestType.COMMENT_50,
+                    ]),
+                ),
+            );
+
+        // 퀘스트가 없으면 초기화
+        if (existingQuests.length === 0) {
+            await this.initializeQuestsForUser(walletAddress);
+        }
+
+        const result = await this.db
             .update(schema.userQuests)
             .set({ currentNumber: commentCount })
             .where(
@@ -157,6 +237,11 @@ export class QuestRepository {
                         QuestType.COMMENT_50,
                     ]),
                 ),
-            );
+            )
+            .returning();
+
+        console.log(
+            `[QuestRepository] updateCommentQuestsForUser result: ${result.length} rows updated`,
+        );
     }
 }
