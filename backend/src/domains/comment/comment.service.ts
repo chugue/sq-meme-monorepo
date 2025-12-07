@@ -14,9 +14,9 @@ import {
 } from './comment.repository';
 import { CommentListRespDto } from './dto/comment.dto';
 
-// CommentAdded 이벤트 시그니처 (V2)
+// CommentAdded 이벤트 시그니처 (V3)
 const COMMENT_ADDED_EVENT =
-    'event CommentAdded(uint256 indexed gameId, uint256 indexed commentId, address indexed commentor, string message, uint256 newEndTime, uint256 prizePool, uint256 timestamp)';
+    'event CommentAdded(uint256 indexed gameId, uint256 indexed commentId, address indexed commentor, uint256 cost, string message, uint256 newEndTime, uint256 totalFunding, uint256 timestamp)';
 
 @Injectable()
 export class CommentService {
@@ -33,7 +33,7 @@ export class CommentService {
     ) {
         this.commentAddedIface = new ethers.Interface([COMMENT_ADDED_EVENT]);
         this.contractAddress =
-            this.configService.get<string>('COMMENT_GAME_V2_ADDRESS') || '';
+            this.configService.get<string>('COMMENT_GAME_V3_ADDRESS') || '';
     }
 
     /**
@@ -250,7 +250,7 @@ export class CommentService {
             const commentor = rawEvent.commentor as string;
             const message = rawEvent.message as string;
             const newEndTime = rawEvent.newEndTime.toString();
-            const prizePool = rawEvent.prizePool.toString();
+            const totalFunding = rawEvent.totalFunding.toString();
             const timestamp = rawEvent.timestamp.toString();
 
             this.logger.log(
@@ -265,7 +265,7 @@ export class CommentService {
                 message,
                 imageUrl: dto.imageUrl,
                 newEndTime,
-                prizePool,
+                prizePool: totalFunding,
                 timestamp,
             });
 
@@ -276,18 +276,19 @@ export class CommentService {
                 );
             }
 
-            // 사용자 totalComments 증가 및 퀘스트 업데이트
-            const user =
-                await this.usersRepository.findByWalletAddress(commentor);
+            // 사용자 totalComments 업데이트 및 퀘스트 업데이트
+            // 실제 댓글 수를 count해서 정확하게 업데이트
+            const actualCommentCount =
+                await this.commentRepository.getUsersCommentsCount(commentor);
 
-            if (user) {
-                const newTotalComments = (user.totalComments ?? 0) + 1;
-                await this.usersRepository.updateTotalComments(commentor);
-                await this.questRepository.updateCommentQuestsForUser(
-                    commentor,
-                    newTotalComments,
-                );
-            }
+            await this.usersRepository.updateTotalCommentsWithCount(
+                commentor,
+                actualCommentCount,
+            );
+            await this.questRepository.updateCommentQuestsForUser(
+                commentor,
+                actualCommentCount,
+            );
 
             return Result.ok({ id: result.id, newEndTime });
         } catch (error) {

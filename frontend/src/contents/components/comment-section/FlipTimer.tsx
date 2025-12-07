@@ -35,7 +35,7 @@ interface FlipDigitProps {
 const FlipDigit = memo(function FlipDigit({ digit }: FlipDigitProps) {
     return (
         <span style={{ display: "inline-block", position: "relative" }}>
-            <AnimatePresence mode="popLayout" initial={false}>
+            <AnimatePresence mode="wait" initial={false}>
                 <motion.span
                     key={digit}
                     initial={{ y: -8, opacity: 0.5 }}

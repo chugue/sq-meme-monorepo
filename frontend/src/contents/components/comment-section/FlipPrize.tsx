@@ -38,7 +38,7 @@ const FlipDigit = memo(function FlipDigit({
                 height: "1.2em",
             }}
         >
-            <AnimatePresence mode="popLayout" initial={false}>
+            <AnimatePresence mode="wait" initial={false}>
                 <motion.span
                     key={`${animationKey}-${digit}`}
                     initial={{ y: "100%", opacity: 0 }}

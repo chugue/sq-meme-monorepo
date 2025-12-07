@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import { parseUnits, formatUnits } from "viem";
 
 /**
- * CommentGameV2 종합 테스트
+ * CommentGameV3 종합 테스트
  *
  * 테스트 시나리오:
  * 1. 게임 생성 테스트 - cost가 initialFunding의 0.01%로 자동 설정
@@ -14,7 +14,7 @@ import { parseUnits, formatUnits } from "viem";
  * 4. 상금 수령 테스트
  * 5. 복합 시나리오 테스트
  */
-describe("CommentGameV2", function () {
+describe("CommentGameV3", function () {
     // Fixture: 테스트 초기 상태 설정
     async function deployGameFixture(connection: any) {
         const [deployer, funder, commenter, other, feeCollector] =
@@ -27,8 +27,8 @@ describe("CommentGameV2", function () {
             "MTK",
         ]);
 
-        // 2. CommentGameV2 배포
-        const gameContract = await connection.viem.deployContract("CommentGameV2", [
+        // 2. CommentGameV3 배포
+        const gameContract = await connection.viem.deployContract("CommentGameV3", [
             feeCollector.account.address,
         ]);
 
@@ -159,7 +159,7 @@ describe("CommentGameV2", function () {
             await tokenAsFunder.write.approve([gameContract.address, additionalFunding]);
 
             const gameContractAsFunder = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: funder } }
             );
@@ -273,7 +273,7 @@ describe("CommentGameV2", function () {
             await tokenAsFunder.write.approve([gameContract.address, funderFunding]);
 
             const gameContractAsFunder = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: funder } }
             );
@@ -287,7 +287,7 @@ describe("CommentGameV2", function () {
             await tokenAsCommenter.write.approve([gameContract.address, cost]);
 
             const gameContractAsCommenter = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: commenter } }
             );
@@ -353,7 +353,7 @@ describe("CommentGameV2", function () {
             await tokenAsCommenter.write.approve([gameContract.address, cost]);
 
             const gameContractAsCommenter = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: commenter } }
             );
@@ -385,7 +385,7 @@ describe("CommentGameV2", function () {
             const gameId = await gameContract.read.getActiveGameId([token.address]);
 
             const gameContractAsCommenter = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: commenter } }
             );
@@ -427,7 +427,7 @@ describe("CommentGameV2", function () {
             await tokenAsCommenter.write.approve([gameContract.address, cost]);
 
             const gameContractAsCommenter = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: commenter } }
             );
@@ -476,7 +476,7 @@ describe("CommentGameV2", function () {
             await tokenAsCommenter.write.approve([gameContract.address, cost]);
 
             const gameContractAsCommenter = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: commenter } }
             );
@@ -488,7 +488,7 @@ describe("CommentGameV2", function () {
 
             // other가 상금 수령 시도 - 실패해야 함
             const gameContractAsOther = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: other } }
             );
@@ -563,7 +563,7 @@ describe("CommentGameV2", function () {
             });
             await tokenAsFunder.write.approve([gameContract.address, funderFunding]);
             const gameContractAsFunder = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: funder } }
             );
@@ -575,7 +575,7 @@ describe("CommentGameV2", function () {
             });
             await tokenAsOther.write.approve([gameContract.address, otherFunding]);
             const gameContractAsOther = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: other } }
             );
@@ -599,7 +599,7 @@ describe("CommentGameV2", function () {
             await tokenAsCommenter.write.approve([gameContract.address, cost * 2n]);
 
             const gameContractAsCommenter = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: commenter } }
             );
@@ -713,7 +713,7 @@ describe("CommentGameV2", function () {
             await tokenAsFunder.write.approve([gameContract.address, funding]);
 
             const gameContractAsFunder = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: funder } }
             );
@@ -751,7 +751,7 @@ describe("CommentGameV2", function () {
             const { gameContract, other, connection } = await loadFixture(deployGameFixture);
 
             const gameContractAsOther = await connection.viem.getContractAt(
-                "CommentGameV2",
+                "CommentGameV3",
                 gameContract.address,
                 { client: { wallet: other } }
             );

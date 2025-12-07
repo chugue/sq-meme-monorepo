@@ -165,8 +165,9 @@ export class UsersService {
 
         const lastCheckIn = history[history.length - 1];
 
-        // 오늘 이미 체크인 했으면 그대로 반환
+        // 오늘 이미 체크인 했으면 퀘스트만 업데이트하고 반환
         if (lastCheckIn?.day === today) {
+            await this.questRepository.updateAttendanceQuests(user);
             return user;
         }
 
@@ -247,7 +248,18 @@ export class UsersService {
                 return Result.ok({ user: null });
             }
 
-            // 출석 체크 업데이트
+            // 퀘스트가 없으면 초기화
+            const existingQuests = await this.questRepository.findByWalletAddress(
+                user.walletAddress,
+            );
+            if (existingQuests.length === 0) {
+                await this.questRepository.initializeQuestsForUser(
+                    user.walletAddress,
+                );
+                this.logger.log(`Quests initialized for: ${userName}#${userTag}`);
+            }
+
+            // 출석 체크 업데이트 (내부에서 출석 퀘스트도 업데이트)
             const updatedUser = await this.updateCheckIn(user);
             this.logger.log(`User check-in updated: ${userName}#${userTag}`);
 

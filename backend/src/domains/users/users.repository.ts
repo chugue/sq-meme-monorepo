@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { desc, eq, gt, inArray, sql } from 'drizzle-orm';
+import { desc, eq, gt, inArray } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DrizzleAsyncProvider } from 'src/common/db/db.module';
 import * as schema from 'src/common/db/schema';
@@ -132,13 +132,16 @@ export class UsersRepository {
     }
 
     /**
-     * @description 사용자의 총 댓글 수 1 증가
+     * @description 사용자의 총 댓글 수를 특정 값으로 업데이트
      */
-    async updateTotalComments(walletAddress: string): Promise<void> {
+    async updateTotalCommentsWithCount(
+        walletAddress: string,
+        count: number,
+    ): Promise<void> {
         await this.db
             .update(schema.users)
             .set({
-                totalComments: sql`${schema.users.totalComments} + 1`,
+                totalComments: count,
             })
             .where(eq(schema.users.walletAddress, walletAddress.toLowerCase()));
     }
@@ -154,9 +157,7 @@ export class UsersRepository {
             .orderBy(desc(schema.users.totalComments))
             .limit(limit);
 
-        this.logger.debug(
-            `getTopUsersByComments: found ${result.length} users`,
-        );
+        this.logger.log(`getTopUsersByComments: found ${result.length} users`);
 
         return result;
     }

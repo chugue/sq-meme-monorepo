@@ -25,12 +25,11 @@ export interface GameInfo {
 export const commentGameV2ABI = [
     // ============ State-Changing 함수 ============
 
-    // 게임 생성
+    // 게임 생성 (V3: _cost 파라미터 제거됨, cost = totalFunding / 10000 자동 계산)
     {
         inputs: [
             { internalType: 'address', name: '_gameToken', type: 'address' },
             { internalType: 'uint256', name: '_time', type: 'uint256' },
-            { internalType: 'uint256', name: '_cost', type: 'uint256' },
             { internalType: 'uint256', name: '_initialFunding', type: 'uint256' },
         ],
         name: 'createGame',
@@ -196,29 +195,34 @@ export const commentGameV2ABI = [
 
     // ============ 이벤트 ============
 
-    // 게임 생성 이벤트
+    // 게임 생성 이벤트 (V3: 완전히 새로운 구조)
     {
         anonymous: false,
         inputs: [
             { indexed: true, internalType: 'uint256', name: 'gameId', type: 'uint256' },
             { indexed: true, internalType: 'address', name: 'initiator', type: 'address' },
             { indexed: true, internalType: 'address', name: 'gameToken', type: 'address' },
-            { indexed: false, internalType: 'uint256', name: 'initialFunding', type: 'uint256' },
+            { indexed: false, internalType: 'uint256', name: 'cost', type: 'uint256' },
+            { indexed: false, internalType: 'uint256', name: 'gameTime', type: 'uint256' },
+            { indexed: false, internalType: 'string', name: 'tokenSymbol', type: 'string' },
             { indexed: false, internalType: 'uint256', name: 'endTime', type: 'uint256' },
+            { indexed: false, internalType: 'address', name: 'lastCommentor', type: 'address' },
+            { indexed: false, internalType: 'uint256', name: 'totalFunding', type: 'uint256' },
         ],
         name: 'GameCreated',
         type: 'event',
     },
-    // 댓글 추가 이벤트
+    // 댓글 추가 이벤트 (V3: cost 추가, prizePool → totalFunding)
     {
         anonymous: false,
         inputs: [
             { indexed: true, internalType: 'uint256', name: 'gameId', type: 'uint256' },
             { indexed: true, internalType: 'uint256', name: 'commentId', type: 'uint256' },
             { indexed: true, internalType: 'address', name: 'commentor', type: 'address' },
+            { indexed: false, internalType: 'uint256', name: 'cost', type: 'uint256' },
             { indexed: false, internalType: 'string', name: 'message', type: 'string' },
             { indexed: false, internalType: 'uint256', name: 'newEndTime', type: 'uint256' },
-            { indexed: false, internalType: 'uint256', name: 'prizePool', type: 'uint256' },
+            { indexed: false, internalType: 'uint256', name: 'totalFunding', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'timestamp', type: 'uint256' },
         ],
         name: 'CommentAdded',
@@ -232,12 +236,13 @@ export const commentGameV2ABI = [
         stateMutability: 'view',
         type: 'function',
     },
-    // 상금 풀 펀딩 이벤트
+    // 상금 풀 펀딩 이벤트 (V3: cost 추가)
     {
         anonymous: false,
         inputs: [
             { indexed: true, internalType: 'uint256', name: 'gameId', type: 'uint256' },
             { indexed: true, internalType: 'address', name: 'funder', type: 'address' },
+            { indexed: false, internalType: 'uint256', name: 'cost', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'amount', type: 'uint256' },
             { indexed: false, internalType: 'uint256', name: 'totalFunding', type: 'uint256' },
         ],
@@ -269,5 +274,5 @@ export const commentGameV2ABI = [
     },
 ] as const;
 
-// CommentGameV2 컨트랙트 주소 (환경변수 사용)
-export const COMMENT_GAME_V2_ADDRESS = import.meta.env.VITE_COMMENT_GAME_V2_ADDRESS || '0x0000000000000000000000000000000000000000';
+// CommentGameV3 컨트랙트 주소 (환경변수 사용)
+export const COMMENT_GAME_V2_ADDRESS = import.meta.env.VITE_COMMENT_GAME_V3_ADDRESS || '0x0000000000000000000000000000000000000000';

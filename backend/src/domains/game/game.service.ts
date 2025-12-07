@@ -36,7 +36,7 @@ export class GameService {
         this.prizeClaimedIface = new ethers.Interface([PRIZE_CLAIMED_EVENT]);
         this.gameCreatedIface = new ethers.Interface([GAME_CREATED_EVENT]);
         this.contractAddress =
-            this.configService.get<string>('COMMENT_GAME_V2_ADDRESS') || '';
+            this.configService.get<string>('COMMENT_GAME_V3_ADDRESS') || '';
     }
 
     /**

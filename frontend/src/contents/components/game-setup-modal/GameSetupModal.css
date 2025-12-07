@@ -378,7 +378,7 @@
 
 .squid-input:focus {
     outline: none;
-    border-color: #ff006e;
+    border-color: #672893;
 }
 
 .squid-input.error {
@@ -388,7 +388,7 @@
 .squid-input-suffix {
     font-size: 13px;
     color: #888;
-    min-width: 50px;
+    align-items: end;
 }
 
 .squid-input-error {
@@ -744,7 +744,7 @@
     margin: 0;
     font-family: "Pretendard", sans-serif;
     font-weight: 700;
-    font-size: 13.2px;
+    font-size: 16px;
     line-height: 100%;
     text-align: center;
     color: #ffffff;
@@ -755,7 +755,7 @@
     margin: 0;
     font-family: "Pretendard", sans-serif;
     font-weight: 400;
-    font-size: 12px;
+    font-size: 16px;
     line-height: 130%;
     text-align: center;
     color: #5e5e75;
@@ -811,7 +811,7 @@
 .balance-check-balance .balance-symbol {
     font-family: "Pretendard", sans-serif;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 12px;
     color: #b9a7ff;
 }
