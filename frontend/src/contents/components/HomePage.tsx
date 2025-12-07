@@ -14,7 +14,8 @@ export function HomePage() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3, ease: "easeOut", delay: 0.5 }}
             style={{
-                width: "366px",
+                width: "100%",
+                maxWidth: "366px",
                 height: "auto",
                 objectFit: "contain",
                 display: "block",
