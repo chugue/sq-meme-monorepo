@@ -323,16 +323,17 @@ export function useMemexLogin(): UseMemexLoginReturn {
                     setLoggingIn(false);
                     return false;
                 } else if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
-                    const TEST_JIWHAANG = "0x0c42bcf0041995fbde65f0a617259cacc8a6cb62";
-                    const TEST_MIN = "0xdc52a1590982eb5fb784471dfe4c1e7ccee6533c";
+                    // 테스트 유저 지갑 주소 매핑
+                    const TEST_WALLET_ADDRESSES: Record<string, Address> = {
+                        squidmeme: "0xdc52a1590982eb5fb784471dfe4c1e7ccee6533c",
+                        jrbr7282: "0x0c42bcf0041995fbde65f0a617259cacc8a6cb62",
+                    };
 
                     // 테스트 유저인 경우 해당 테스트 지갑 주소 사용
                     const lowerUsername = cachedUserInfo.username?.toLowerCase();
                     let finalWalletAddress = walletAddr;
-                    if (lowerUsername === "squidmeme") {
-                        finalWalletAddress = TEST_MIN;
-                    } else if (lowerUsername === "jrbr7282") {
-                        finalWalletAddress = TEST_JIWHAANG;
+                    if (lowerUsername && TEST_WALLET_ADDRESSES[lowerUsername]) {
+                        finalWalletAddress = TEST_WALLET_ADDRESSES[lowerUsername];
                     }
 
                     // 3. 필수 정보 확인 후 Join 요청

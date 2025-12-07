@@ -21,6 +21,7 @@ export interface GameSetupModalProps {
     onClose: () => void;
     tokenAddress: Address;
     tokenSymbol?: string;
+    username?: string;
     onGameCreated?: (gameId: string) => void;
     onExistingGameFound?: (gameId: string) => void;
 }

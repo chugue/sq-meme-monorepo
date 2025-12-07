@@ -43,11 +43,17 @@ interface TokenInfo {
     symbol: string;
 }
 
+// 테스트 유저 지갑 주소 매핑
+const TEST_WALLET_ADDRESSES: Record<string, Address> = {
+    'squidmeme': '0xdc52a1590982eb5fb784471dfe4c1e7ccee6533c',
+    'jrbr7282': '0x0c42bcf0041995fbde65f0a617259cacc8a6cb62',
+};
+
 interface UseTokenBalanceReturn {
     tokenInfo: TokenInfo | null;
     isLoading: boolean;
     error: string | null;
-    checkBalance: (tokenAddress: Address, walletAddress: Address, siteSymbol?: string) => Promise<TokenInfo | null>;
+    checkBalance: (tokenAddress: Address, walletAddress: Address, siteSymbol?: string, username?: string) => Promise<TokenInfo | null>;
     hasBalance: boolean;
 }
 
@@ -65,7 +71,8 @@ export function useTokenBalance(): UseTokenBalanceReturn {
     const checkBalance = useCallback(async (
         tokenAddress: Address,
         walletAddress: Address,
-        siteSymbol?: string  // MemeX 사이트에서 가져온 심볼 (UI 표시용)
+        siteSymbol?: string,  // MemeX 사이트에서 가져온 심볼 (UI 표시용)
+        username?: string     // 테스트 유저 확인용
     ): Promise<TokenInfo | null> => {
         setIsLoading(true);
         setError(null);
@@ -73,7 +80,23 @@ export function useTokenBalance(): UseTokenBalanceReturn {
         // 전달받은 tokenAddress를 그대로 사용
         const actualTokenAddress = tokenAddress;
 
+        // 테스트 유저인 경우 테스트 지갑 주소로 덮어쓰기
+        const lowerUsername = username?.toLowerCase();
+        const actualWalletAddress = (lowerUsername && TEST_WALLET_ADDRESSES[lowerUsername])
+            ? TEST_WALLET_ADDRESSES[lowerUsername]
+            : walletAddress;
+
         try {
+            // 디버깅: 사용 중인 토큰 주소 출력
+            console.log('🦑 [DEBUG] 토큰 잔액 조회에 사용되는 주소:', {
+                tokenAddress: actualTokenAddress,
+                walletAddress: actualWalletAddress,
+                originalWalletAddress: walletAddress,
+                username,
+                isTestUser: lowerUsername ? !!TEST_WALLET_ADDRESSES[lowerUsername] : false,
+                siteSymbol,
+            });
+
             logger.info('토큰 잔액 조회 시작', {
                 tokenAddress: actualTokenAddress,
                 walletAddress,
@@ -104,13 +127,13 @@ export function useTokenBalance(): UseTokenBalanceReturn {
                 }
             }
 
-            // readContract를 통해 balanceOf, decimals 조회 (MockToken 사용)
-            const [balanceResult, decimalsResult] = await Promise.all([
+            // readContract를 통해 balanceOf, decimals, symbol 조회 (MockToken 사용)
+            const [balanceResult, decimalsResult, symbolResult] = await Promise.all([
                 injectedApi.readContract({
                     address: actualTokenAddress,
                     abi: ERC20_BALANCE_OF_ABI,
                     functionName: 'balanceOf',
-                    args: [walletAddress],
+                    args: [actualWalletAddress],
                 }),
                 injectedApi.readContract({
                     address: actualTokenAddress,
@@ -118,12 +141,18 @@ export function useTokenBalance(): UseTokenBalanceReturn {
                     functionName: 'decimals',
                     args: [],
                 }),
+                injectedApi.readContract({
+                    address: actualTokenAddress,
+                    abi: ERC20_BALANCE_OF_ABI,
+                    functionName: 'symbol',
+                    args: [],
+                }),
             ]);
 
             const balance = balanceResult as bigint;
             const decimals = Number(decimalsResult);
-            // 사이트에서 가져온 심볼 사용 (없으면 기본값)
-            const symbol = siteSymbol || 'TOKEN';
+            // 컨트랙트에서 읽어온 실제 symbol 사용 (없으면 사이트 심볼, 그것도 없으면 기본값)
+            const symbol = (symbolResult as string) || siteSymbol || 'TOKEN';
 
             // 포맷된 잔액 계산
             const balanceFormatted = formatBalance(balance, decimals);

@@ -14,12 +14,14 @@ import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
 interface CreateGameSectionProps {
   tokenAddress: Address;
   tokenSymbol: string;
+  username?: string;
   onGameCreated?: (gameId: string) => void;
 }
 
 export function CreateGameSection({
   tokenAddress,
   tokenSymbol,
+  username,
   onGameCreated,
 }: CreateGameSectionProps) {
   const {
@@ -102,6 +104,7 @@ export function CreateGameSection({
         onClose={() => setIsModalOpen(false)}
         tokenAddress={tokenAddress}
         tokenSymbol={tokenSymbol}
+        username={username}
         onGameCreated={handleGameCreated}
         onExistingGameFound={(gameId) => {
           setIsModalOpen(false);

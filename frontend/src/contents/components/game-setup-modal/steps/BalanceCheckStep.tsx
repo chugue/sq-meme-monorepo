@@ -11,22 +11,26 @@ import { useWallet } from "../../../hooks/useWallet";
 interface BalanceCheckStepProps {
     tokenAddress: Address;
     tokenSymbol: string;
+    username?: string;
     onNext: (decimals: number, symbol: string) => void;
     onClose: () => void;
 }
 
-export function BalanceCheckStep({ tokenAddress, tokenSymbol, onNext, onClose }: BalanceCheckStepProps) {
+export function BalanceCheckStep({ tokenAddress, tokenSymbol, username, onNext, onClose }: BalanceCheckStepProps) {
     const { address } = useWallet();
     const { tokenInfo, isLoading, error, checkBalance, hasBalance } = useTokenBalance();
     const [isChecked, setIsChecked] = useState(false);
 
+    // 디버깅: BalanceCheckStep에 전달된 props 확인
+    console.log("🦑 [DEBUG] BalanceCheckStep props:", { tokenAddress, tokenSymbol, username });
+
     // 잔액 조회 핸들러
     const handleCheckBalance = useCallback(async () => {
         if (!address) return;
-        // 세 번째 인자로 사이트 심볼 전달 (MockToken 사용 시 UI에 표시될 심볼)
-        await checkBalance(tokenAddress, address as Address, tokenSymbol);
+        // 네 번째 인자로 username 전달 (테스트 유저 확인용)
+        await checkBalance(tokenAddress, address as Address, tokenSymbol, username);
         setIsChecked(true);
-    }, [address, tokenAddress, tokenSymbol, checkBalance]);
+    }, [address, tokenAddress, tokenSymbol, username, checkBalance]);
 
     // 모달 열릴 때 자동으로 잔액 조회
     useEffect(() => {

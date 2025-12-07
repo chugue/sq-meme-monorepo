@@ -25,6 +25,7 @@ const MOCK_TOKENS: Record<string, Address> = {
     codingcat: import.meta.env.VITE_MOCK_TOKEN_1 as Address,
     squidmeme: import.meta.env.VITE_MOCK_TOKEN_2 as Address,
     jrbr: import.meta.env.VITE_MOCK_TOKEN_3 as Address,
+    jrbr7282: import.meta.env.VITE_MOCK_TOKEN_3 as Address,
     memex: import.meta.env.VITE_MOCK_TOKEN_4 as Address,
 };
 

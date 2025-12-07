@@ -18,7 +18,7 @@ import { DEFAULT_GAME_SETTINGS } from "./types";
 /**
  * 게임 설정 모달
  */
-export function GameSetupModal({ isOpen, onClose, tokenAddress, tokenSymbol = "TOKEN", onGameCreated, onExistingGameFound }: GameSetupModalProps) {
+export function GameSetupModal({ isOpen, onClose, tokenAddress, tokenSymbol = "TOKEN", username, onGameCreated, onExistingGameFound }: GameSetupModalProps) {
     const [step, setStep] = useState<SetupStep>("balance-check");
     const [settings, setSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
     const [tokenDecimals, setTokenDecimals] = useState<number>(18);
@@ -28,6 +28,9 @@ export function GameSetupModal({ isOpen, onClose, tokenAddress, tokenSymbol = "T
     const [isScrolling, setIsScrolling] = useState(false);
     const modalContainerRef = useRef<HTMLDivElement>(null);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // 디버깅: GameSetupModal에 전달된 props 확인
+    console.log('🦑 [DEBUG] GameSetupModal props:', { isOpen, tokenAddress, tokenSymbol, username });
 
     const { checkExistingGame } = useCreateGame();
 
@@ -165,6 +168,7 @@ export function GameSetupModal({ isOpen, onClose, tokenAddress, tokenSymbol = "T
                         <BalanceCheckStep
                             tokenAddress={tokenAddress}
                             tokenSymbol={tokenSymbol}
+                            username={username}
                             onNext={(decimals, symbol) => {
                                 setTokenDecimals(decimals);
                                 setRealTokenSymbol(symbol);
