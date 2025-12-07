@@ -20,7 +20,7 @@ import { getAllSessionStorage } from "./lib/sessionStorage";
 
 // Default data (세션 데이터가 없을 때 사용)
 const defaultUserData = {
-    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
+    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842298_fcb.png",
 };
 
 // mTokenBalance 포맷팅 (콤마 추가)
@@ -70,7 +70,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
             <button className="profile-btn" onClick={() => setProfileModalOpen(true)}>
                 <div className="profile-box-container">
                     <img src={profileBox} alt="Profile Box" className="profile-box-frame" />
-                    <img src={user?.profileImage || defaultUserData.profileImage} alt="Profile" className="profile-box-image" />
+                    <img src={"https://cdn.memex.xyz/memex/prod/v1/profileImage/842298_fcb.png"} alt="Profile" className="profile-box-image" />
                 </div>
                 <img src={profileBanner} alt="Profile Banner" className="profile-banner" />
             </button>

@@ -1,8 +1,8 @@
 import { useAtomValue } from "jotai";
 import { sessionAtom } from "../../atoms/sessionAtoms";
 import { MyGamesSection } from "./MyGamesSection";
-import { UserInfoSection } from "./UserInfoSection";
 import "./ProfileModal.css";
+import { UserInfoSection } from "./UserInfoSection";
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -31,7 +31,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 </div>
 
                 {/* User Info Section */}
-                <UserInfoSection profileImage={user?.profileImage} userName={user?.userName} userTag={user?.userTag} />
+                <UserInfoSection profileImage={"https://cdn.memex.xyz/memex/prod/v1/profileImage/842298_fcb.png"} userName={user?.userName} userTag={user?.userTag} />
 
                 {/* MY GAMES Section */}
                 <MyGamesSection isOpen={isOpen} />
