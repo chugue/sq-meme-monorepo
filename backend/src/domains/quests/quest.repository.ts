@@ -55,10 +55,6 @@ export class QuestRepository {
             .values(newQuests)
             .returning();
 
-        console.log(
-            `[QuestRepository] Created ${quests.length} quests for ${normalizedAddress}`,
-        );
-
         return quests;
     }
 
@@ -139,10 +135,6 @@ export class QuestRepository {
         const currentStreak = lastCheckIn?.currentStreak ?? 0;
         const walletAddress = user.walletAddress.toLowerCase();
 
-        console.log(
-            `[QuestRepository] updateAttendanceQuests: wallet=${walletAddress}, streak=${currentStreak}`,
-        );
-
         // 현재 퀘스트 상태 확인
         const existingQuests = await this.db
             .select()
@@ -190,10 +182,6 @@ export class QuestRepository {
                 ),
             )
             .returning();
-
-        console.log(
-            `[QuestRepository] updateAttendanceQuests result: ${result.length} rows updated`,
-        );
     }
 
     /**

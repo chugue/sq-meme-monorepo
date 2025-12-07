@@ -3,7 +3,6 @@ import { useMemexLogin } from "./hooks/useMemexLogin";
 
 // Assets imports
 import homeBanner from "../../assets/home_banner.png";
-import howToPlayIcon from "../../assets/how_to_play.png";
 import logoIcon from "../../assets/logo.png";
 import moneyIcon from "../../assets/money.png";
 import profileBanner from "../../assets/profile_banner.png";
@@ -77,7 +76,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
             </button>
             {/* Right: Menu Icons (Vertical) */}
             <div className="menu-icons-vertical">
-                <button
+                {/* <button
                     className="menu-icon-btn"
                     onClick={() => {
                         // TODO: How to Play 페이지 구현
@@ -91,7 +90,7 @@ export function Dashboard({ walletAddress: walletAddressProp }: DashboardProps) 
                         <br />
                         Play
                     </span>
-                </button>
+                </button> */}
                 <button className="menu-icon-btn" onClick={() => setPage(PAGES.QUESTS)} title="Quest">
                     <img src={questIcon} alt="Quest" />
                     <span className="menu-icon-btn-text">Quest</span>

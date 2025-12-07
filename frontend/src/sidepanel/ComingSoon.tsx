@@ -53,8 +53,28 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
     const handleRefreshMemexTab = async () => {
         try {
+            console.log("🔄 [이동 버튼] MEMEX 탭 새로고침 시작...");
             await backgroundApi.refreshMemexTab();
             closeSnackbar();
+
+            // 새로고침 후 GTM 키 확인
+            console.log("🔐 [이동 버튼] GTM 키 확인 중...");
+            const gtmCheckResult = (await backgroundApi.memexLogin(false)) as {
+                success: boolean;
+                isLoggedIn?: boolean;
+                username?: string;
+                userTag?: string;
+                error?: string;
+            };
+            console.log("🔐 [이동 버튼] GTM 확인 결과:", gtmCheckResult);
+
+            if (gtmCheckResult?.isLoggedIn && gtmCheckResult.username && gtmCheckResult.userTag) {
+                // GTM 키가 있으면 로그인 진행
+                console.log("✅ [이동 버튼] GTM 키 발견, 로그인 진행");
+                await connect();
+                await handleMemexLogin();
+            }
+            // GTM 없으면 사용자가 MEMEX에서 로그인하도록 대기
         } catch (err) {
             console.error("Failed to refresh MEMEX tab:", err);
         }
@@ -66,30 +86,36 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             const currentUrlResult = await backgroundApi.getCurrentTabUrl();
             const currentUrl = currentUrlResult?.url;
 
-            // URL이 https://app.memex.xyz로 시작하지 않으면 스낵바 표시하고 종료
+            // URL이 https://app.memex.xyz로 시작하지 않으면 스낵바 표시
             if (!currentUrl || !currentUrl.startsWith("https://app.memex.xyz")) {
-                showRefreshSnackbar();
+                showRefreshSnackbar("MEMEX 로그인 후 이용해주세요");
                 return;
             }
 
-            // URL 파싱하여 경로 확인
-            try {
-                const url = new URL(currentUrl);
-                const pathname = url.pathname;
+            // app.memex.xyz/* 페이지인 경우 - 새로고침 후 GTM 확인
+            console.log("🔄 MEMEX 탭 새로고침 시작...");
+            await backgroundApi.refreshMemexTab();
 
-                // 정확히 https://app.memex.xyz 또는 https://app.memex.xyz/인 경우 (경로가 없거나 /만 있는 경우)
-                if (pathname === "/" || pathname === "") {
-                    showRefreshSnackbar("로그인 이후 시도해주세요");
-                    return;
-                }
+            // GTM 키 확인 (웹페이지의 sessionStorage에서 확인 - triggerLogin: false)
+            console.log("🔐 새로고침 후 GTM 키 확인 중...");
+            const gtmCheckResult = (await backgroundApi.memexLogin(false)) as {
+                success: boolean;
+                isLoggedIn?: boolean;
+                username?: string;
+                userTag?: string;
+                error?: string;
+            };
+            console.log("🔐 GTM 확인 결과:", gtmCheckResult);
 
-                // 경로가 있으면 지갑 연결 진행
+            if (gtmCheckResult?.isLoggedIn && gtmCheckResult.username && gtmCheckResult.userTag) {
+                // GTM 키가 있으면 로그인 진행
+                console.log("✅ GTM 키 발견, 로그인 진행");
                 await connect();
                 await handleMemexLogin();
-            } catch (urlError) {
-                // URL 파싱 실패 시 기본 메시지 표시
-                showRefreshSnackbar();
-                return;
+            } else {
+                // GTM 키가 없으면 스낵바 표시
+                console.log("⚠️ GTM 키 없음, 로그인 필요");
+                showRefreshSnackbar("MEMEX 로그인 후 이용해주세요");
             }
         } catch (err) {
             console.error("Wallet connection failed:", err);
@@ -160,6 +186,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 success: boolean;
                 isLoggedIn?: boolean;
                 loginStarted?: boolean;
+                noGoogleButton?: boolean;
                 username?: string;
                 userTag?: string;
                 error?: string;
@@ -174,6 +201,13 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             ) {
                 console.log("⚠️ Content script 연결 오류, 스낵바 표시");
                 showRefreshSnackbar();
+                return;
+            }
+
+            // Google 로그인 버튼이 없는 경우 (profile 페이지 등) - 메인 페이지로 이동 안내
+            if (result?.noGoogleButton && !result?.isLoggedIn) {
+                console.log("⚠️ Google 로그인 버튼 없음, 로그인 페이지 이동 필요");
+                showRefreshSnackbar("MEMEX 로그인 후 이용해주세요");
                 return;
             }
 
