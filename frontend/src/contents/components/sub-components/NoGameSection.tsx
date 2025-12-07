@@ -9,12 +9,13 @@ import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
 import { formatAddress } from "@/contents/utils/messageFormatter";
 import { motion } from "framer-motion";
 import { useAtomValue, useSetAtom } from "jotai";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Address } from "viem";
 import { endedGameInfoAtom } from "../../atoms/commentAtoms";
 import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
 import { useWallet } from "../../hooks/useWallet";
 import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
+import { ClaimPrizeFirstModal } from "./ClaimPrizeFirstModal";
 import "./NoGameSection.css";
 import WinnerClaim from "./WinnerClaim";
 
@@ -36,6 +37,8 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isClaimPrizeModalOpen, setIsClaimPrizeModalOpen] = useState(false);
+    const winnerClaimRef = useRef<{ handleClaimPrize: () => Promise<void> } | null>(null);
 
     // 현재 사용자가 우승자인지 확인 (대소문자 무시)
     const isWinner = endedGameInfo && !endedGameInfo.isClaimed && address && endedGameInfo.lastCommentor.toLowerCase() === address.toLowerCase();
@@ -51,6 +54,12 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             } catch (error) {
                 console.error("지갑 연결 실패", error);
             }
+            return;
+        }
+
+        // 위너인 경우 Claim Prize 모달 표시
+        if (isWinner) {
+            setIsClaimPrizeModalOpen(true);
             return;
         }
 
@@ -112,7 +121,11 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
         <div className="no-game-container" data-testid="squid-comment-section">
             {/* 우승자 Claim 안내 */}
             {isWinner && endedGameInfo && (
-                <WinnerClaim endedGameInfo={endedGameInfo} tokenSymbol={tokenSymbol} />
+                <WinnerClaim
+                    ref={winnerClaimRef}
+                    endedGameInfo={endedGameInfo}
+                    tokenSymbol={tokenSymbol}
+                />
             )}
 
             {/* NO GAME YET! 타이틀 */}
@@ -201,6 +214,17 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 }}
             />
 
+            {/* Claim Prize First 모달 */}
+            <ClaimPrizeFirstModal
+                isOpen={isClaimPrizeModalOpen}
+                onClose={() => setIsClaimPrizeModalOpen(false)}
+                onClaimPrize={async () => {
+                    if (winnerClaimRef.current) {
+                        await winnerClaimRef.current.handleClaimPrize();
+                        setIsClaimPrizeModalOpen(false);
+                    }
+                }}
+            />
 
         </div>
     );

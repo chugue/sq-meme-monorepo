@@ -8,7 +8,7 @@ import {
 import { injectedApi } from "@/contents/lib/injectedApi";
 import { getExtensionImageUrl } from "@/contents/utils/getExtensionImageUrl";
 import { useSetAtom } from "jotai";
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import type { Address } from "viem";
 import { TransactionSuccessModal } from "./TransactionSuccessModal";
 
@@ -26,11 +26,15 @@ interface WinnerClaimProps {
     onClaimed?: () => void;
 }
 
-export default function WinnerClaim({
+export interface WinnerClaimHandle {
+    handleClaimPrize: () => Promise<void>;
+}
+
+const WinnerClaim = forwardRef<WinnerClaimHandle, WinnerClaimProps>(({
     endedGameInfo,
     tokenSymbol,
     onClaimed,
-}: WinnerClaimProps) {
+}, ref) => {
     const setEndedGameInfo = useSetAtom(endedGameInfoAtom);
     const [isClaiming, setIsClaiming] = useState(false);
     const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
@@ -86,6 +90,11 @@ export default function WinnerClaim({
             setIsClaiming(false);
         }
     };
+
+    // 외부에서 handleClaimPrize를 호출할 수 있도록 expose
+    useImperativeHandle(ref, () => ({
+        handleClaimPrize,
+    }));
 
     return (
         <div className="no-game-winner-section">
@@ -166,4 +175,8 @@ export default function WinnerClaim({
             )}
         </div>
     );
-}
+});
+
+WinnerClaim.displayName = "WinnerClaim";
+
+export default WinnerClaim;
