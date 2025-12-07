@@ -14,16 +14,8 @@ import type { Address } from "viem";
 import { endedGameInfoAtom } from "../../atoms/commentAtoms";
 import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
 import { useWallet } from "../../hooks/useWallet";
-import { backgroundApi } from "../../lib/backgroundApi";
-import {
-    COMMENT_GAME_V2_ADDRESS,
-    commentGameV2ABI,
-} from "../../lib/contract/abis/commentGameV2";
-import { injectedApi } from "../../lib/injectedApi";
 import { GameSetupModal } from "../game-setup-modal/GameSetupModal";
-import { ClaimPrizeFirstModal } from "./ClaimPrizeFirstModal";
 import "./NoGameSection.css";
-import { TransactionSuccessModal } from "./TransactionSuccessModal";
 import WinnerClaim from "./WinnerClaim";
 
 // 주소 축약 (0x856C...e74A 형태)
@@ -50,16 +42,6 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isClaimFirstModalOpen, setIsClaimFirstModalOpen] = useState(false);
-
-    // Claim 관련 상태
-    const [isClaiming, setIsClaiming] = useState(false);
-    const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
-    const [claimError, setClaimError] = useState<string | null>(null);
-
-    // 트랜잭션 성공 모달 상태
-    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-    const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
 
     // 현재 사용자가 우승자인지 확인 (대소문자 무시)
     const isWinner =
@@ -67,60 +49,6 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
         !endedGameInfo.isClaimed &&
         address &&
         endedGameInfo.lastCommentor.toLowerCase() === address.toLowerCase();
-
-    /**
-     * CLAIM PRIZE 버튼 클릭 핸들러
-     */
-    const handleClaimPrize = async () => {
-        if (!endedGameInfo || !address) return;
-
-        setIsClaiming(true);
-        setClaimError(null);
-        setClaimTxHash(null);
-
-        try {
-            // claimPrize 함수 호출 (V2: gameId 전달)
-            const txHash = await injectedApi.writeContract({
-                address: COMMENT_GAME_V2_ADDRESS as Address,
-                abi: commentGameV2ABI,
-                functionName: "claimPrize",
-                args: [BigInt(endedGameInfo.id)],
-            });
-
-            setClaimTxHash(txHash);
-
-            // 트랜잭션 확정 대기
-            await injectedApi.waitForTransaction(txHash);
-
-            // 트랜잭션 확정 후 백엔드에 txHash 등록 (Background Script를 통해 CORS 우회)
-            try {
-                await backgroundApi.registerClaimPrizeTx(
-                    endedGameInfo.id,
-                    txHash,
-                );
-                console.log("백엔드에 claimPrize 등록 완료");
-            } catch (apiError) {
-                console.warn("백엔드 claimPrize 등록 실패", apiError);
-            }
-
-            // 트랜잭션 확정 시 성공 모달 표시
-            setSuccessTxHash(txHash);
-            setIsSuccessModalOpen(true);
-
-            // endedGameInfo 업데이트 (isClaimed = true)
-            setEndedGameInfo({
-                ...endedGameInfo,
-                isClaimed: true,
-            });
-        } catch (err) {
-            const errorMessage =
-                err instanceof Error ? err.message : "Claim 실패";
-            setClaimError(errorMessage);
-            console.error("Claim 실패", err);
-        } finally {
-            setIsClaiming(false);
-        }
-    };
 
     /**
      * CREATE GAME 버튼 클릭 핸들러
@@ -133,12 +61,6 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             } catch (error) {
                 console.error("지갑 연결 실패", error);
             }
-            return;
-        }
-
-        // 우승자가 상금을 아직 수령하지 않은 경우 Claim First 모달 표시
-        if (isWinner) {
-            setIsClaimFirstModalOpen(true);
             return;
         }
 
@@ -211,7 +133,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
         <div className="no-game-container" data-testid="squid-comment-section">
             {/* 우승자 Claim 안내 */}
             {isWinner && endedGameInfo && (
-                <WinnerClaim endedGameInfo={endedGameInfo} tokenSymbol={tokenSymbol}  />
+                <WinnerClaim endedGameInfo={endedGameInfo} tokenSymbol={tokenSymbol} />
             )}
 
             {/* NO GAME YET! 타이틀 */}
@@ -330,7 +252,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 }}
             />
 
-            
+
         </div>
     );
 }

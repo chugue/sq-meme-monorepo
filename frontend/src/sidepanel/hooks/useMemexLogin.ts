@@ -1,19 +1,20 @@
 /**
  * MEMEX 로그인 상태 관리 훅
  *
- * 앱 시작 시 sessionStorage.gtm_user_identifier를 확인하여 로그인 상태를 판단합니다.
+ * 앱 시작 시 익스텐션 storage의 gtm_user_identifier를 확인하여 로그인 상태를 판단합니다.
+ * 브라우저의 sessionStorage는 저장 시에만 사용하며, 읽기는 익스텐션 storage에서만 수행합니다.
  */
 
 import { User } from "@/types/response.types";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { backgroundApi } from "../../contents/lib/backgroundApi";
-import { clearAllSessionStorage, removeStorage } from "../lib/sessionStorage";
+import { clearAllSessionStorage } from "../lib/sessionStorage";
 
 // 모듈 레벨에서 중복 요청 방지 (Strict Mode에서도 유지됨)
 let joinRequestInProgress = false;
 
-import { LOGIN_CHECK_COMPLETED_KEY, SESSION_STATE_KEY } from "@/shared/config/constants";
+import { Address } from "viem";
 import {
     loginCheckCompletedAtom,
     resetSessionAtom,
@@ -171,33 +172,14 @@ export function useMemexLogin(): UseMemexLoginReturn {
     // 로그아웃 함수
     const logout = useCallback(async () => {
         try {
-            console.log("🚪 [useMemexLogin] 로그아웃 시작");
-
             // 1. Extension storage 초기화 (gtm_user_identifier 및 지갑 정보 삭제)
             await backgroundApi.logout();
 
             // 2. MetaMask 지갑 연결 해제
-            try {
-                await backgroundApi.walletDisconnect();
-                console.log("✅ [useMemexLogin] 지갑 연결 해제 완료");
-            } catch (walletErr) {
-                console.warn("⚠️ [useMemexLogin] 지갑 연결 해제 실패 (무시):", walletErr);
-            }
+            await backgroundApi.walletDisconnect();
 
             // 3. 모든 세션 스토리지 클리어 (확실한 초기화)
-            try {
-                await clearAllSessionStorage();
-                console.log("✅ [useMemexLogin] 모든 세션 스토리지 클리어 완료");
-            } catch (storageErr) {
-                // 클리어 실패 시 개별 삭제 시도
-                console.warn("⚠️ [useMemexLogin] 전체 클리어 실패, 개별 삭제 시도:", storageErr);
-                try {
-                    await removeStorage(SESSION_STATE_KEY);
-                    await removeStorage(LOGIN_CHECK_COMPLETED_KEY);
-                } catch (e) {
-                    console.warn("⚠️ [useMemexLogin] 개별 삭제도 실패:", e);
-                }
-            }
+            await clearAllSessionStorage();
 
             // 4. 전체 세션 초기화 (atomWithStorage가 자동으로 저장소에 반영)
             resetSession();

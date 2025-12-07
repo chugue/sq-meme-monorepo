@@ -11,6 +11,29 @@ import type {
 import { apiCall, apiUpload } from "./api";
 import { openSidePanel } from "./sidepanel";
 
+/**
+ * MEMEX 탭을 찾는 헬퍼 함수
+ * @returns MEMEX 탭 배열
+ * @throws 탭이 없으면 에러 발생
+ */
+async function isMemexTabs(): Promise<any[]> {
+    const { browser } = await import("wxt/browser");
+    const tabs = browser?.tabs || (globalThis as any).chrome?.tabs;
+
+    const memexTabs = await tabs.query({
+        url: [
+            "https://app.memex.xyz/*",
+            "http://app.memex.xyz/*",
+        ],
+    });
+
+    if (memexTabs.length === 0) {
+        throw new Error("MEMEX에서 실행해주세요.");
+    }
+
+    return memexTabs;
+}
+
 export function createMessageHandler() {
     return (
         message: BackgroundMessage,
@@ -28,37 +51,25 @@ export function createMessageHandler() {
                 switch (message.type) {
                     case "GET_COMMENTS": {
                         const walletAddress = (message as any).walletAddress;
-                        const response = await apiCall<{
-                            success: boolean;
-                            data: CommentListResponse;
-                        }>(
-                            `/v1/comments/game/${encodeURIComponent(
-                                message.gameId,
-                            )}`,
-                            {
-                                headers: walletAddress
-                                    ? { "x-wallet-address": walletAddress }
-                                    : undefined,
-                            },
-                        );
+                        const response = await apiCall<{ success: boolean; data: CommentListResponse }>(
+                            `/v1/comments/game/${encodeURIComponent(message.gameId)}`, {
+                            headers: walletAddress ? { "x-wallet-address": walletAddress } : undefined,
+                        });
                         result = { success: true, data: response.data };
                         break;
                     }
 
                     case "CREATE_COMMENT": {
-                        const response = await apiCall<{ comment: any }>(
-                            "/api/comments",
-                            {
-                                method: "POST",
-                                body: JSON.stringify({
-                                    challenge_id: message.challengeId,
-                                    player_address: message.playerAddress,
-                                    content: message.content,
-                                    signature: (message as any).signature,
-                                    message: (message as any).message,
-                                }),
-                            },
-                        );
+                        const response = await apiCall<{ comment: any }>("/api/comments", {
+                            method: "POST",
+                            body: JSON.stringify({
+                                challenge_id: message.challengeId,
+                                player_address: message.playerAddress,
+                                content: message.content,
+                                signature: (message as any).signature,
+                                message: (message as any).message
+                            }),
+                        });
                         result = { success: true, data: response.comment };
                         break;
                     }
@@ -121,7 +132,7 @@ export function createMessageHandler() {
                                             }
                                             resolve(
                                                 result[(message as any).key] ||
-                                                    null,
+                                                null,
                                             );
                                         },
                                     );
@@ -216,9 +227,7 @@ export function createMessageHandler() {
 
                         try {
                             const { browser } = await import("wxt/browser");
-                            const storage =
-                                browser?.storage ||
-                                (globalThis as any).chrome?.storage;
+                            const storage = browser?.storage || (globalThis as any).chrome?.storage;
                             const area = (message as any).area || "session";
                             const storageArea =
                                 area === "local"
@@ -550,7 +559,7 @@ export function createMessageHandler() {
                                             }
                                             resolve(
                                                 result.squid_session_state ||
-                                                    null,
+                                                null,
                                             );
                                         },
                                     );
@@ -888,10 +897,11 @@ export function createMessageHandler() {
                                 browser?.tabs ||
                                 (globalThis as any).chrome?.tabs;
 
+                            // 익스텐션의 session storage만 삭제 (브라우저의 sessionStorage는 건드리지 않음)
                             await new Promise<void>((resolve, reject) => {
                                 storage.session.remove(
                                     [
-                                        "gtm_user_identifier",
+                                        "gtm_user_identifier", // 익스텐션에 저장된 복사본만 삭제
                                         "squid_user",
                                         "squid_session_state",
                                         "squid_login_check_completed",
@@ -935,12 +945,7 @@ export function createMessageHandler() {
 
                             // 모든 MEMEX 탭에 로그아웃 메시지 전송 (UI 숨김 + inject script 캐시 초기화)
                             try {
-                                const memexTabs = await tabs.query({
-                                    url: [
-                                        "https://app.memex.xyz/*",
-                                        "http://app.memex.xyz/*",
-                                    ],
-                                });
+                                const memexTabs = await isMemexTabs();
 
                                 // 모든 탭에 메시지 전송
                                 for (const tab of memexTabs) {
@@ -1025,81 +1030,8 @@ export function createMessageHandler() {
                     case "WALLET_GET_ACCOUNT":
                     case "WALLET_DISCONNECT": {
                         try {
-                            const { browser } = await import("wxt/browser");
-                            const tabs =
-                                browser?.tabs ||
-                                (globalThis as any).chrome?.tabs;
-                            const scripting = (globalThis as any).chrome
-                                ?.scripting;
-
-                            let memexTabs = await tabs.query({
-                                url: [
-                                    "https://app.memex.xyz/*",
-                                    "http://app.memex.xyz/*",
-                                ],
-                            });
-
-                            if (memexTabs.length === 0) {
-                                if (message.type === "WALLET_GET_ACCOUNT") {
-                                    result = {
-                                        success: true,
-                                        data: {
-                                            isConnected: false,
-                                            address: null,
-                                        },
-                                    };
-                                    break;
-                                }
-                                if (message.type === "WALLET_DISCONNECT") {
-                                    result = {
-                                        success: true,
-                                        data: { success: true },
-                                    };
-                                    break;
-                                }
-
-                                const newTab = await tabs.create({
-                                    url: "https://app.memex.xyz",
-                                    active: true,
-                                });
-
-                                await new Promise<void>((resolve) => {
-                                    const listener = (
-                                        tabId: number,
-                                        changeInfo: { status?: string },
-                                    ) => {
-                                        if (
-                                            tabId === newTab.id &&
-                                            changeInfo.status === "complete"
-                                        ) {
-                                            tabs.onUpdated.removeListener(
-                                                listener,
-                                            );
-                                            setTimeout(resolve, 1500);
-                                        }
-                                    };
-                                    tabs.onUpdated.addListener(listener);
-                                    setTimeout(() => {
-                                        tabs.onUpdated.removeListener(listener);
-                                        resolve();
-                                    }, 10000);
-                                });
-
-                                memexTabs = await tabs.query({
-                                    url: [
-                                        "https://app.memex.xyz/*",
-                                        "http://app.memex.xyz/*",
-                                    ],
-                                });
-
-                                if (memexTabs.length === 0) {
-                                    result = {
-                                        success: false,
-                                        error: "MEMEX 페이지 로딩 실패",
-                                    };
-                                    break;
-                                }
-                            }
+                            const scripting = (globalThis as any).chrome?.scripting;
+                            const memexTabs = await isMemexTabs();
 
                             const targetTab = memexTabs[0];
                             if (!targetTab?.id) {
@@ -1176,138 +1108,152 @@ export function createMessageHandler() {
                             }
                         } catch (error: any) {
                             console.error(`❌ ${message.type} 오류:`, error);
-                            if (message.type === "WALLET_GET_ACCOUNT") {
-                                result = {
-                                    success: true,
-                                    data: { isConnected: false, address: null },
-                                };
-                            } else if (message.type === "WALLET_DISCONNECT") {
-                                result = {
-                                    success: true,
-                                    data: { success: true },
-                                };
-                            } else {
-                                result = {
-                                    success: false,
-                                    error:
-                                        error instanceof Error
-                                            ? error.message
-                                            : "지갑 연결 실패",
-                                };
-                            }
+                            result = {
+                                success: false,
+                                error: error.message || "지갑 연결 실패",
+                            };
+                            break;
                         }
                         break;
                     }
 
                     case "MEMEX_LOGIN": {
                         const { browser } = await import("wxt/browser");
-                        const tabs =
-                            browser?.tabs || (globalThis as any).chrome?.tabs;
+                        const storage = browser?.storage || (globalThis as any).chrome?.storage;
                         const scripting = (globalThis as any).chrome?.scripting;
+                        const syncFromBrowser = (message as any).syncFromBrowser ?? false;
 
-                        const triggerLogin =
-                            (message as any).triggerLogin ?? false;
-
-                        const memexTabs = await tabs.query({
-                            url: [
-                                "https://app.memex.xyz/*",
-                                "http://app.memex.xyz/*",
-                            ],
-                        });
-
-                        if (memexTabs.length === 0) {
-                            result = {
-                                success: false,
-                                error: "MEMEX 탭을 찾을 수 없습니다.",
-                            };
-                            break;
-                        }
-
+                        // MEMEX 탭 찾기
+                        const memexTabs = await isMemexTabs();
                         const targetTab = memexTabs[0];
                         if (!targetTab?.id) {
                             result = {
                                 success: false,
-                                error: "MEMEX 탭 ID를 찾을 수 없습니다.",
+                                error: "MEMEX에서 실행해주세요.",
                             };
                             break;
                         }
 
-                        const injectionResults = await scripting.executeScript({
-                            target: { tabId: targetTab.id },
-                            world: "MAIN",
-                            func: (shouldTriggerLogin: boolean) => {
-                                // 먼저 gtm_user_identifier 확인
-                                try {
-                                    const data = window.sessionStorage.getItem(
-                                        "gtm_user_identifier",
+                        // 먼저 익스텐션 storage에서 확인
+                        let gtmUserIdentifier: string | null = null;
+                        try {
+                            const storedData = await new Promise<string | null>(
+                                (resolve, reject) => {
+                                    storage.session.get(
+                                        ["gtm_user_identifier"],
+                                        (result: any) => {
+                                            const runtime =
+                                                browser?.runtime ||
+                                                (globalThis as any).chrome
+                                                    ?.runtime;
+                                            if (runtime?.lastError) {
+                                                reject(
+                                                    new Error(
+                                                        runtime.lastError.message,
+                                                    ),
+                                                );
+                                                return;
+                                            }
+                                            resolve(
+                                                result.gtm_user_identifier || null,
+                                            );
+                                        },
                                     );
-                                    if (data) {
-                                        const parsed = JSON.parse(data);
-                                        if (
-                                            parsed.username &&
-                                            parsed.user_tag
-                                        ) {
-                                            return {
-                                                success: true,
-                                                isLoggedIn: true,
-                                                username: parsed.username,
-                                                userTag: parsed.user_tag,
-                                            };
-                                        }
+                                },
+                            );
+                            gtmUserIdentifier = storedData;
+                        } catch (error: any) {
+                            console.warn(
+                                "⚠️ [MEMEX_LOGIN] 익스텐션 storage 읽기 실패:",
+                                error,
+                            );
+                        }
+
+                        // syncFromBrowser가 true면 브라우저 sessionStorage에서 읽어서 저장 (로그인 시도 시)
+                        if (syncFromBrowser) {
+                            const injectionResults = await scripting.executeScript({
+                                target: { tabId: targetTab.id },
+                                world: "MAIN",
+                                func: () => {
+                                    // 브라우저의 sessionStorage에서 읽기
+                                    try {
+                                        const data = window.sessionStorage.getItem(
+                                            "gtm_user_identifier",
+                                        );
+                                        return data;
+                                    } catch (error: any) {
+                                        return null;
                                     }
+                                },
+                                args: [],
+                            });
 
-                                    // 로그인 되어있지 않고 triggerLogin이 true인 경우
-                                    if (shouldTriggerLogin) {
-                                        const googleButton =
-                                            (document.querySelector(
-                                                'button[class*="googleButton"]',
-                                            ) ||
-                                                document.querySelector(
-                                                    'button:has(img[alt="Sign in with Google"])',
-                                                ) ||
-                                                document.querySelector(
-                                                    "button.page_googleButton__XByPk",
-                                                )) as HTMLButtonElement;
-
-                                        if (googleButton) {
-                                            googleButton.click();
-                                            return {
-                                                success: true,
-                                                isLoggedIn: false,
-                                                loginStarted: true,
-                                            };
-                                        }
-                                        // 구글 버튼이 없는 경우 - 이미 로그인 화면이 아님
-                                        // gtm_user_identifier가 없지만 구글 버튼도 없으면
-                                        // 페이지가 아직 로딩중이거나 이미 로그인 후 다른 페이지일 수 있음
-                                        return {
-                                            success: true,
-                                            isLoggedIn: false,
-                                            loginStarted: false,
-                                            noGoogleButton: true,
-                                        };
-                                    }
-
-                                    return {
-                                        success: true,
-                                        isLoggedIn: false,
-                                        loginStarted: false,
-                                    };
+                            const browserData = injectionResults?.[0]?.result;
+                            if (browserData) {
+                                gtmUserIdentifier = browserData;
+                                // 익스텐션 storage에 저장 (기존 데이터 덮어쓰기)
+                                try {
+                                    await new Promise<void>((resolve, reject) => {
+                                        storage.session.set(
+                                            { gtm_user_identifier: browserData },
+                                            () => {
+                                                const runtime =
+                                                    browser?.runtime ||
+                                                    (globalThis as any).chrome
+                                                        ?.runtime;
+                                                if (runtime?.lastError) {
+                                                    reject(
+                                                        new Error(
+                                                            runtime.lastError.message,
+                                                        ),
+                                                    );
+                                                    return;
+                                                }
+                                                resolve();
+                                            },
+                                        );
+                                    });
                                 } catch (error: any) {
-                                    return {
-                                        error:
-                                            error.message ||
-                                            "MEMEX 로그인 실패",
-                                    };
+                                    console.warn(
+                                        "⚠️ [MEMEX_LOGIN] 익스텐션 storage 저장 실패:",
+                                        error,
+                                    );
                                 }
-                            },
-                            args: [triggerLogin],
-                        });
+                            }
+                        }
 
-                        const scriptResult = injectionResults?.[0]?.result;
+                        // 익스텐션 storage에서 읽은 데이터 파싱
+                        if (gtmUserIdentifier) {
+                            try {
+                                const parsed = JSON.parse(gtmUserIdentifier);
+                                if (parsed.username && parsed.user_tag) {
+                                    result = {
+                                        success: true,
+                                        data: {
+                                            success: true,
+                                            isLoggedIn: true,
+                                            username: parsed.username,
+                                            userTag: parsed.user_tag,
+                                        },
+                                    };
+                                    break;
+                                }
+                            } catch (error: any) {
+                                console.warn(
+                                    "⚠️ [MEMEX_LOGIN] 데이터 파싱 실패:",
+                                    error,
+                                );
+                            }
+                        }
+
+                        // 로그인 정보가 없는 경우
                         result = {
                             success: true,
-                            data: scriptResult || { isLoggedIn: false },
+                            data: {
+                                success: false,
+                                isLoggedIn: false,
+                                error: "로그인 정보가 없습니다.",
+                            },
                         };
                         break;
                     }
@@ -1318,14 +1264,11 @@ export function createMessageHandler() {
                                 browser?.tabs ||
                                 (globalThis as any).chrome?.tabs;
 
-                            const memexTabs = await tabs.query({
-                                url: [
-                                    "https://app.memex.xyz/*",
-                                    "http://app.memex.xyz/*",
-                                ],
-                            });
-
-                            if (memexTabs.length === 0) {
+                            let memexTabs: any[];
+                            try {
+                                memexTabs = await isMemexTabs();
+                            } catch {
+                                // 탭이 없으면 새로 생성
                                 await tabs.create({
                                     url: "https://app.memex.xyz",
                                     active: true,
@@ -1334,21 +1277,21 @@ export function createMessageHandler() {
                                     success: true,
                                     data: { opened: true, refreshed: false },
                                 };
-                            } else {
-                                const targetTab = memexTabs[0];
-
-                                if (targetTab.id) {
-                                    await tabs.reload(targetTab.id);
-                                    await tabs.update(targetTab.id, {
-                                        active: true,
-                                    });
-                                }
-
-                                result = {
-                                    success: true,
-                                    data: { opened: false, refreshed: true },
-                                };
+                                break;
                             }
+
+                            const targetTab = memexTabs[0];
+                            if (targetTab.id) {
+                                await tabs.reload(targetTab.id);
+                                await tabs.update(targetTab.id, {
+                                    active: true,
+                                });
+                            }
+
+                            result = {
+                                success: true,
+                                data: { opened: false, refreshed: true },
+                            };
                         } catch (error: any) {
                             console.error("❌ REFRESH_MEMEX_TAB 오류:", error);
                             result = {
@@ -1440,7 +1383,7 @@ export function createMessageHandler() {
                                         (result: any) => {
                                             resolve(
                                                 result.squid_session_state ||
-                                                    null,
+                                                null,
                                             );
                                         },
                                     );
@@ -1558,7 +1501,7 @@ export function createMessageHandler() {
                                         (result: any) => {
                                             resolve(
                                                 result.squid_session_state ||
-                                                    null,
+                                                null,
                                             );
                                         },
                                     );
@@ -1610,7 +1553,7 @@ export function createMessageHandler() {
                                         (result: any) => {
                                             resolve(
                                                 result.squid_session_state ||
-                                                    null,
+                                                null,
                                             );
                                         },
                                     );
@@ -1814,24 +1757,17 @@ export function createMessageHandler() {
                         };
                 }
 
-                try {
-                    sendResponse(result);
-                } catch (sendError) {
-                    console.error("❌ 응답 전송 실패:", sendError);
-                }
+                sendResponse(result);
             } catch (error: any) {
                 console.error("❌ Background API 오류:", error);
-                try {
-                    sendResponse({
-                        success: false,
-                        error:
-                            error instanceof Error
-                                ? error.message
-                                : "알 수 없는 오류가 발생했습니다.",
-                    });
-                } catch (sendError) {
-                    console.error("❌ 에러 응답 전송 실패:", sendError);
-                }
+                sendResponse({
+                    success: false,
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "알 수 없는 오류가 발생했습니다.",
+                });
+                return false;
             }
         })();
 

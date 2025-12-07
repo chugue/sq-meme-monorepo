@@ -524,7 +524,7 @@ export function useTokenContract() {
                     if (profileMatch) {
                         const username = decodeURIComponent(profileMatch[1]).toLowerCase();
                         if (MOCK_TOKENS[username]) {
-                            logger.info("MockToken 매핑된 Profile 페이지, TOKEN_CONTRACT_CACHED 무시", { username });
+                            initProfilePageGameQuery();
                             return;
                         }
                     }

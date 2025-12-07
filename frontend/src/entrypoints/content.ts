@@ -26,13 +26,31 @@ function isHomePage(url: string): boolean {
 // NOTE: 토큰 정보 추출은 injected.js에서 fetch로 수행
 // content.ts는 TOKEN_CONTRACT_CACHED 메시지를 수신하여 백엔드로 전달
 
-// 현재 로그인한 사용자 정보 가져오기
-function getCurrentLoggedInUser(): {
+// 현재 로그인한 사용자 정보 가져오기 (익스텐션 storage에서 읽기)
+async function getCurrentLoggedInUser(): Promise<{
     username: string | null;
     userTag: string | null;
-} {
+}> {
     try {
-        const data = window.sessionStorage.getItem("gtm_user_identifier");
+        // 익스텐션 storage에서 읽기
+        const { browser } = await import("wxt/browser");
+        const storage = browser?.storage || (globalThis as any).chrome?.storage;
+
+        if (!storage?.session) {
+            return { username: null, userTag: null };
+        }
+
+        const data = await new Promise<string | null>((resolve, reject) => {
+            storage.session.get(["gtm_user_identifier"], (result: any) => {
+                const runtime = browser?.runtime || (globalThis as any).chrome?.runtime;
+                if (runtime?.lastError) {
+                    reject(new Error(runtime.lastError.message));
+                    return;
+                }
+                resolve(result.gtm_user_identifier || null);
+            });
+        });
+
         if (data) {
             const parsed = JSON.parse(data);
             if (parsed.username && parsed.user_tag) {
@@ -43,7 +61,7 @@ function getCurrentLoggedInUser(): {
             }
         }
     } catch (e) {
-        console.warn("⚠️ [Content] gtm_user_identifier 파싱 실패:", e);
+        console.warn("⚠️ [Content] 익스텐션 storage에서 gtm_user_identifier 읽기 실패:", e);
     }
     return { username: null, userTag: null };
 }
@@ -637,7 +655,7 @@ export default defineContentScript({
                     );
 
                     // 현재 로그인한 사용자 정보 가져오기
-                    const currentUser = getCurrentLoggedInUser();
+                    const currentUser = await getCurrentLoggedInUser();
 
                     // Background script로 프로필 정보 전송
                     const { browser } = await import("wxt/browser");
@@ -688,7 +706,7 @@ export default defineContentScript({
 
         if (runtime?.onMessage) {
             runtime.onMessage.addListener(
-                (
+                async (
                     message: { type: string },
                     _sender: any,
                     sendResponse: (response: any) => void,
@@ -801,23 +819,16 @@ export default defineContentScript({
                             triggerLogin,
                         );
 
-                        // sessionStorage의 gtm_user_identifier 확인
+                        // 익스텐션 storage의 gtm_user_identifier 확인
                         try {
-                            const data = window.sessionStorage.getItem(
-                                "gtm_user_identifier",
-                            );
+                            const data = await getCurrentLoggedInUser();
                             if (data) {
-                                const parsed = JSON.parse(data);
-                                if (parsed.username && parsed.user_tag) {
-                                    console.log(
-                                        "✅ [Content] 이미 로그인되어 있음:",
-                                        parsed.username,
-                                    );
+                                if (data.username && data.userTag) {
                                     sendResponse({
                                         success: true,
                                         isLoggedIn: true,
-                                        username: parsed.username,
-                                        userTag: parsed.user_tag,
+                                        username: data.username,
+                                        userTag: data.userTag,
                                     });
                                     return true;
                                 }
@@ -986,26 +997,29 @@ export default defineContentScript({
                         return true;
                     }
 
-                    // 로그아웃 시 inject script 토큰 캐시 초기화 + sessionStorage GTM 키 삭제
+                    // 로그아웃 시 inject script 토큰 캐시 초기화
+                    // 주의: 브라우저의 sessionStorage는 삭제하지 않음 (실제 사이트의 로그인 정보 보존)
                     if (message.type === "LOGOUT_INJECT_SCRIPT") {
                         console.log(
                             "🚪 [Content] LOGOUT_INJECT_SCRIPT 요청 수신",
                         );
 
-                        // 웹페이지 sessionStorage에서 gtm_user_identifier 삭제
-                        try {
-                            window.sessionStorage.removeItem(
-                                "gtm_user_identifier",
-                            );
-                            console.log(
-                                "✅ [Content] sessionStorage gtm_user_identifier 삭제 완료",
-                            );
-                        } catch (e) {
-                            console.warn(
-                                "⚠️ [Content] sessionStorage 삭제 실패:",
-                                e,
-                            );
-                        }
+                        // 브라우저의 sessionStorage는 삭제하지 않음
+                        // 익스텐션의 session storage만 삭제됨 (messageHandler.ts에서 처리)
+                    }
+
+                    // 로그아웃 시 컨텐츠 UI 업데이트
+                    if (message.type === "USER_LOGOUT") {
+                        console.log(
+                            "🚪 [Content] USER_LOGOUT 요청 수신 - UI 업데이트",
+                        );
+                        // 커스텀 이벤트 발생 (window와 document 모두)
+                        const logoutEvent = new CustomEvent("squid-user-logout");
+                        window.dispatchEvent(logoutEvent);
+                        document.dispatchEvent(logoutEvent);
+                        console.log("✅ [Content] 로그아웃 이벤트 발생 완료");
+                        sendResponse({ success: true });
+                        return true;
 
                         import("@/contents/lib/injectedApi")
                             .then(async ({ sendLogoutToInjectedScript }) => {

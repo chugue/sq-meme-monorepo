@@ -10,6 +10,7 @@ import homeBg from "@/assets/home.png";
 import homeFloor from "@/assets/home_floor.png";
 import moneyLogo from "@/assets/money_logo.png";
 import squareBrackets from "@/assets/square_brackets.png";
+import { Address } from "viem";
 
 // Content script 연결 오류인지 확인
 function isContentScriptError(error: unknown): boolean {
@@ -57,9 +58,9 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             await backgroundApi.refreshMemexTab();
             closeSnackbar();
 
-            // 새로고침 후 GTM 키 확인
+            // 새로고침 후 GTM 키 확인 (브라우저 sessionStorage에서 읽어서 익스텐션 storage에 동기화)
             console.log("🔐 [이동 버튼] GTM 키 확인 중...");
-            const gtmCheckResult = (await backgroundApi.memexLogin(false)) as {
+            const gtmCheckResult = (await backgroundApi.memexLogin(false, true)) as {
                 success: boolean;
                 isLoggedIn?: boolean;
                 username?: string;
@@ -93,25 +94,24 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             }
 
             // app.memex.xyz/* 페이지인 경우 - 새로고침 후 GTM 확인
-            console.log("🔄 MEMEX 탭 새로고침 시작...");
-            await backgroundApi.refreshMemexTab();
+            // await backgroundApi.refreshMemexTab();
 
-            // GTM 키 확인 (웹페이지의 sessionStorage에서 확인 - triggerLogin: false)
-            console.log("🔐 새로고침 후 GTM 키 확인 중...");
-            const gtmCheckResult = (await backgroundApi.memexLogin(false)) as {
+            // GTM 키 확인 (브라우저 sessionStorage에서 읽어서 익스텐션 storage에 동기화)
+            const gtmCheckResult = (await backgroundApi.memexLogin(false, true)) as {
                 success: boolean;
                 isLoggedIn?: boolean;
                 username?: string;
                 userTag?: string;
                 error?: string;
             };
-            console.log("🔐 GTM 확인 결과:", gtmCheckResult);
 
             if (gtmCheckResult?.isLoggedIn && gtmCheckResult.username && gtmCheckResult.userTag) {
-                // GTM 키가 있으면 로그인 진행
-                console.log("✅ GTM 키 발견, 로그인 진행");
+                // GTM 키가 있으면 지갑만 연결하고, 이미 로그인되어 있으므로 handleMemexLogin은 호출하지 않음
                 await connect();
-                await handleMemexLogin();
+                // 이미 로그인되어 있으면 추가 로그인 시도 없이 완료 처리
+                if (onMemexLoginComplete) {
+                    onMemexLoginComplete(gtmCheckResult.username, gtmCheckResult.userTag);
+                }
             } else {
                 // GTM 키가 없으면 스낵바 표시
                 console.log("⚠️ GTM 키 없음, 로그인 필요");
@@ -182,7 +182,8 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
             }
 
             // 2. GTM 키가 없거나, 있어도 프로필에서 로그인 확인 실패 시 Google 로그인 시도
-            const result = (await backgroundApi.memexLogin(true)) as {
+            // 브라우저 sessionStorage에서 읽어서 익스텐션 storage에 동기화
+            const result = (await backgroundApi.memexLogin(true, true)) as {
                 success: boolean;
                 isLoggedIn?: boolean;
                 loginStarted?: boolean;
