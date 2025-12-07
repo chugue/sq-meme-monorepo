@@ -55,10 +55,6 @@ export class QuestRepository {
             .values(newQuests)
             .returning();
 
-        console.log(
-            `[QuestRepository] Created ${quests.length} quests for ${normalizedAddress}`,
-        );
-
         return quests;
     }
 
