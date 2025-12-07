@@ -73,6 +73,7 @@ export class CommentService {
                 commentorProfileUrl: c.commentorProfileUrl ?? '',
                 userName: c.userName ?? '',
                 hasUserLiked: likedMap.get(c.comment.id) ?? false,
+                endTime: c.endTime ?? null,
             }));
 
             return Result.ok({ userTotalFunding, commentsListDTO });

@@ -268,8 +268,7 @@
     position: relative;
     margin-left: -20px;
     margin-right: -20px;
-    margin-bottom: -40px;
-    margin-top: 30px;
+    margin-top: -16px;
     width: calc(100% + 40px);
     background: #7805b7;
 }

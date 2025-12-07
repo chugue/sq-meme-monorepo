@@ -51,11 +51,16 @@ export class CommentRepository {
                 comment: schema.comments,
                 commentorProfileUrl: schema.users.profileImage,
                 userName: schema.users.userName,
+                endTime: schema.games.endTime,
             })
             .from(schema.comments)
             .leftJoin(
                 schema.users,
                 eq(schema.comments.commentor, schema.users.walletAddress),
+            )
+            .leftJoin(
+                schema.games,
+                eq(schema.comments.gameId, schema.games.gameId),
             )
             .where(eq(schema.comments.gameId, gameId))
             .orderBy(desc(schema.comments.createdAt));
@@ -255,7 +260,6 @@ export class CommentRepository {
                         message: dto.message,
                         imageUrl: dto.imageUrl,
                         createdAt: new Date(Number(dto.timestamp) * 1000),
-                        endTime: new Date(Number(dto.newEndTime) * 1000),
                     })
                     .returning({ id: schema.comments.id });
 
@@ -275,7 +279,10 @@ export class CommentRepository {
             this.logger.log(`댓글 저장 완료: 게임 ID ${dto.gameId}`);
             return { id: comment.id };
         } catch (error) {
-            this.logger.error(`댓글 저장 실패: ${error.message}`);
+            this.logger.error(
+                `댓글 저장 실패: ${error.message}`,
+                error instanceof Error ? error.stack : String(error),
+            );
             return null;
         }
     }

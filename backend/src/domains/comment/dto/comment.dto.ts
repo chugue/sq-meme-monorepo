@@ -5,6 +5,7 @@ export interface CommentListDTO {
     commentorProfileUrl: string;
     userName: string;
     hasUserLiked: boolean;
+    endTime: Date | null;
 }
 
 export interface CommentListRespDto {
