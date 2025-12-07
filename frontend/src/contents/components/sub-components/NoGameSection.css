@@ -9,7 +9,7 @@
     max-width: 366px;
     height: fit-content;
     max-height: 90vh;
-    padding: 40px 20px;
+    padding: 16px 16px;
     background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
     box-shadow: 0 0 10px rgba(121, 63, 149, 0.4),
         0 0 10px rgba(121, 63, 149, 0.2);
@@ -35,16 +35,14 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 10px;
-    gap: 10px;
     width: 100%;
     height: 32px;
     margin: 0;
+    text-align: center;
     font-family: "Press Start 2P", "Courier New", monospace;
     font-style: normal;
     font-weight: 400;
-    font-size: 21.35px;
-    line-height: 150%;
+    font-size: 18px;
     background: linear-gradient(207.55deg, #ffffff 29.55%, #f9d0ff 112.89%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -472,7 +470,7 @@
         width: 100%;
         max-width: 366px;
         min-height: 500px;
-        padding: 30px 16px;
+        padding: 16px 16px;
         gap: 20px;
     }
 

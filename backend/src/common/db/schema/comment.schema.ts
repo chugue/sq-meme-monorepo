@@ -28,6 +28,7 @@ export const comments = squidSchema.table(
         likeCount: integer('like_count').default(0).notNull(),
 
         createdAt: timestamp('created_at').notNull(), // 블록 타임스탬프
+        endTime: timestamp('end_time').notNull(), // 댓글 종료 시간
     },
     (table) => {
         return {

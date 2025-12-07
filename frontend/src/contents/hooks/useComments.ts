@@ -19,6 +19,7 @@ function mapToComment(item: CommentListItem): Comment {
         imageUrl: item.comment.imageUrl ?? undefined,
         username: item.userName || undefined,
         profileImage: item.commentorProfileUrl || undefined,
+        endTime: item.comment.endTime,
     };
 }
 

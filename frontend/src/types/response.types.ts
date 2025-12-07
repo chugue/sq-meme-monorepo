@@ -170,6 +170,7 @@ export interface Comment {
     imageUrl: string | null;
     likeCount: number;
     createdAt: string;
+    endTime: string
 }
 
 // 댓글 목록 아이템

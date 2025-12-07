@@ -36,9 +36,7 @@ export function CommentList({
             {comments.map((comment, index) => (
                 <div
                     key={comment.id}
-                    className={`squid-comment-item${
-                        index === 0 ? " squid-comment-winner" : ""
-                    }`}
+                    className={`squid-comment-item${index === 0 ? " squid-comment-winner" : ""}`}
                 >
                     {/* 첫 번째 댓글에 우승자 뱃지 표시 */}
                     {index === 0 && (
@@ -84,9 +82,8 @@ export function CommentList({
                                             </div>
                                         </div>
                                         <button
-                                            className={`squid-comment-like${
-                                                comment.isLiked ? " liked" : ""
-                                            }`}
+                                            className={`squid-comment-like${comment.isLiked ? " liked" : ""
+                                                }`}
                                             onClick={() =>
                                                 !isTogglingLike &&
                                                 onToggleLike?.(comment.id)
@@ -104,6 +101,7 @@ export function CommentList({
                                                     }
                                                     stroke="#b9a7ff"
                                                     strokeWidth={1.5}
+                                                    className="squid-heart-svg"
                                                 />
                                                 <span className="squid-comment-heart-count-value">
                                                     {comment.likeCount}
