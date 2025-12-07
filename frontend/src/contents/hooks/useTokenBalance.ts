@@ -147,8 +147,11 @@ export function useTokenBalance(): UseTokenBalanceReturn {
             return info;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : '잔액 조회 실패';
+            // 콘솔에만 출력 (UI에 렌더링하지 않음)
+            console.warn('🦑 [useTokenBalance] 토큰 잔액 조회 오류:', errorMessage);
             logger.error('토큰 잔액 조회 오류', err);
-            setError(errorMessage);
+            // 0x 디코딩 에러 등 기술적 에러는 UI에 표시하지 않음
+            // setError(errorMessage);
             setIsLoading(false);
             return null;
         }
