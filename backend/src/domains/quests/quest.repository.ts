@@ -149,16 +149,6 @@ export class QuestRepository {
                 ),
             );
 
-        console.log(
-            `[QuestRepository] existing attendance quests:`,
-            existingQuests.map((q) => ({
-                type: q.questType,
-                current: q.currentNumber,
-                target: q.targetNumber,
-                claimed: q.isClaimed,
-            })),
-        );
-
         // 퀘스트가 없으면 초기화
         if (existingQuests.length === 0) {
             console.log(
