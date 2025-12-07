@@ -10,6 +10,7 @@ import homeBg from "@/assets/home.png";
 import homeFloor from "@/assets/home_floor.png";
 import moneyLogo from "@/assets/money_logo.png";
 import squareBrackets from "@/assets/square_brackets.png";
+import { Address } from "viem";
 
 // Content script 연결 오류인지 확인
 function isContentScriptError(error: unknown): boolean {

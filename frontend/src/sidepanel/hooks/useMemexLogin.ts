@@ -14,6 +14,7 @@ import { clearAllSessionStorage, removeStorage } from "../lib/sessionStorage";
 let joinRequestInProgress = false;
 
 import { LOGIN_CHECK_COMPLETED_KEY, SESSION_STATE_KEY } from "@/shared/config/constants";
+import { Address } from "viem";
 import {
     loginCheckCompletedAtom,
     resetSessionAtom,
