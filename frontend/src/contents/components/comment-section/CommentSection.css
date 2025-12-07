@@ -778,6 +778,140 @@
     cursor: pointer;
 }
 
+/* 하트 아이콘 컨테이너에 배경 적용 */
+.squid-comment-heart-icon {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background-color 0.1s ease;
+}
+
+.squid-comment-like:hover .squid-comment-heart-icon {
+    background-color: rgba(185, 167, 255, 0.15);
+}
+
+/* 하트 아이콘 색상 애니메이션 - stroke만 무작위 색조합으로 변경 + 좌우 흔들림 */
+.squid-comment-like:hover .squid-comment-heart-icon {
+    animation: heartShake 0.1s ease-in-out infinite;
+}
+
+/* 좋아요 안 한 상태 (취소 포함) - stroke 색상 변경 */
+.squid-comment-like:not(.liked):hover .squid-comment-heart-icon .squid-heart-svg,
+.squid-comment-like:not(.liked):hover .squid-comment-heart-icon svg {
+    /* fill은 그대로 유지 (transparent 또는 none) */
+    animation: heartStrokeColorCycle 0.5s ease-in-out infinite !important;
+}
+
+/* 좋아요 한 상태 - stroke 색상 변경 */
+.squid-comment-like.liked:hover .squid-comment-heart-icon .squid-heart-svg,
+.squid-comment-like.liked:hover .squid-comment-heart-icon svg {
+    /* fill은 그대로 유지 (#b9a7ff) */
+    animation: heartStrokeColorCycleLiked 0.5s ease-in-out infinite !important;
+}
+
+/* 좌우 흔들림 애니메이션 */
+@keyframes heartShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-1px);
+    }
+
+    75% {
+        transform: translateX(1px);
+    }
+}
+
+@keyframes heartStrokeColorCycle {
+    0% {
+        stroke: #b9a7ff;
+        filter: drop-shadow(0 0 8px rgba(185, 167, 255, 0.8));
+    }
+
+    14.28% {
+        stroke: #ff6b9d;
+        filter: drop-shadow(0 0 8px rgba(255, 107, 157, 0.8));
+    }
+
+    28.56% {
+        stroke: #4ecdc4;
+        filter: drop-shadow(0 0 8px rgba(78, 205, 196, 0.8));
+    }
+
+    42.84% {
+        stroke: #ffe66d;
+        filter: drop-shadow(0 0 8px rgba(255, 230, 109, 0.8));
+    }
+
+    57.12% {
+        stroke: #ff6b9d;
+        filter: drop-shadow(0 0 8px rgba(255, 107, 157, 0.8));
+    }
+
+    71.4% {
+        stroke: #a8e6cf;
+        filter: drop-shadow(0 0 8px rgba(168, 230, 207, 0.8));
+    }
+
+    85.68% {
+        stroke: #ffd93d;
+        filter: drop-shadow(0 0 8px rgba(255, 217, 61, 0.8));
+    }
+
+    100% {
+        stroke: #b9a7ff;
+        filter: drop-shadow(0 0 8px rgba(185, 167, 255, 0.8));
+    }
+}
+
+@keyframes heartStrokeColorCycleLiked {
+    0% {
+        stroke: #ff6b9d;
+        filter: drop-shadow(0 0 10px rgba(255, 107, 157, 0.9));
+    }
+
+    14.28% {
+        stroke: #ff4081;
+        filter: drop-shadow(0 0 10px rgba(255, 64, 129, 0.9));
+    }
+
+    28.56% {
+        stroke: #ff1744;
+        filter: drop-shadow(0 0 10px rgba(255, 23, 68, 0.9));
+    }
+
+    42.84% {
+        stroke: #e91e63;
+        filter: drop-shadow(0 0 10px rgba(233, 30, 99, 0.9));
+    }
+
+    57.12% {
+        stroke: #c2185b;
+        filter: drop-shadow(0 0 10px rgba(194, 24, 91, 0.9));
+    }
+
+    71.4% {
+        stroke: #ad1457;
+        filter: drop-shadow(0 0 10px rgba(173, 20, 87, 0.9));
+    }
+
+    85.68% {
+        stroke: #880e4f;
+        filter: drop-shadow(0 0 10px rgba(136, 14, 79, 0.9));
+    }
+
+    100% {
+        stroke: #ff6b9d;
+        filter: drop-shadow(0 0 10px rgba(255, 107, 157, 0.9));
+    }
+}
+
 .squid-comment-like-icon {
     width: 22px;
     height: 22px;
@@ -1120,4 +1254,82 @@
     font-family: "Pretendard", sans-serif;
     font-weight: 700;
     font-size: 8px;
+    transition: color 0.2s ease;
+}
+
+/* 호버 시 숫자 색상 애니메이션 */
+.squid-comment-like:hover .squid-comment-heart-count-value {
+    animation: numberColorCycle 2s ease-in-out infinite;
+}
+
+.squid-comment-like.liked:hover .squid-comment-heart-count-value {
+    animation: numberColorCycleLiked 2s ease-in-out infinite;
+}
+
+@keyframes numberColorCycle {
+    0% {
+        color: #b9a7ff;
+    }
+
+    14.28% {
+        color: #ff6b9d;
+    }
+
+    28.56% {
+        color: #4ecdc4;
+    }
+
+    42.84% {
+        color: #ffe66d;
+    }
+
+    57.12% {
+        color: #ff6b9d;
+    }
+
+    71.4% {
+        color: #a8e6cf;
+    }
+
+    85.68% {
+        color: #ffd93d;
+    }
+
+    100% {
+        color: #b9a7ff;
+    }
+}
+
+@keyframes numberColorCycleLiked {
+    0% {
+        color: #ff6b9d;
+    }
+
+    14.28% {
+        color: #ff4081;
+    }
+
+    28.56% {
+        color: #ff1744;
+    }
+
+    42.84% {
+        color: #e91e63;
+    }
+
+    57.12% {
+        color: #c2185b;
+    }
+
+    71.4% {
+        color: #ad1457;
+    }
+
+    85.68% {
+        color: #880e4f;
+    }
+
+    100% {
+        color: #ff6b9d;
+    }
 }

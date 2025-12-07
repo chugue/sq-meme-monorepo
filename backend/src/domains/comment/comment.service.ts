@@ -228,7 +228,7 @@ export class CommentService {
                 (log) =>
                     log.topics[0] === commentAddedTopic &&
                     log.address.toLowerCase() ===
-                        this.contractAddress.toLowerCase(),
+                    this.contractAddress.toLowerCase(),
             );
 
             if (!commentLog) {

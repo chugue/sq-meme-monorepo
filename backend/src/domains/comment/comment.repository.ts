@@ -255,6 +255,7 @@ export class CommentRepository {
                         message: dto.message,
                         imageUrl: dto.imageUrl,
                         createdAt: new Date(Number(dto.timestamp) * 1000),
+                        endTime: new Date(Number(dto.newEndTime) * 1000),
                     })
                     .returning({ id: schema.comments.id });
 
