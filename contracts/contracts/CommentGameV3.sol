@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CommentGameV2 is ReentrancyGuard, Ownable {
+contract CommentGameV3 is ReentrancyGuard, Ownable {
     // 플랫폼 수수료
     uint256 public constant PLATFORM_FEE = 2;
     address public feeCollector;
-
+    
     // 게임 ID 카운터
     uint256 public gameIdCounter;
 
@@ -29,22 +29,22 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         address lastCommentor;
         uint256 prizePool; // 펀딩된 상금 풀
         bool isClaimed;
-
+        
         // 펀딩 관련
         mapping(address => uint256) fundings;  // 펀딩자별 펀딩 금액
         address[] funders;                    // 펀딩자 목록
         uint256 totalFunding;                 // 총 펀딩 금액
     }
-
+    
     // 게임 ID -> 게임 데이터 맵핑
     mapping(uint256 => GameData) public games;
-
+    
     // 토큰 주소 -> 현재 활성 게임 ID 맵핑
     mapping(address => uint256) public activeGameByToken;
-
+    
     // 모든 게임 ID 목록
     uint256[] public allGameIds;
-
+    
     struct GameInfo {
         uint256 id;
         address initiator;
@@ -130,19 +130,20 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
                 "Active game already exists for this token"
             );
         }
-
+        
         gameIdCounter++;
         uint256 gameId = gameIdCounter;
-
+        
         GameData storage game = games[gameId];
         game.id = gameId;
         game.initiator = msg.sender;
         game.gameToken = _gameToken;
+        game.cost = _initialFunding / 10000;
         game.gameTime = _time;
         game.tokenSymbol = IERC20Metadata(_gameToken).symbol();
         game.endTime = block.timestamp + _time;
         game.lastCommentor = msg.sender;
-
+        
         // 초기 펀딩 처리
         if (_initialFunding > 0) {
             require(
@@ -153,17 +154,16 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
                 ),
                 "Initial funding transfer failed"
             );
-
+            
             game.fundings[msg.sender] = _initialFunding;
             game.funders.push(msg.sender);
             game.totalFunding = _initialFunding;
             game.prizePool = _initialFunding;
-            game.cost = _initialFunding / 10000;
         }
-
+        
         activeGameByToken[_gameToken] = gameId;
         allGameIds.push(gameId);
-
+        
         emit GameCreated(
             gameId,
             msg.sender,
@@ -175,7 +175,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
             game.lastCommentor,
             game.totalFunding
         );
-
+        
         return gameId;
     }
 
@@ -189,13 +189,13 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         require(game.id > 0, "Game does not exist");
         require(block.timestamp < game.endTime, "Game already ended");
         require(_amount > 0, "Amount must be greater than 0");
-
+        
         // 토큰 전송
         require(
             IERC20(game.gameToken).transferFrom(msg.sender, address(this), _amount),
             "Funding transfer failed"
         );
-
+        
         // 펀딩자 정보 업데이트
         if (game.fundings[msg.sender] == 0) {
             game.funders.push(msg.sender);
@@ -204,7 +204,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         game.totalFunding += _amount;
         game.prizePool += _amount;
         game.cost = game.totalFunding / 10000;
-
+        
         emit PrizePoolFunded(_gameId, msg.sender, game.cost, _amount, game.totalFunding);
     }
 
@@ -216,29 +216,29 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
     function _distributeCommentFee(uint256 _gameId, uint256 _amount) internal {
         GameData storage game = games[_gameId];
         require(game.totalFunding > 0, "No funders to distribute");
-
+        
         // 플랫폼 수수료 계산 (2%)
         uint256 platformShare = (_amount * PLATFORM_FEE) / 100;
         uint256 distributableAmount = _amount - platformShare;
-
+        
         // 플랫폼 수수료 전송
         if (platformShare > 0) {
             IERC20(game.gameToken).transfer(feeCollector, platformShare);
         }
-
+        
         // 펀딩자들에게 분배
         uint256 distributed = 0;
         for (uint256 i = 0; i < game.funders.length; i++) {
             address funder = game.funders[i];
             uint256 share = (game.fundings[funder] * distributableAmount) / game.totalFunding;
-
+            
             if (share > 0) {
                 IERC20(game.gameToken).transfer(funder, share);
                 distributed += share;
                 emit CommentFeeDistributed(_gameId, funder, share);
             }
         }
-
+        
         // 반올림 오류 보정: 마지막 펀딩자가 나머지 금액 처리
         uint256 remainder = distributableAmount - distributed;
         if (remainder > 0 && game.funders.length > 0) {
@@ -258,20 +258,20 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         require(game.id > 0, "Game does not exist");
         require(block.timestamp < game.endTime, "Game already ended");
         require(game.totalFunding > 0, "No funders available");
-
+        
         // 토큰 승인 여부 확인
         uint256 allowance = IERC20(game.gameToken).allowance(
             msg.sender,
             address(this)
         );
         require(allowance >= game.cost, "ERC20: Must approve token first");
-
+        
         // 참가비 결제
         IERC20(game.gameToken).transferFrom(msg.sender, address(this), game.cost);
-
+        
         // 즉시 펀딩자들에게 분배
         _distributeCommentFee(_gameId, game.cost);
-
+        
         // 댓글 ID 증가
         commentIdCounter[_gameId]++;
         uint256 commentId = commentIdCounter[_gameId];
@@ -294,15 +294,15 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
         require(msg.sender == game.lastCommentor, "Only winner can withdraw");
         require(!game.isClaimed, "Prize already claimed");
         require(game.prizePool > 0, "No prize to claim");
-
+        
         // 상태 변경
         game.isClaimed = true;
         uint256 prizeAmount = game.prizePool;
         game.prizePool = 0;
-
+        
         // 상금 송금
         IERC20(game.gameToken).transfer(msg.sender, prizeAmount);
-
+        
         emit PrizeClaimed(_gameId, msg.sender, prizeAmount, block.timestamp);
     }
 
@@ -336,7 +336,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
     function getGameInfo(uint256 _gameId) external view returns (GameInfo memory) {
         GameData storage game = games[_gameId];
         require(game.id > 0, "Game does not exist");
-
+        
         return GameInfo({
             id: game.id,
             initiator: game.initiator,
@@ -377,11 +377,11 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
      */
     function getAllGames() external view returns (GameInfo[] memory) {
         GameInfo[] memory allGames = new GameInfo[](allGameIds.length);
-
+        
         for (uint256 i = 0; i < allGameIds.length; i++) {
             uint256 gameId = allGameIds[i];
             GameData storage game = games[gameId];
-
+            
             allGames[i] = GameInfo({
                 id: game.id,
                 initiator: game.initiator,
@@ -398,7 +398,7 @@ contract CommentGameV2 is ReentrancyGuard, Ownable {
                 funderCount: game.funders.length
             });
         }
-
+        
         return allGames;
     }
 

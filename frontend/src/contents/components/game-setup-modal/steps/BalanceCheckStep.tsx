@@ -53,11 +53,7 @@ export function BalanceCheckStep({ tokenAddress, tokenSymbol, onNext, onClose }:
                 <img src={checkCoin} alt="Check Token" />
             </div>
             <h3 className="balance-check-title">Check Token Balance</h3>
-            <p className="balance-check-description">
-                Creating a game requires $50M tokens.
-                <br />
-                This amount will be used as the cost for the first comment
-            </p>
+            <p className="balance-check-description">Creating a game requires ${tokenSymbol} tokens.</p>
 
             <div className="balance-check-info-section">
                 <div className="balance-check-info-row">
@@ -81,7 +77,7 @@ export function BalanceCheckStep({ tokenAddress, tokenSymbol, onNext, onClose }:
                         <span className="balance-check-label">YOUR BALANCE</span>
                         <span className={`balance-check-balance ${hasBalance ? "has-balance" : "no-balance"}`}>
                             <span className="balance-amount">{tokenInfo.balanceFormatted}</span>
-                            <span className="balance-symbol">$ {tokenInfo.symbol || tokenSymbol}</span>
+                            <span className="balance-symbol">{tokenInfo.symbol || tokenSymbol}</span>
                         </span>
                     </div>
                 )}

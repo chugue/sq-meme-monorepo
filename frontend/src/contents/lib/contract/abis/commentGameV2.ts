@@ -269,5 +269,5 @@ export const commentGameV2ABI = [
     },
 ] as const;
 
-// CommentGameV2 컨트랙트 주소 (환경변수 사용)
-export const COMMENT_GAME_V2_ADDRESS = import.meta.env.VITE_COMMENT_GAME_V2_ADDRESS || '0x0000000000000000000000000000000000000000';
+// CommentGameV3 컨트랙트 주소 (환경변수 사용)
+export const COMMENT_GAME_V2_ADDRESS = import.meta.env.VITE_COMMENT_GAME_V3_ADDRESS || '0x0000000000000000000000000000000000000000';

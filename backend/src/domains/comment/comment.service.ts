@@ -33,7 +33,7 @@ export class CommentService {
     ) {
         this.commentAddedIface = new ethers.Interface([COMMENT_ADDED_EVENT]);
         this.contractAddress =
-            this.configService.get<string>('COMMENT_GAME_V2_ADDRESS') || '';
+            this.configService.get<string>('COMMENT_GAME_V3_ADDRESS') || '';
     }
 
     /**

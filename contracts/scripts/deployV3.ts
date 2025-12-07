@@ -1,0 +1,63 @@
+import hre from "hardhat";
+import { defineChain, createWalletClient, createPublicClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+
+const formicarium = defineChain({
+  id: 43521,
+  name: "Formicarium Testnet",
+  nativeCurrency: { name: "Meme", symbol: "M", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.formicarium.memecore.net"] },
+  },
+});
+
+async function main() {
+  let privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error("DEPLOYER_PRIVATE_KEY not found in environment");
+  }
+
+  // Add 0x prefix if missing
+  if (!privateKey.startsWith("0x")) {
+    privateKey = `0x${privateKey}`;
+  }
+
+  const account = privateKeyToAccount(privateKey as `0x${string}`);
+
+  const walletClient = createWalletClient({
+    account,
+    chain: formicarium,
+    transport: http(),
+  });
+
+  const publicClient = createPublicClient({
+    chain: formicarium,
+    transport: http(),
+  });
+
+  console.log("Deploying CommentGameV3 with the account:", account.address);
+
+  // Get CommentGameV3 artifact
+  const artifact = await hre.artifacts.readArtifact("CommentGameV3");
+
+  // Deploy CommentGameV3 with feeCollector set to deployer address
+  const hash = await walletClient.deployContract({
+    abi: artifact.abi,
+    bytecode: artifact.bytecode as `0x${string}`,
+    args: [account.address], // feeCollector address
+    gas: 5000000n,
+  });
+
+  console.log("Transaction hash:", hash);
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  console.log("CommentGameV3 deployed to:", receipt.contractAddress);
+  console.log("");
+  console.log("=== Update your .env file ===");
+  console.log(`VITE_COMMENT_GAME_V3_ADDRESS=${receipt.contractAddress}`);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

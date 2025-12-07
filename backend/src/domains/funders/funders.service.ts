@@ -26,7 +26,7 @@ export class FundersService {
             PRIZE_POOL_FUNDED_EVENT,
         ]);
         this.contractAddress =
-            this.configService.get<string>('COMMENT_GAME_V2_ADDRESS') || '';
+            this.configService.get<string>('COMMENT_GAME_V3_ADDRESS') || '';
     }
 
     /**

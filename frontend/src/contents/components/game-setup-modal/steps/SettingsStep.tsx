@@ -1,5 +1,5 @@
 /**
- * 2단계: 게임 설정 입력 컴포넌트
+ * Step 2: Game Settings Input Component
  */
 
 import { ImagePlus } from "lucide-react";
@@ -29,8 +29,8 @@ export function SettingsStep({ settings, tokenSymbol, onChange, onNext, onBack }
             const { url } = await backgroundApi.uploadImage(file);
             onChange({ ...settings, firstCommentImage: url });
         } catch (error) {
-            console.error("이미지 업로드 실패:", error);
-            setErrors((prev) => ({ ...prev, image: "이미지 업로드에 실패했습니다" }));
+            console.error("Image upload failed:", error);
+            setErrors((prev) => ({ ...prev, image: "Failed to upload image" }));
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) {
@@ -47,19 +47,15 @@ export function SettingsStep({ settings, tokenSymbol, onChange, onNext, onBack }
         const newErrors: Record<string, string> = {};
 
         if (!settings.initialFunding || Number(settings.initialFunding) <= 0) {
-            newErrors.initialFunding = "초기 펀딩 금액은 0보다 커야 합니다";
-        }
-
-        if (!settings.cost || Number(settings.cost) <= 0) {
-            newErrors.cost = "댓글 비용은 0보다 커야 합니다";
+            newErrors.initialFunding = "Initial funding must be greater than 0";
         }
 
         if (!settings.time || Number(settings.time) < 1) {
-            newErrors.time = "타이머는 최소 1분 이상이어야 합니다";
+            newErrors.time = "Timer must be at least 1 minute";
         }
 
         if (!settings.firstComment.trim()) {
-            newErrors.firstComment = "첫 댓글을 입력해주세요";
+            newErrors.firstComment = "Please enter the first comment";
         }
 
         setErrors(newErrors);
@@ -77,15 +73,14 @@ export function SettingsStep({ settings, tokenSymbol, onChange, onNext, onBack }
             <div className="squid-step-icon">⚙️</div>
             <h3 className="squid-step-title">Game Settings</h3>
 
-            {/* 초기 펀딩 금액 */}
+            {/* Initial Funding */}
             <div className="squid-input-group">
                 <label className="squid-input-label">
                     Initial Funding
-                    <span className="squid-input-hint">상금 풀에 넣을 초기 토큰 수량</span>
+                    <span className="squid-input-hint">Initial token amount for the prize pool</span>
                 </label>
                 <div className="squid-input-with-suffix">
                     <input
-                        type="number"
                         className={`squid-input ${errors.initialFunding ? "error" : ""}`}
                         value={settings.initialFunding}
                         onChange={(e) => onChange({ ...settings, initialFunding: e.target.value })}
@@ -98,76 +93,67 @@ export function SettingsStep({ settings, tokenSymbol, onChange, onNext, onBack }
                 {errors.initialFunding && <span className="squid-input-error">{errors.initialFunding}</span>}
             </div>
 
-            {/* 댓글 비용 */}
+            {/* Comment Cost */}
             <div className="squid-input-group">
                 <label className="squid-input-label">
                     Comment Cost
-                    <span className="squid-input-hint">댓글 1개당 필요한 토큰 수량 설정</span>
+                    <span className="squid-input-hint">Auto-calculated as 0.01% of funding</span>
                 </label>
                 <div className="squid-input-with-suffix">
-                    <input
-                        type="number"
-                        className={`squid-input ${errors.cost ? "error" : ""}`}
-                        value={settings.cost}
-                        onChange={(e) => onChange({ ...settings, cost: e.target.value })}
-                        placeholder="100"
-                        min="1"
-                    />
+                    <input className="squid-input readonly" value={Number(settings.initialFunding) / 10000 || 0} readOnly />
                     <span className="squid-input-suffix">{tokenSymbol}</span>
                 </div>
-                {errors.cost && <span className="squid-input-error">{errors.cost}</span>}
             </div>
 
-            {/* 타이머 */}
+            {/* Timer */}
             <div className="squid-input-group">
                 <label className="squid-input-label">
                     Timer
-                    <span className="squid-input-hint">마지막 댓글 후 종료까지 시간</span>
+                    <span className="squid-input-hint">Time until game ends after last comment</span>
                 </label>
                 <div className="squid-input-with-suffix">
                     <input
-                        type="number"
                         className={`squid-input ${errors.time ? "error" : ""}`}
                         value={settings.time}
                         onChange={(e) => onChange({ ...settings, time: e.target.value })}
                         placeholder="60"
                         min="1"
                     />
-                    <span className="squid-input-suffix">분</span>
+                    <span className="squid-input-suffix">min</span>
                 </div>
                 <div className="squid-time-presets">
                     <button type="button" onClick={() => onChange({ ...settings, time: "5" })}>
-                        5분
+                        5m
                     </button>
                     <button type="button" onClick={() => onChange({ ...settings, time: "30" })}>
-                        30분
+                        30m
                     </button>
                     <button type="button" onClick={() => onChange({ ...settings, time: "60" })}>
-                        1시간
+                        1h
                     </button>
                     <button type="button" onClick={() => onChange({ ...settings, time: "1440" })}>
-                        1일
+                        1d
                     </button>
                 </div>
                 {errors.time && <span className="squid-input-error">{errors.time}</span>}
             </div>
 
-            {/* 첫 댓글 - MEMEX 스타일 카드 */}
+            {/* First Comment */}
             <div className="squid-input-group">
                 <label className="squid-input-label">
                     First Comment
-                    <span className="squid-input-hint">게임 생성과 함께 작성할 첫 댓글</span>
+                    <span className="squid-input-hint">Your first comment when the game starts</span>
                 </label>
                 <div className="squid-comment-card">
                     <textarea
                         className={`squid-comment-textarea ${errors.firstComment ? "error" : ""}`}
                         value={settings.firstComment}
                         onChange={(e) => onChange({ ...settings, firstComment: e.target.value })}
-                        placeholder="게임을 시작합니다! 마지막 댓글 작성자가 상금을 가져갑니다."
+                        placeholder="Game starts now! Last commenter takes the prize."
                         rows={2}
                     />
 
-                    {/* 이미지 미리보기 (MEMEX 스타일) */}
+                    {/* Image Preview */}
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -184,7 +170,7 @@ export function SettingsStep({ settings, tokenSymbol, onChange, onNext, onBack }
                         </div>
                     ) : null}
 
-                    {/* 하단 액션 바 - 이미지가 없을 때만 표시 */}
+                    {/* Action bar - only shown when no image */}
                     {!settings.firstCommentImage && (
                         <div className="squid-comment-actions">
                             <button
