@@ -32,23 +32,13 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     const currentPageInfo = useAtomValue(currentPageInfoAtom);
     const endedGameInfo = useAtomValue(endedGameInfoAtom);
     const setEndedGameInfo = useSetAtom(endedGameInfoAtom);
-    const {
-        isConnected,
-        address,
-        connect,
-        isLoading: walletLoading,
-        error: walletError,
-    } = useWallet();
+    const { isConnected, address, connect, isLoading: walletLoading, error: walletError } = useWallet();
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // 현재 사용자가 우승자인지 확인 (대소문자 무시)
-    const isWinner =
-        endedGameInfo &&
-        !endedGameInfo.isClaimed &&
-        address &&
-        endedGameInfo.lastCommentor.toLowerCase() === address.toLowerCase();
+    const isWinner = endedGameInfo && !endedGameInfo.isClaimed && address && endedGameInfo.lastCommentor.toLowerCase() === address.toLowerCase();
 
     /**
      * CREATE GAME 버튼 클릭 핸들러
@@ -77,17 +67,13 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
         window.location.reload();
     };
 
-    const tokenSymbol = currentPageInfo?.symbol
-        ? `$${currentPageInfo.symbol.toUpperCase()}`
-        : "TOKEN";
+    const tokenSymbol = currentPageInfo?.symbol ? `$${currentPageInfo.symbol.toUpperCase()}` : "TOKEN";
 
     const tokenAddress = currentPageInfo?.contractAddress || "";
-    const xHandle = currentPageInfo?.username
-        ? `@${currentPageInfo.username}`
-        : "";
+    const xHandle = currentPageInfo?.username ? `@${currentPageInfo.username}` : "";
 
     // 디버깅: NoGameSection에서 사용하는 currentPageInfo 확인
-    console.log('🦑 [DEBUG] NoGameSection currentPageInfo:', {
+    console.log("🦑 [DEBUG] NoGameSection currentPageInfo:", {
         contractAddress: currentPageInfo?.contractAddress,
         username: currentPageInfo?.username,
         symbol: currentPageInfo?.symbol,
@@ -98,10 +84,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     // 페이지 정보가 없으면 로딩 표시
     if (!currentPageInfo) {
         return (
-            <div
-                className="no-game-container"
-                data-testid="squid-comment-section"
-            >
+            <div className="no-game-container" data-testid="squid-comment-section">
                 {/* NO GAME YET! 타이틀 */}
                 <h1 className="no-game-title">NO GAME YET!</h1>
 
@@ -117,11 +100,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                         ease: "easeInOut",
                     }}
                 >
-                    <img
-                        src={getExtensionImageUrl("icon/mascot-wine.png")}
-                        alt="Squid"
-                        className="no-game-squid-image"
-                    />
+                    <img src={getExtensionImageUrl("icon/mascot-wine.png")} alt="Squid" className="no-game-squid-image" />
                 </motion.div>
 
                 <div className="no-game-loading-text">LOADING...</div>
@@ -151,11 +130,7 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                     ease: "easeInOut",
                 }}
             >
-                <img
-                    src={getExtensionImageUrl("icon/mascot-wine.png")}
-                    alt="Squid"
-                    className="no-game-squid-image"
-                />
+                <img src={getExtensionImageUrl("icon/mascot-wine.png")} alt="Squid" className="no-game-squid-image" />
             </motion.div>
 
             {/* 토큰 정보 프레임 */}
@@ -175,12 +150,8 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
                 {/* 토큰 정보 */}
                 <div className="no-game-token-info-content">
                     <span className="no-game-token-label">TOKEN ADDRESS</span>
-                    <span className="no-game-token-value">
-                        {shortenAddress(tokenAddress)}
-                    </span>
-                    {xHandle && (
-                        <span className="no-game-token-handle">{xHandle}</span>
-                    )}
+                    <span className="no-game-token-value">{shortenAddress(tokenAddress)}</span>
+                    {xHandle && <span className="no-game-token-handle">{xHandle}</span>}
                 </div>
 
                 {/* 오른쪽 대괄호 */}
@@ -194,48 +165,26 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
             {/* 게임 생성 섹션 */}
             <div className="no-game-create-section">
                 {/* 지갑 연결 상태 */}
-                {walletLoading && (
-                    <div className="no-game-wallet-status">
-                        CONNECTING WALLET...
-                    </div>
-                )}
+                {walletLoading && <div className="no-game-wallet-status">CONNECTING WALLET...</div>}
 
                 {!isConnected && !walletLoading && (
-                    <button
-                        type="button"
-                        onClick={connect}
-                        className="no-game-create-button"
-                    >
-                        <span className="no-game-create-button-text">
-                            CONNECT WALLET
-                        </span>
+                    <button type="button" onClick={connect} className="no-game-create-button">
+                        <span className="no-game-create-button-text">CONNECT WALLET</span>
                     </button>
                 )}
 
                 {isConnected && !walletLoading && (
                     <>
-                        <div className="no-game-connected-status">
-                            CONNECTED: {formatAddress(address || "")}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleCreateGameClick}
-                            className="no-game-create-button"
-                        >
-                            <span className="no-game-create-button-text">
-                                CREATE GAME {">>>"}
-                            </span>
+                        <div className="no-game-connected-status">CONNECTED: {formatAddress(address || "")}</div>
+                        <button type="button" onClick={handleCreateGameClick} className="no-game-create-button">
+                            <span className="no-game-create-button-text">CREATE GAME {">>>"}</span>
                         </button>
                     </>
                 )}
 
                 {/* 에러 메시지 */}
-                {walletError && (
-                    <div className="no-game-error">{walletError}</div>
-                )}
+                {walletError && <div className="no-game-error">{walletError}</div>}
             </div>
-
-
 
             {/* 게임 설정 모달 */}
             <GameSetupModal

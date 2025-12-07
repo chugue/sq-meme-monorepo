@@ -37,7 +37,7 @@ const MOCK_TOKENS: Record<string, Address> = {
 function getMockTokenAddressFromUrl(url: string): Address {
     const profileMatch = url.match(/\/profile\/([^\/]+)\/[^\/]+/);
     if (profileMatch) {
-        const username = decodeURIComponent(profileMatch[1]);
+        const username = decodeURIComponent(profileMatch[1]).toLowerCase();
         const mockTokenAddress = MOCK_TOKENS[username];
         console.log("[getMockTokenAddressFromUrl]", {
             url,
