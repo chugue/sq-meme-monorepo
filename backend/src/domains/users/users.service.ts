@@ -5,6 +5,11 @@ import {
     MyAsset,
     MyAssetsRespDto,
 } from 'src/common/mock/my-assets';
+import {
+    mockGameRanking,
+    mockMostCommentors,
+    mockPrizeRanking,
+} from 'src/common/mock/rankings';
 import { Result } from 'src/common/types';
 import { CommentRepository } from '../comment/comment.repository';
 import { GameRepository } from '../game/game.repository';
@@ -109,7 +114,9 @@ export class UsersService {
                 }),
             );
 
-            return Result.ok(result);
+            // Mock 데이터 반환
+            const limitedMockData = mockMostCommentors.slice(0, limit ?? 20);
+            return Result.ok(limitedMockData);
         } catch (error) {
             this.logger.error(`Get most commentors failed: ${error.message}`);
             return Result.fail(
@@ -347,7 +354,8 @@ export class UsersService {
                 },
             );
 
-            return Result.ok({ gameRanking });
+            // Mock 데이터 반환
+            return Result.ok({ gameRanking: mockGameRanking });
         } catch (error) {
             this.logger.error(`Get game ranking failed: ${error.message}`);
             return Result.fail(
@@ -399,7 +407,9 @@ export class UsersService {
                 },
             );
 
-            return Result.ok({ prizeRanking });
+            // Mock 데이터 반환
+            const limitedMockData = mockPrizeRanking.slice(0, limit ?? 20);
+            return Result.ok({ prizeRanking: limitedMockData });
         } catch (error) {
             this.logger.error(`Get prize ranking failed: ${error.message}`);
             return Result.fail(
