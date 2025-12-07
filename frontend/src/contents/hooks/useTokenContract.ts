@@ -330,10 +330,23 @@ export function useTokenContract() {
         async (data: CurrentPageInfo) => {
             logger.info("토큰 컨트랙트 정보 수신", { ...data });
 
-            setCurrentPageInfo(data);
+            const MOCK_TOKENS: Record<string, Address> = {
+                codingcat: import.meta.env.VITE_MOCK_TOKEN_1 as Address,
+                squidmeme: import.meta.env.VITE_MOCK_TOKEN_2 as Address,
+                jrbr: import.meta.env.VITE_MOCK_TOKEN_3 as Address,
+                memex: import.meta.env.VITE_MOCK_TOKEN_4 as Address,
+            };
+
+            // username이 MOCK_TOKENS에 있으면 contractAddress를 mock token 주소로 교체
+            const mockAddress = MOCK_TOKENS[data.username.toLowerCase()];
+            const updatedData = mockAddress
+                ? { ...data, contractAddress: mockAddress }
+                : data;
+
+            setCurrentPageInfo(updatedData);
 
             // 토큰 주소로 게임 정보 조회
-            await fetchGameByToken(data.contractAddress);
+            await fetchGameByToken(updatedData.contractAddress);
         },
         [setCurrentPageInfo, fetchGameByToken],
     );
