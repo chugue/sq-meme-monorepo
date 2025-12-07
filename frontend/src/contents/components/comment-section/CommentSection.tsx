@@ -34,15 +34,27 @@ const GameTimer = memo(function GameTimer({ endTime }: { endTime: string | undef
             return;
         }
 
+        let lastSecond = Math.floor(Date.now() / 1000);
+
         const updateTimer = () => {
-            const formatted = formatRemainingTime(endTime);
-            setRemainingTime(formatted);
+            const now = Date.now();
+            const currentSecond = Math.floor(now / 1000);
+
+            // 초가 바뀌었을 때만 상태 업데이트
+            if (currentSecond !== lastSecond) {
+                const formatted = formatRemainingTime(endTime);
+                setRemainingTime(formatted);
+                lastSecond = currentSecond;
+            }
         };
 
+        // 초기 계산
         updateTimer();
-        const interval = setInterval(updateTimer, 1000);
 
-        return () => clearInterval(interval);
+        // 100ms마다 체크 (초 경계에 최대 100ms 지연)
+        const intervalId = setInterval(updateTimer, 100);
+
+        return () => clearInterval(intervalId);
     }, [endTime]);
 
     return <FlipTimer time={remainingTime} />;
