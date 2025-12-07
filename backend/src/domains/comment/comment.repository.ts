@@ -16,7 +16,7 @@ export class CommentRepository {
     constructor(
         @Inject(DrizzleAsyncProvider)
         private readonly db: NodePgDatabase<typeof schema>,
-    ) {}
+    ) { }
 
     /**
      * @description 특정 사용자의 총 댓글 수 조회 (최대 50)

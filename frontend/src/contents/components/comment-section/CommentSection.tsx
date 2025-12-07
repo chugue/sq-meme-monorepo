@@ -4,7 +4,7 @@
  */
 
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
 import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
@@ -97,40 +97,44 @@ export function CommentSection() {
     const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // 댓글 목록이 업데이트될 때 마지막 댓글의 endTime으로 activeGameInfo 업데이트
-    useEffect(() => {
-        if (!activeGameInfo || comments.length === 0) {
-            return;
+    // 마지막 댓글 찾기 (createdAt 기준으로 정렬하여 가장 최근 댓글)
+    const lastComment = useMemo(() => {
+        if (comments.length === 0) {
+            return null;
         }
-
-        // 마지막 댓글 찾기 (createdAt 기준으로 정렬하여 가장 최근 댓글)
         const sortedComments = [...comments].sort((a, b) => {
             const timeA = new Date(a.createdAt).getTime();
             const timeB = new Date(b.createdAt).getTime();
             return timeB - timeA; // 최신순
         });
+        return sortedComments[0];
+    }, [comments]);
 
-        const lastComment = sortedComments[0];
-
-        if (lastComment?.endTime && lastComment.endTime !== activeGameInfo.endTime) {
-            // endTime이 Unix timestamp (초 단위)인지 ISO 문자열인지 확인
-            let newEndTime: string;
-
-            // 숫자 문자열이면 Unix timestamp로 간주
-            if (/^\d+$/.test(lastComment.endTime)) {
-                const endTimeMs = Number(lastComment.endTime) * 1000;
-                newEndTime = new Date(endTimeMs).toISOString();
-            } else {
-                // 이미 ISO 문자열이면 그대로 사용
-                newEndTime = lastComment.endTime;
-            }
-
-            setActiveGameInfo({
-                ...activeGameInfo,
-                endTime: newEndTime,
-            });
+    // 마지막 댓글의 createdAt + gameTime으로 새로운 endTime 계산
+    const calculatedEndTime = useMemo(() => {
+        // 마지막 댓글이 없거나 gameTime이 없으면 undefined 반환
+        if (!lastComment?.createdAt || !activeGameInfo?.gameTime) {
+            return undefined;
         }
-    }, [comments, activeGameInfo, setActiveGameInfo]);
+
+        try {
+            // createdAt을 Date 객체로 변환
+            const createdAtDate = new Date(lastComment.createdAt);
+            const createdAtMs = createdAtDate.getTime();
+
+            // gameTime은 초 단위이므로 밀리초로 변환
+            const gameTimeMs = Number(activeGameInfo.gameTime) * 1000;
+
+            // createdAt + gameTime = 새로운 endTime
+            const newEndTimeMs = createdAtMs + gameTimeMs;
+            const newEndTime = new Date(newEndTimeMs).toISOString();
+
+            return newEndTime;
+        } catch (error) {
+            console.error("[CommentSection] endTime 계산 오류:", error);
+            return undefined;
+        }
+    }, [lastComment, activeGameInfo]);
 
     // 펀딩 훅
     const { fundingAmount, setFundingAmount, isFunding, handleFund } = useFunding({
@@ -225,7 +229,7 @@ export function CommentSection() {
                             <div className="squid-game-timer">
                                 <span className="squid-timer-label">TIMER</span>
                                 <span className="squid-timer-value">
-                                    <GameTimer endTime={activeGameInfo?.endTime} />
+                                    <GameTimer endTime={calculatedEndTime} />
                                 </span>
                             </div>
                         </div>
