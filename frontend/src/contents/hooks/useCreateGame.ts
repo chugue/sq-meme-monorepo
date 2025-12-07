@@ -21,10 +21,6 @@ import { injectedApi } from "../lib/injectedApi";
 import { isGameEndedByTime } from "../utils/gameTime";
 import { useWallet } from "./useWallet";
 
-// 테스트용 MockERC20 주소 (Insectarium 테스트넷에 배포됨)
-const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS ||
-  "0xfda7278df9b004e05dbaa367fc2246a4a46271c9") as Address;
-
 // ERC20 ABI (approve, allowance, balanceOf 필요)
 const ERC20_ABI = [
   {
@@ -128,12 +124,11 @@ export function useCreateGame(): UseCreateGameReturn {
         setStep("checking");
         setStatus("기존 게임 확인 중...");
 
-        // TODO: 밈코어 메인넷 배포시 실제 토큰으로 변경 필요, currentPageInfo에서 꺼내서 사용
-        const actualTokenAddress = MOCK_ERC20_ADDRESS;
+        // 전달받은 tokenAddress를 그대로 사용
+        const actualTokenAddress = tokenAddress;
 
         logger.info("기존 게임 확인 (V2)", {
-          originalTokenAddress: tokenAddress,
-          actualTokenAddress,
+          tokenAddress: actualTokenAddress,
         });
 
         const v2Client = createContractClient({
@@ -212,8 +207,8 @@ export function useCreateGame(): UseCreateGameReturn {
         // 네트워크 확인
         await ensureNetwork();
 
-        // TODO: 밈코어 메인넷 배포시 실제 토큰으로 변경 필요, currentPageInfo에서 꺼내서 사용
-        const actualTokenAddress = MOCK_ERC20_ADDRESS;
+        // 전달받은 tokenAddress를 그대로 사용
+        const actualTokenAddress = settings.tokenAddress;
         const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
 
         // V3: cost = totalFunding / 10000 (자동 계산)

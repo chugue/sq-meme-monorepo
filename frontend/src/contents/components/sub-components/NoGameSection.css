@@ -5,7 +5,8 @@
 .no-game-container {
     box-sizing: border-box;
     position: relative;
-    width: 366px;
+    width: 100%;
+    max-width: 366px;
     height: fit-content;
     max-height: 90vh;
     padding: 40px 20px;
@@ -389,11 +390,9 @@
     padding: 12px 50px;
     gap: 14px;
     width: 286px;
-    background: linear-gradient(
-        93.05deg,
-        rgba(255, 177, 33, 0.88) 6.33%,
-        rgba(255, 217, 73, 0.88) 94.86%
-    );
+    background: linear-gradient(93.05deg,
+            rgba(255, 177, 33, 0.88) 6.33%,
+            rgba(255, 217, 73, 0.88) 94.86%);
     border: 1px solid #ffffff;
     border-radius: 125px;
     cursor: pointer;
@@ -470,7 +469,8 @@
 /* 모바일 최적화 - 고정 너비 유지 */
 @media (max-width: 480px) {
     .no-game-container {
-        width: 366px;
+        width: 100%;
+        max-width: 366px;
         min-height: 500px;
         padding: 30px 16px;
         gap: 20px;

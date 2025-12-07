@@ -36,10 +36,6 @@ const ERC20_BALANCE_OF_ABI = [
     },
 ] as const;
 
-// 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
-// MemeX 사이트의 토큰은 다른 네트워크에 있으므로 MockToken 사용
-const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS || '0xfda7278df9b004e05dbaa367fc2246a4a46271c9') as Address;
-
 interface TokenInfo {
     balance: bigint;
     balanceFormatted: string;
@@ -74,13 +70,12 @@ export function useTokenBalance(): UseTokenBalanceReturn {
         setIsLoading(true);
         setError(null);
 
-        // MemeX 사이트의 토큰은 다른 네트워크에 있으므로 MockToken 사용
-        const actualTokenAddress = MOCK_ERC20_ADDRESS;
+        // 전달받은 tokenAddress를 그대로 사용
+        const actualTokenAddress = tokenAddress;
 
         try {
             logger.info('토큰 잔액 조회 시작', {
-                originalTokenAddress: tokenAddress,
-                actualTokenAddress,
+                tokenAddress: actualTokenAddress,
                 walletAddress,
                 siteSymbol,
             });

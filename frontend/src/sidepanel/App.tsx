@@ -44,7 +44,7 @@ export function SidePanelApp() {
     };
 
     if (showStartingLoading || isLoading) {
-        return <StartingLoading onComplete={handleStartingLoadingComplete} duration={0} />;
+        return <StartingLoading onComplete={handleStartingLoadingComplete} duration={3000} />;
     }
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드

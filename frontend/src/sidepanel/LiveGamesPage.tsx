@@ -1,28 +1,12 @@
 import moneyLogo from "@/assets/money_logo.png";
 import { useCallback, useEffect, useState } from "react";
 import { backgroundApi } from "../contents/lib/backgroundApi";
+import { formatRemainingTime } from "../contents/utils/gameTime";
 import type { LiveGameItem } from "../types/response.types";
 import { TopBar } from "./components";
-import { ProfileModal } from "./components/ProfileModal/ProfileModal";
 import { formatPrizePool } from "./components/ProfileModal/formatters";
+import { ProfileModal } from "./components/ProfileModal/ProfileModal";
 import "./LiveGamesPage.css";
-
-// endTime(ISO string)으로부터 남은 시간 계산
-function calculateTimeLeft(endTime: string | null): string {
-    if (!endTime) return "00:00:00";
-
-    const now = Date.now();
-    const end = new Date(endTime).getTime();
-    const diff = end - now;
-
-    if (diff <= 0) return "00:00:00";
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-}
 
 export function LiveGamesPage() {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -30,7 +14,7 @@ export function LiveGamesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // 남은 시간 상태 (1초마다 업데이트)
+    // 남은 시간 상태 (초가 바뀔 때마다 업데이트)
     const [timeLeftMap, setTimeLeftMap] = useState<Record<string, string>>({});
 
     // API 호출
@@ -53,23 +37,34 @@ export function LiveGamesPage() {
         fetchLiveGames();
     }, [fetchLiveGames]);
 
-    // 1초마다 남은 시간 업데이트
+    // 100ms마다 체크하여 초가 바뀔 때마다 남은 시간 업데이트
     useEffect(() => {
+        if (liveGames.length === 0) return;
+
+        let lastSecond = Math.floor(Date.now() / 1000);
+
         const updateTimeLeft = () => {
-            const newTimeLeftMap: Record<string, string> = {};
-            liveGames.forEach((game) => {
-                newTimeLeftMap[game.gameId] = calculateTimeLeft(game.endTime);
-            });
-            setTimeLeftMap(newTimeLeftMap);
+            const now = Date.now();
+            const currentSecond = Math.floor(now / 1000);
+
+            // 초가 바뀌었을 때만 상태 업데이트
+            if (currentSecond !== lastSecond) {
+                const newTimeLeftMap: Record<string, string> = {};
+                liveGames.forEach((game) => {
+                    newTimeLeftMap[game.gameId] = formatRemainingTime(game.endTime || "");
+                });
+                setTimeLeftMap(newTimeLeftMap);
+                lastSecond = currentSecond;
+            }
         };
 
         // 초기 계산
         updateTimeLeft();
 
-        // 1초마다 업데이트
-        const interval = setInterval(updateTimeLeft, 1000);
+        // 100ms마다 체크 (초 경계에 최대 100ms 지연)
+        const intervalId = setInterval(updateTimeLeft, 100);
 
-        return () => clearInterval(interval);
+        return () => clearInterval(intervalId);
     }, [liveGames]);
 
     return (

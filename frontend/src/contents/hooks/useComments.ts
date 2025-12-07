@@ -102,7 +102,8 @@ export function useComments(
         enabled: !!gameId,
         retry: 1,
         staleTime: 2000, // 2초간 fresh 상태 유지 (불필요한 refetch 방지)
-        refetchOnWindowFocus: false, // 윈도우 포커스 시 자동 refetch 비활성화
+        refetchInterval: 1000, // 1초마다 자동 리패치
+        refetchOnWindowFocus: true, // 윈도우 포커스 시 자동 refetch
     });
 
     const comments = queryData?.comments || [];
@@ -174,12 +175,12 @@ export function useComments(
                     comments: oldData.comments.map((comment) =>
                         comment.id === commentId
                             ? {
-                                  ...comment,
-                                  isLiked: !comment.isLiked,
-                                  likeCount: comment.isLiked
-                                      ? (comment.likeCount || 1) - 1
-                                      : (comment.likeCount || 0) + 1,
-                              }
+                                ...comment,
+                                isLiked: !comment.isLiked,
+                                likeCount: comment.isLiked
+                                    ? (comment.likeCount || 1) - 1
+                                    : (comment.likeCount || 0) + 1,
+                            }
                             : comment,
                     ),
                 };

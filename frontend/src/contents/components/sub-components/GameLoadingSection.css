@@ -5,7 +5,8 @@
 .game-loading-container {
     box-sizing: border-box;
     position: relative;
-    width: 366px;
+    width: 100%;
+    max-width: 366px;
     min-height: 600px;
     padding: 40px 20px;
     background: linear-gradient(180deg, #070723 10.88%, #000000 100%);
@@ -147,7 +148,8 @@
 /* 모바일 최적화 - 고정 너비 유지 */
 @media (max-width: 480px) {
     .game-loading-container {
-        width: 366px;
+        width: 100%;
+        max-width: 366px;
         min-height: 500px;
         padding: 30px 16px;
         gap: 20px;

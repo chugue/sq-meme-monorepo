@@ -21,6 +21,40 @@ import { isGameEndedByTime } from "../utils/gameTime";
 // 테스트용 MockERC20 주소 (MemeCore 테스트넷에 배포됨)
 const MOCK_ERC20_ADDRESS = (import.meta.env.VITE_MOCK_ERC20_ADDRESS || "0xfda7278df9b004e05dbaa367fc2246a4a46271c9") as Address;
 
+const MOCK_TOKENS: Record<string, Address> = {
+    codingcat: import.meta.env.VITE_MOCK_TOKEN_1 as Address,
+    squidmeme: import.meta.env.VITE_MOCK_TOKEN_2 as Address,
+    jrbr: import.meta.env.VITE_MOCK_TOKEN_3 as Address,
+    memex: import.meta.env.VITE_MOCK_TOKEN_4 as Address,
+};
+
+/**
+ * URL에서 username 추출하여 MockToken 주소 반환
+ * @param url - 현재 페이지 URL
+ * @returns MockToken 주소 또는 기본 MOCK_ERC20_ADDRESS
+ */
+function getMockTokenAddressFromUrl(url: string): Address {
+    const profileMatch = url.match(/\/profile\/([^\/]+)\/[^\/]+/);
+    if (profileMatch) {
+        const username = decodeURIComponent(profileMatch[1]);
+        const mockTokenAddress = MOCK_TOKENS[username];
+        console.log("[getMockTokenAddressFromUrl]", {
+            url,
+            username,
+            mockTokenAddress,
+            availableTokens: Object.keys(MOCK_TOKENS),
+        });
+        if (mockTokenAddress) {
+            return mockTokenAddress;
+        }
+    }
+    console.log("[getMockTokenAddressFromUrl] fallback to MOCK_ERC20_ADDRESS", {
+        url,
+        MOCK_ERC20_ADDRESS,
+    });
+    return MOCK_ERC20_ADDRESS;
+}
+
 const MESSAGE_SOURCE = {
     TOKEN_CONTRACT_CACHED: "TOKEN_CONTRACT_CACHED",
     SPA_NAVIGATION: "SPA_NAVIGATION",
@@ -37,6 +71,8 @@ export function useTokenContract() {
 
     // 중복 조회 방지
     const lastTokenAddressRef = useRef<string | null>(null);
+    // Profile 페이지 초기화 중복 방지
+    const profileInitializedUrlRef = useRef<string | null>(null);
 
     // V2 컨트랙트 클라이언트 생성 헬퍼
     const getV2Client = useCallback(() => {
@@ -162,10 +198,12 @@ export function useTokenContract() {
             setIsLoading(true);
             setError(null);
 
-            const queryTokenAddress = MOCK_ERC20_ADDRESS;
+            // URL에서 username 추출하여 MockToken 주소 결정
+            const queryTokenAddress = getMockTokenAddressFromUrl(window.location.href);
             logger.info("토큰 주소로 게임 조회 시작", {
                 tokenAddress,
                 queryTokenAddress,
+                url: window.location.href,
             });
 
             let hasSetInitialState = false;
@@ -350,7 +388,72 @@ export function useTokenContract() {
         setEndedGameInfo(null);
         setError(null);
         lastTokenAddressRef.current = null;
+        profileInitializedUrlRef.current = null; // Profile 초기화 상태도 리셋
     }, [setCurrentPageInfo, setActiveGameInfo, setIsGameEnded, setEndedGameInfo, setError]);
+
+    // MockToken username -> symbol 매핑 (소문자 키)
+    const MOCK_TOKEN_SYMBOLS: Record<string, string> = {
+        codingcat: "CC",
+        squidmeme: "SQM",
+        jrbr: "JRBR",
+        memex: "M",
+    };
+
+    /**
+     * Profile 페이지에서 URL 기반 MockToken 게임 조회 시작
+     * 메시지 이벤트를 기다리지 않고 즉시 조회
+     */
+    const initProfilePageGameQuery = useCallback(() => {
+        const url = window.location.href;
+
+        // 이미 이 URL에서 초기화했으면 스킵 (무한 루프 방지)
+        if (profileInitializedUrlRef.current === url) {
+            logger.debug("이미 초기화된 Profile 페이지, 스킵", { url });
+            return;
+        }
+
+        const profileMatch = url.match(/\/profile\/([^\/]+)\/([^\/]+)/);
+
+        if (profileMatch) {
+            const username = decodeURIComponent(profileMatch[1]);
+            const userTag = decodeURIComponent(profileMatch[2]);
+            const usernameLower = username.toLowerCase();
+            const mockTokenAddress = MOCK_TOKENS[usernameLower];
+
+            logger.info("Profile 페이지 감지, MockToken 게임 조회 시작", {
+                url,
+                username,
+                userTag,
+                mockTokenAddress,
+                availableTokens: Object.keys(MOCK_TOKENS),
+            });
+
+            // URL 초기화 완료 표시
+            profileInitializedUrlRef.current = url;
+
+            if (mockTokenAddress) {
+                // currentPageInfo 설정 (GameSetupModal에서 필요)
+                const pageInfo: CurrentPageInfo = {
+                    id: `mock-${username}`,
+                    contractAddress: mockTokenAddress,
+                    username,
+                    userTag,
+                    symbol: MOCK_TOKEN_SYMBOLS[usernameLower] || username.toUpperCase(),
+                    tokenImageUrl: null,
+                    timestamp: Date.now(),
+                };
+                setCurrentPageInfo(pageInfo);
+
+                // MockToken 주소로 직접 게임 조회
+                fetchGameByToken(mockTokenAddress, true);
+            } else {
+                // 매핑된 토큰이 없으면 게임 없음 상태로 설정
+                logger.info("매핑된 MockToken 없음, 게임 없음 상태로 설정", { username });
+                setGameState(null, false);
+                setIsLoading(false);
+            }
+        }
+    }, [fetchGameByToken, setGameState, setIsLoading, setCurrentPageInfo]);
 
     useEffect(() => {
         // 메시지 리스너 등록
@@ -360,10 +463,28 @@ export function useTokenContract() {
 
             // injected.js 준비 완료 + 캐시된 토큰 정보 수신
             if (event.data.source === MESSAGE_SOURCE.INJECTED_SCRIPT_READY) {
+                // Profile 페이지에서 MockToken 매핑이 있으면 항상 MockToken 사용 (실제 토큰 주소 무시)
+                const url = window.location.href;
+                const profileMatch = url.match(/\/profile\/([^\/]+)\/[^\/]+/);
+                if (profileMatch) {
+                    const username = decodeURIComponent(profileMatch[1]).toLowerCase();
+                    if (MOCK_TOKENS[username]) {
+                        logger.info("MockToken 매핑된 Profile 페이지, MockToken으로 덮어쓰기", { username });
+                        // ref 초기화하여 항상 새로 조회
+                        profileInitializedUrlRef.current = null;
+                        initProfilePageGameQuery();
+                        return;
+                    }
+                }
+
                 const { cachedToken } = event.data;
                 if (cachedToken?.contractAddress) {
                     logger.info("injected.js 준비 완료 + 캐시된 토큰 정보", cachedToken);
                     handleTokenContractCached(cachedToken);
+                } else {
+                    // 캐시된 토큰 정보가 없으면 Profile 페이지에서 URL 기반 조회 시도
+                    profileInitializedUrlRef.current = null;
+                    initProfilePageGameQuery();
                 }
                 return;
             }
@@ -371,14 +492,11 @@ export function useTokenContract() {
             // SPA 네비게이션 감지 시 상태 초기화 + 캐시된 토큰 정보 처리
             if (event.data.source === MESSAGE_SOURCE.SPA_NAVIGATION) {
                 resetState();
-                // NOTE: cachedToken은 항상 null (injected.js에서 __next_f 추출 후 TOKEN_CONTRACT_CACHED로 전송)
-                // // 캐시된 토큰 정보가 있으면 즉시 처리
-                // const { cachedToken } = event.data;
-                // if (cachedToken?.contractAddress) {
-                //   logger.info("SPA 네비게이션 + 캐시된 토큰 정보", cachedToken);
-                //   handleTokenContractCached(cachedToken);
-                // }
-                // 없으면 TOKEN_CONTRACT_CACHED 메시지를 기다림
+                // SPA 네비게이션 후 Profile 페이지인지 확인하고 조회 시도
+                // 약간의 딜레이를 주어 URL이 업데이트된 후 확인
+                setTimeout(() => {
+                    initProfilePageGameQuery();
+                }, 100);
                 return;
             }
 
@@ -386,6 +504,16 @@ export function useTokenContract() {
             if (event.data.source === MESSAGE_SOURCE.TOKEN_CONTRACT_CACHED) {
                 const { data } = event.data;
                 if (data?.contractAddress) {
+                    // Profile 페이지에서 MockToken 매핑이 있으면 무시 (덮어쓰기 방지)
+                    const url = window.location.href;
+                    const profileMatch = url.match(/\/profile\/([^\/]+)\/[^\/]+/);
+                    if (profileMatch) {
+                        const username = decodeURIComponent(profileMatch[1]).toLowerCase();
+                        if (MOCK_TOKENS[username]) {
+                            logger.info("MockToken 매핑된 Profile 페이지, TOKEN_CONTRACT_CACHED 무시", { username });
+                            return;
+                        }
+                    }
                     logger.info("토큰 컨트랙트 캐시 메시지 수신 (이벤트 드리븐)", data);
                     handleTokenContractCached(data);
                 }
@@ -394,13 +522,13 @@ export function useTokenContract() {
 
         window.addEventListener("message", handleMessage);
 
-        // NOTE: 이벤트 드리븐 방식으로 모든 케이스가 커버되므로 폴링 방식 비활성화
-        // checkInitialTokenInfo();
+        // 초기 로드는 INJECTED_SCRIPT_READY 메시지를 기다림
+        // (injected.js가 준비되어야 RPC 호출 가능)
 
         return () => {
             window.removeEventListener("message", handleMessage);
         };
-    }, [handleTokenContractCached, resetState]);
+    }, [handleTokenContractCached, resetState, initProfilePageGameQuery]);
 
     return {
         activeGameInfo,
