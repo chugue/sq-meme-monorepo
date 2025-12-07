@@ -202,7 +202,7 @@ export class QuestRepository {
             await this.initializeQuestsForUser(walletAddress);
         }
 
-        const result = await this.db
+        await this.db
             .update(schema.userQuests)
             .set({ currentNumber: commentCount })
             .where(
@@ -217,9 +217,5 @@ export class QuestRepository {
                 ),
             )
             .returning();
-
-        console.log(
-            `[QuestRepository] updateCommentQuestsForUser result: ${result.length} rows updated`,
-        );
     }
 }

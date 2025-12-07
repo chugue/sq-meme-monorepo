@@ -1,98 +1,281 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Squid Meme Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> Bringing utility to meme coins through gamification on MemeCore
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+A Web3-powered meme token gaming platform that enhances the MemeCore ecosystem by adding interactive game mechanics, social features, and reward systems to meme coins.
 
-## Description
+## Overview
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Squid Meme transforms idle meme tokens into engaging gaming experiences. Built on the Formicarium testnet (MemeCore's Ethereum-compatible network), this platform allows users to:
 
-## Project setup
+- **Create & Join Games**: Launch meme token games with customizable prize pools
+- **Compete for Prizes**: The last commenter before the timer ends wins the pot
+- **Fund Prize Pools**: Support games by adding to the prize pool
+- **Earn Through Engagement**: Complete quests and maintain streaks for rewards
+- **Build Reputation**: Climb the leaderboards through activity and wins
 
-```bash
-$ npm install
+### Why Squid Meme?
+
+Meme coins often lack utility beyond speculation. Squid Meme bridges this gap by:
+
+| Problem | Solution |
+|---------|----------|
+| Meme coins sit idle in wallets | Use them in interactive games |
+| No community engagement tools | Comment-based competition system |
+| Limited token utility | Quest rewards, rankings, and prizes |
+| Fragmented MemeCore experience | Seamless integration with MemeCore tokens |
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Framework | NestJS v11 |
+| Language | TypeScript |
+| Database | PostgreSQL (Supabase) |
+| ORM | Drizzle ORM |
+| Blockchain | ethers.js v6 |
+| Storage | Supabase Storage |
+| API Docs | Swagger/OpenAPI |
+| Deployment | Railway |
+
+## Features
+
+### Game System
+- Create games with any MemeCore token
+- Configurable game duration and entry costs
+- Automatic prize distribution via smart contracts
+- Real-time game state tracking
+
+### Social Layer
+- On-chain comments linked to games
+- Like system for community engagement
+- User profiles with MemeX integration
+
+### Quest & Rewards
+- Daily check-in streaks (5-day, 20-day milestones)
+- Comment activity goals (20, 50 comments)
+- Claimable rewards for completed quests
+
+### Rankings
+- Prize leaderboard (total winnings)
+- Activity leaderboard (most comments)
+- Game leaderboard (by prize pool size)
+
+### Funding Mechanism
+- Anyone can add to a game's prize pool
+- Track all funders and contributions
+- Incentivizes larger prize pools
+
+## Project Structure
+
+```
+backend/src/
+├── domains/                    # Feature modules
+│   ├── comment/               # Comments & likes
+│   ├── funders/               # Prize pool funding
+│   ├── game/                  # Game lifecycle
+│   ├── quests/                # Quest system
+│   ├── token/                 # Token metadata
+│   ├── transaction/           # DB transactions
+│   ├── upload/                # Image uploads
+│   ├── users/                 # User profiles & rankings
+│   └── winners/               # Prize claims
+│
+├── common/                    # Shared utilities
+│   ├── db/                    # Drizzle ORM & schemas
+│   ├── decorators/            # Custom decorators
+│   ├── providers/             # Ethereum provider
+│   ├── interceptors/          # Response interceptors
+│   ├── supabase/              # Storage client
+│   └── types/                 # Shared types
+│
+├── app.module.ts              # Root module
+└── main.ts                    # Application entry
 ```
 
-## Compile and run the project
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+- PostgreSQL (or Supabase account)
+
+### Installation
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd backend
+npm install
 ```
 
-## Run tests
+### Environment Setup
+
+Create `.env.local` with the following variables:
 
 ```bash
-# unit tests
-$ npm run test
+# Database
+DATABASE_URL="postgresql://user:password@host:port/database"
 
-# e2e tests
-$ npm run test:e2e
+# Blockchain (Formicarium Testnet)
+ETHEREUM_RPC_URL="https://rpc.formicarium.memecore.net"
 
-# test coverage
-$ npm run test:cov
+# Smart Contract
+COMMENT_GAME_V3_ADDRESS="0x..."
+
+# Supabase
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+
+# Server (Optional)
+PORT=3000
+```
+
+### Database Setup
+
+```bash
+# Generate migrations
+npm run db:generate
+
+# Apply schema (development)
+npm run db:push
+
+# Run migrations (production)
+npm run db:migrate
+```
+
+### Running the Server
+
+```bash
+# Development (watch mode)
+npm run start:dev
+
+# Production
+npm run build
+npm run start:prod
+```
+
+### API Documentation
+
+Swagger UI available after starting the server:
+- http://localhost:3000/api-docs
+
+## API Reference
+
+### Games `/v1/games`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/` | Create a new game |
+| GET | `/live` | List active games |
+| GET | `/active/:gameId` | Get game details |
+| POST | `/:gameId/claim` | Claim prize |
+
+### Users `/v1/users`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/join` | Connect wallet / Sign up |
+| GET | `/me` | Get current user |
+| GET | `/profile` | Get profile page data |
+| GET | `/prize-ranking` | Prize leaderboard |
+| GET | `/most-comments` | Activity leaderboard |
+
+### Comments `/v1/comments`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/` | Create comment (tx-based) |
+| GET | `/game/:gameId` | Get game comments |
+| POST | `/:id/like` | Toggle like |
+
+### Quests `/v1/quests`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | List my quests |
+| POST | `/claim/:questId` | Claim quest reward |
+
+### Funders `/v1/funders`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/` | Record funding (tx-based) |
+| GET | `/by-game/:gameId` | Get game funders |
+
+### Upload `/v1/upload`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/image` | Upload image (max 5MB) |
+
+## Authentication
+
+Header-based wallet authentication:
+
+```
+x-wallet-address: 0x1234...
+```
+
+All authenticated endpoints require this header.
+
+## Database Schema
+
+### Core Tables
+
+| Table | Description |
+|-------|-------------|
+| `users` | User profiles, wallet addresses, token balances, check-in history |
+| `games` | Game state, prize pool, timer, last commenter |
+| `comments` | Comment content, author, like count |
+| `comment_likes` | Like relationships |
+| `tokens` | Token metadata (symbol, image, MemeX info) |
+| `winners` | Prize claim records |
+| `funders` | Funding contributions |
+| `user_quests` | Quest progress and completion |
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Coverage report
+npm run test:cov
 ```
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Deployed automatically via Railway:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. Push to `main` branch
+2. Railway builds and deploys
+3. Environment variables configured in Railway dashboard
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+## Blockchain Integration
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Network: Formicarium Testnet (MemeCore)
 
-## Resources
+| Property | Value |
+|----------|-------|
+| Chain ID | 43521 |
+| RPC URL | https://rpc.formicarium.memecore.net |
+| Type | Ethereum-compatible |
 
-Check out a few resources that may come in handy when working with NestJS:
+### Smart Contract Events
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+| Event | Description |
+|-------|-------------|
+| `GameCreated` | New game initialized |
+| `CommentAdded` | Comment posted to game |
+| `PrizeClaimed` | Winner claimed prize |
+| `PrizePoolFunded` | Prize pool increased |
 
-## Support
+## MemeCore Compatibility
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Squid Meme is designed to work seamlessly with the MemeCore ecosystem:
 
-## Stay in touch
+- **Token Support**: Any MemeCore token can be used for games
+- **MemeX Integration**: User profiles link to MemeX identities
+- **Shared Infrastructure**: Built on Formicarium testnet
+- **Cross-Platform**: Enhances MemeCore tokens with gaming utility
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**Squid Meme** - *Making meme coins fun again*

@@ -1,143 +1,294 @@
-# 🦑 Squid Meme
+# Squid Meme Frontend
 
-MemeX 플랫폼을 위한 Chrome Extension - 댓글 기능 데모
+> Chrome Extension that brings meme coin gaming to MemeX profiles
 
-## 🚀 빠른 시작
+A Web3-powered Chrome Extension that integrates comment-based gaming directly into the [MemeX](https://app.memex.xyz) platform, giving meme coins real utility through interactive competitions.
 
-### 1. 패키지 설치
+## Overview
 
-```bash
-yarn install
-```
+Squid Meme injects a gaming layer onto MemeX profile pages, enabling users to:
 
-### 2. 환경 변수 설정
+- **Create Comment Games**: Launch games on any MemeX token profile
+- **Compete for Prizes**: The last commenter before the timer ends wins the pot
+- **Fund Prize Pools**: Contribute to games and boost prize amounts
+- **Track Performance**: View leaderboards, stats, and game history
+- **Complete Quests**: Earn rewards through daily activities
 
-프로젝트 루트에 `.env.local` 파일을 생성하고 API 서버 URL을 입력하세요:
-
-```env
-VITE_API_URL=http://localhost:3001
-```
-
-### 3. 서버 설정
-
-#### 3.1 서버 패키지 설치
-
-```bash
-cd server
-yarn install
-```
-
-#### 3.2 서버 환경 변수 설정
-
-`server` 폴더에 `.env` 파일을 생성하고 Supabase 정보를 입력하세요:
-
-```env
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
-PORT=3001
-```
-
-Supabase 프로젝트 URL과 Anon Key는 [Supabase Dashboard](https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api)에서 확인할 수 있습니다.
-
-#### 3.3 Supabase 데이터베이스 설정
-
-1. [Supabase](https://supabase.com)에서 새 프로젝트를 생성하세요.
-2. Supabase Dashboard > SQL Editor에서 `docs/supabase-schema.sql` 파일의 내용을 실행하세요.
-
-이렇게 하면 `comments` 테이블이 생성됩니다.
-
-#### 3.4 서버 실행
-
-```bash
-cd server
-yarn dev
-```
-
-서버는 기본적으로 `http://localhost:3001`에서 실행됩니다.
-
-### 4. 개발 서버 실행
-
-확장 프로그램 개발 서버를 실행하세요:
-
-```bash
-yarn dev
-```
-
-### 5. Chrome Extension 로드
-
-1. Chrome에서 `chrome://extensions/`로 이동
-2. "개발자 모드" 활성화
-3. "압축해제된 확장 프로그램을 로드합니다" 클릭
-4. `.output/chrome-mv3` 폴더 선택
-
-### 6. 테스트
-
-1. **서버가 실행 중인지 확인**
-   ```bash
-   curl http://localhost:3001/health
-   ```
-
-2. [MemeX](https://app.memex.xyz) 웹사이트로 이동
-
-3. 프로필 페이지에서 댓글 기능이 표시되는지 확인
-
-4. 댓글을 작성하고 확인
-
-5. 브라우저 콘솔에서 네트워크 요청 확인
-
-## 📁 프로젝트 구조
+### How It Works
 
 ```
-squid_meme/
+┌─────────────────────────────────────────────────────────────┐
+│                    MemeX Profile Page                        │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │              Squid Meme Injected UI                   │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐  │  │
+│  │  │ Prize Pool  │  │   Timer     │  │  Comments    │  │  │
+│  │  │   500 CC    │  │   02:45     │  │   12 total   │  │  │
+│  │  └─────────────┘  └─────────────┘  └──────────────┘  │  │
+│  │                                                       │  │
+│  │  ┌─────────────────────────────────────────────────┐ │  │
+│  │  │  Comment Section                                │ │  │
+│  │  │  > User1: "Let's go!"           [♥ 5]          │ │  │
+│  │  │  > User2: "To the moon!"        [♥ 3]          │ │  │
+│  │  └─────────────────────────────────────────────────┘ │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Extension Framework | WXT (Vite-based) |
+| UI Library | React 19 |
+| Language | TypeScript |
+| State Management | Jotai |
+| Server State | TanStack Query |
+| Web3 | Wagmi + Viem |
+| Styling | Tailwind CSS |
+| Animation | Framer Motion |
+
+## Features
+
+### Content Script (Injected UI)
+
+| Feature | Description |
+|---------|-------------|
+| Game Creation | Multi-step modal for launching games |
+| Comment Section | Real-time comments with like system |
+| Prize Display | Animated prize pool and timer |
+| Wallet Connection | MetaMask integration |
+| Winner Claim | Prize claiming interface |
+
+### Side Panel Dashboard
+
+| Feature | Description |
+|---------|-------------|
+| Live Games | Browse all active games |
+| Leaderboard | Rankings by wins and activity |
+| My Assets | Portfolio of held tokens |
+| Quests | Daily missions with rewards |
+| Profile | Stats and game history |
+
+## Project Structure
+
+```
+frontend/
 ├── src/
-│   ├── components/        # React 컴포넌트
-│   │   ├── CommentApp.tsx      # 메인 앱 컴포넌트
-│   │   ├── CommentSection.tsx  # 댓글 UI 컴포넌트
-│   │   ├── CommentSection.css  # 댓글 스타일
-│   │   └── JotaiProvider.tsx   # Jotai Provider
-│   ├── hooks/            # 커스텀 훅
-│   │   └── useComments.ts      # 댓글 관련 훅
-│   ├── atoms/            # Jotai Atoms
-│   │   └── commentAtoms.ts     # 댓글 상태 관리
-│   ├── lib/              # 라이브러리 설정
-│   │   ├── api.ts              # 서버 API 클라이언트
-│   │   └── supabase.ts         # Supabase 클라이언트 (사용하지 않음)
-│   └── types/            # TypeScript 타입
-│       └── comment.ts          # 댓글 타입 정의
-├── entrypoints/
-│   └── content.ts        # Content Script (메인 진입점)
-├── docs/
-│   └── supabase-schema.sql     # 데이터베이스 스키마
-└── README.md
+│   ├── entrypoints/
+│   │   ├── background.ts           # Service worker
+│   │   ├── content.ts              # Content script entry
+│   │   └── sidepanel/              # Side panel entry
+│   │
+│   ├── contents/                   # Injected UI
+│   │   ├── atoms/                  # Jotai state atoms
+│   │   ├── components/             # React components
+│   │   │   ├── CommentApp.tsx      # Main wrapper
+│   │   │   ├── ProfilePage.tsx     # Profile page UI
+│   │   │   ├── comment-section/    # Comment components
+│   │   │   ├── game-setup-modal/   # Game creation flow
+│   │   │   └── sub-components/     # Utility components
+│   │   ├── hooks/                  # Custom hooks
+│   │   ├── config/                 # Wagmi config
+│   │   └── lib/
+│   │       └── contract/           # Smart contract ABIs
+│   │
+│   ├── sidepanel/                  # Side panel UI
+│   │   ├── App.tsx                 # Main app
+│   │   ├── Dashboard.tsx           # Dashboard page
+│   │   ├── LiveGamesPage.tsx       # Active games
+│   │   ├── LeaderboardPage.tsx     # Rankings
+│   │   ├── MyAssetsPage.tsx        # User assets
+│   │   ├── QuestPage.tsx           # Quests
+│   │   ├── atoms/                  # Side panel state
+│   │   ├── components/             # Side panel components
+│   │   └── hooks/                  # Side panel hooks
+│   │
+│   ├── background/                 # Background script logic
+│   └── shared/                     # Shared utilities
+│
+├── public/
+│   ├── icon/                       # Extension icons
+│   └── font/                       # Custom fonts
+│
+├── wxt.config.ts                   # WXT configuration
+└── package.json
 ```
 
-## 🛠 기술 스택
+## Getting Started
 
-### 클라이언트
-- **WXT**: Chrome Extension 프레임워크
-- **React**: UI 라이브러리
-- **Jotai**: 전역 상태 관리
-- **TanStack Query**: 서버 상태 관리
+### Prerequisites
 
-### 서버
-- **Express.js**: 백엔드 서버
-- **TypeScript**: 타입 안정성
-- **Supabase**: 데이터베이스 (PostgreSQL + REST API)
+- Node.js 18+
+- Yarn or npm
+- Chrome browser
 
-## 📝 주요 기능
+### Installation
 
-- ✅ 댓글 작성
-- ✅ 댓글 목록 조회
-- ✅ 실시간 댓글 업데이트 (5초마다 자동 갱신)
-- ✅ 지갑 주소 표시 (데모용 랜덤 주소 생성)
+```bash
+cd frontend
+yarn install
+# or
+npm install
+```
 
-## 🎯 다음 단계
+### Environment Setup
 
-- [ ] 지갑 연동 (Wagmi + Viem)
-- [ ] 프로필별 댓글 필터링
-- [ ] 댓글 좋아요/좋아요 취소
-- [ ] 이미지 첨부 기능
+Create `.env.local` in the frontend directory:
 
-## 📄 라이선스
+```bash
+# API Server
+VITE_API_URL=http://localhost:3000
 
-MIT
+# Smart Contracts
+VITE_COMMENT_GAME_V3_ADDRESS=0x...
+VITE_MOCK_ERC20_ADDRESS=0x...
+
+# Optional: Test Tokens
+VITE_MOCK_TOKEN_1=0x...
+VITE_MOCK_TOKEN_2=0x...
+```
+
+### Development
+
+```bash
+# Start extension dev server
+yarn dev
+
+# Start with Firefox
+yarn dev:firefox
+
+# Type check
+yarn compile
+```
+
+### Load Extension in Chrome
+
+1. Navigate to `chrome://extensions/`
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select `.output/chrome-mv3` folder
+
+### Testing
+
+1. Go to [MemeX](https://app.memex.xyz)
+2. Navigate to any profile page
+3. Squid Meme UI should appear below the profile
+4. Open side panel via extension icon
+
+## Build
+
+```bash
+# Production build (Chrome)
+yarn build
+
+# Production build (Firefox)
+yarn build:firefox
+
+# Create distributable ZIP
+yarn zip
+```
+
+Output: `.output/chrome-mv3/` or `.output/firefox-mv2/`
+
+## Architecture
+
+### Three-Layer Communication
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Injected       │     │  Content        │     │  Background     │
+│  Script         │────▶│  Script         │────▶│  Script         │
+│  (Page Context) │     │  (Extension)    │     │  (Service       │
+│                 │◀────│                 │◀────│   Worker)       │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+        ▼                       ▼                       ▼
+   window.ethereum         React UI              Side Panel
+   Profile Data            Jotai State           Storage
+```
+
+- **Injected Script**: Accesses `window.ethereum` (MetaMask) and page data
+- **Content Script**: Renders React UI, manages state
+- **Background Script**: Routes messages, manages storage and side panel
+
+### State Management
+
+**Jotai Atoms (Content UI)**
+- `activeGameInfoAtom` - Current game state
+- `commentsAtom` - Comment list
+- `isGameEndedAtom` - Game completion status
+
+**Jotai Atoms (Side Panel)**
+- `currentPageAtom` - Navigation state
+- `sessionAtoms` - User session
+
+**React Query**
+- Server data caching
+- Auto-refetching
+- Optimistic updates
+
+## Web3 Integration
+
+### Network: MemeCore (Formicarium Testnet)
+
+| Property | Value |
+|----------|-------|
+| Chain ID | 43521 |
+| RPC URL | https://rpc.formicarium.memecore.net |
+| Explorer | https://formicarium.memecorescan.io |
+
+### Smart Contracts
+
+| Contract | Purpose |
+|----------|---------|
+| CommentGameV2 | Game logic, comments, prizes |
+| GameFactory | Game creation |
+| ERC20 | Token interactions |
+
+### Wallet Flow
+
+1. User clicks "Connect Wallet"
+2. Injected script requests MetaMask access
+3. Address synced via message passing
+4. Transactions signed through MetaMask
+
+## Custom Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useWallet` | Wallet connection state |
+| `useComments` | Fetch and cache comments |
+| `useTokenContract` | Detect active games |
+| `useCreateGame` | Game creation workflow |
+| `useGameFactory` | Query game factory |
+| `useMemexLogin` | MemeX authentication |
+
+## Permissions
+
+```json
+{
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel"],
+  "host_permissions": ["https://app.memex.xyz/*"]
+}
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `yarn dev` | Start dev server |
+| `yarn build` | Production build |
+| `yarn zip` | Create extension ZIP |
+| `yarn compile` | TypeScript check |
+
+## MemeCore Compatibility
+
+- **Token Detection**: Automatically detects MemeCore tokens on profiles
+- **MemeX Integration**: Links to MemeX user identities
+- **Seamless UX**: Non-intrusive UI injection
+- **Cross-Platform**: Works on any MemeX profile page
+
+---
+
+**Squid Meme** - *Making meme coins fun again*
