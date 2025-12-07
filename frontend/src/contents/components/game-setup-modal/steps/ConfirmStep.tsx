@@ -2,9 +2,9 @@
  * 3단계: 확인 및 실행 컴포넌트
  */
 
-import type { Address } from 'viem';
-import { useCreateGame, type CreateGameStep } from '../../../hooks/useCreateGame';
-import type { GameSettings } from '../types';
+import type { Address } from "viem";
+import { useCreateGame, type CreateGameStep } from "../../../hooks/useCreateGame";
+import type { GameSettings } from "../types";
 
 interface ConfirmStepProps {
     settings: GameSettings;
@@ -29,13 +29,7 @@ export function ConfirmStep({
     onComplete,
     onError,
 }: ConfirmStepProps) {
-    const {
-        step: txStep,
-        status: txStatus,
-        error: txError,
-        createGame,
-        reset: resetCreateGame,
-    } = useCreateGame();
+    const { step: txStep, status: txStatus, error: txError, createGame, reset: resetCreateGame } = useCreateGame();
 
     const handleConfirm = async () => {
         onConfirm();
@@ -43,7 +37,7 @@ export function ConfirmStep({
 
         // 토큰 단위를 wei로 변환 (decimals 적용)
         // V3: cost는 컨트랙트에서 자동 계산 (totalFunding / 10000)
-        const initialFundingInWei = BigInt(settings.initialFunding) * (10n ** BigInt(decimals));
+        const initialFundingInWei = BigInt(settings.initialFunding) * 10n ** BigInt(decimals);
 
         // createGame이 반환하는 게임 ID를 직접 사용
         // 분 단위 입력을 초 단위로 변환
@@ -73,22 +67,22 @@ export function ConfirmStep({
     // 트랜잭션 단계별 상태 메시지
     const getStatusMessage = (step: CreateGameStep): string => {
         switch (step) {
-            case 'approve':
-                return '1/3 토큰 승인 중...';
-            case 'create':
-                return '2/3 게임 생성 중...';
-            case 'firstComment':
-                return '3/3 첫 댓글 작성 중...';
-            case 'complete':
-                return '완료!';
-            case 'error':
-                return '오류 발생';
+            case "approve":
+                return "1/3 토큰 승인 중...";
+            case "create":
+                return "2/3 게임 생성 중...";
+            case "firstComment":
+                return "3/3 첫 댓글 작성 중...";
+            case "complete":
+                return "완료!";
+            case "error":
+                return "오류 발생";
             default:
-                return txStatus || 'Processing...';
+                return txStatus || "Processing...";
         }
     };
 
-    const showProcessing = isProcessing || txStep === 'approve' || txStep === 'create' || txStep === 'firstComment';
+    const showProcessing = isProcessing || txStep === "approve" || txStep === "create" || txStep === "firstComment";
 
     return (
         <div className="squid-step-content">
@@ -98,15 +92,21 @@ export function ConfirmStep({
             <div className="squid-confirm-summary">
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">Token</span>
-                    <span className="squid-confirm-value">{tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}</span>
+                    <span className="squid-confirm-value">
+                        {tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}
+                    </span>
                 </div>
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">Initial Funding</span>
-                    <span className="squid-confirm-value">{settings.initialFunding} {tokenSymbol}</span>
+                    <span className="squid-confirm-value">
+                        {settings.initialFunding} {tokenSymbol}
+                    </span>
                 </div>
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">Comment Cost</span>
-                    <span className="squid-confirm-value">{(Number(settings.initialFunding) / 10000).toFixed(4)} {tokenSymbol}</span>
+                    <span className="squid-confirm-value">
+                        {(Number(settings.initialFunding) / 10000).toFixed(2)} {tokenSymbol}
+                    </span>
                 </div>
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">Timer</span>
@@ -115,9 +115,7 @@ export function ConfirmStep({
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">First Comment</span>
                     <span className="squid-confirm-value squid-comment-preview">
-                        {settings.firstComment.length > 50
-                            ? settings.firstComment.slice(0, 50) + '...'
-                            : settings.firstComment}
+                        {settings.firstComment.length > 50 ? settings.firstComment.slice(0, 50) + "..." : settings.firstComment}
                     </span>
                 </div>
                 {settings.firstCommentImage && (
@@ -137,28 +135,14 @@ export function ConfirmStep({
                 </div>
             )}
 
-            {txError && (
-                <div className="squid-error-box">
-                    {txError}
-                </div>
-            )}
+            {txError && <div className="squid-error-box">{txError}</div>}
 
             <div className="squid-button-group">
-                <button
-                    type="button"
-                    className="squid-btn-secondary"
-                    onClick={onBack}
-                    disabled={showProcessing}
-                >
+                <button type="button" className="squid-btn-secondary" onClick={onBack} disabled={showProcessing}>
                     Back
                 </button>
-                <button
-                    type="button"
-                    className="squid-btn-primary squid-btn-create"
-                    onClick={handleConfirm}
-                    disabled={showProcessing}
-                >
-                    {showProcessing ? 'Creating...' : 'CREATE GAME'}
+                <button type="button" className="squid-btn-primary squid-btn-create" onClick={handleConfirm} disabled={showProcessing}>
+                    {showProcessing ? "Creating..." : "CREATE GAME"}
                 </button>
             </div>
         </div>

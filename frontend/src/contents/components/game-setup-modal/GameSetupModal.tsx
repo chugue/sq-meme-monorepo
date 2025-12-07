@@ -131,7 +131,7 @@ export function GameSetupModal({ isOpen, onClose, tokenAddress, tokenSymbol = "T
                 <div className="squid-modal-steps">
                     <div className="squid-steps-indicators">
                         <div className="squid-step-indicator">
-                            <img src={step === "balance-check" ? readyBox : doneBox} alt="Step 1" className="squid-step-box" />
+                            <img src={step === "balance-check" ? progressBox : doneBox} alt="Step 1" className="squid-step-box" />
                         </div>
                         <div className="squid-step-line" />
                         <div className="squid-step-indicator">

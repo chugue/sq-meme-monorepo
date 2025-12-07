@@ -154,9 +154,7 @@ export class UsersRepository {
             .orderBy(desc(schema.users.totalComments))
             .limit(limit);
 
-        this.logger.debug(
-            `getTopUsersByComments: found ${result.length} users`,
-        );
+        this.logger.log(`getTopUsersByComments: found ${result.length} users`);
 
         return result;
     }
