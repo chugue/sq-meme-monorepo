@@ -42,7 +42,7 @@ export function ConfirmStep({
         resetCreateGame();
 
         // 토큰 단위를 wei로 변환 (decimals 적용)
-        const costInWei = BigInt(settings.cost) * (10n ** BigInt(decimals));
+        // V3: cost는 컨트랙트에서 자동 계산 (totalFunding / 10000)
         const initialFundingInWei = BigInt(settings.initialFunding) * (10n ** BigInt(decimals));
 
         // createGame이 반환하는 게임 ID를 직접 사용
@@ -50,7 +50,6 @@ export function ConfirmStep({
         const createdGameId = await createGame({
             tokenAddress,
             initialFunding: initialFundingInWei,
-            cost: costInWei,
             time: Number(settings.time) * 60,
             firstComment: settings.firstComment,
             firstCommentImage: settings.firstCommentImage,
@@ -107,7 +106,7 @@ export function ConfirmStep({
                 </div>
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">Comment Cost</span>
-                    <span className="squid-confirm-value">{settings.cost} {tokenSymbol}</span>
+                    <span className="squid-confirm-value">{(Number(settings.initialFunding) / 10000).toFixed(4)} {tokenSymbol}</span>
                 </div>
                 <div className="squid-confirm-item">
                     <span className="squid-confirm-label">Timer</span>

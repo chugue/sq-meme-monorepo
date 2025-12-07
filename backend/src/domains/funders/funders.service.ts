@@ -6,9 +6,9 @@ import { Result } from 'src/common/types';
 import { GameRepository } from '../game/game.repository';
 import { FundersRepository } from './funders.repository';
 
-// V2 컨트랙트 이벤트 시그니처
+// V3 컨트랙트 이벤트 시그니처
 const PRIZE_POOL_FUNDED_EVENT =
-    'event PrizePoolFunded(uint256 indexed gameId, address indexed funder, uint256 amount, uint256 totalFunding)';
+    'event PrizePoolFunded(uint256 indexed gameId, address indexed funder, uint256 cost, uint256 amount, uint256 totalFunding)';
 
 @Injectable()
 export class FundersService {

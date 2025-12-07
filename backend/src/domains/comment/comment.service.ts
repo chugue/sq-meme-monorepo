@@ -14,9 +14,9 @@ import {
 } from './comment.repository';
 import { CommentListRespDto } from './dto/comment.dto';
 
-// CommentAdded 이벤트 시그니처 (V2)
+// CommentAdded 이벤트 시그니처 (V3)
 const COMMENT_ADDED_EVENT =
-    'event CommentAdded(uint256 indexed gameId, uint256 indexed commentId, address indexed commentor, string message, uint256 newEndTime, uint256 prizePool, uint256 timestamp)';
+    'event CommentAdded(uint256 indexed gameId, uint256 indexed commentId, address indexed commentor, uint256 cost, string message, uint256 newEndTime, uint256 totalFunding, uint256 timestamp)';
 
 @Injectable()
 export class CommentService {
@@ -250,7 +250,7 @@ export class CommentService {
             const commentor = rawEvent.commentor as string;
             const message = rawEvent.message as string;
             const newEndTime = rawEvent.newEndTime.toString();
-            const prizePool = rawEvent.prizePool.toString();
+            const totalFunding = rawEvent.totalFunding.toString();
             const timestamp = rawEvent.timestamp.toString();
 
             this.logger.log(
@@ -265,7 +265,7 @@ export class CommentService {
                 message,
                 imageUrl: dto.imageUrl,
                 newEndTime,
-                prizePool,
+                prizePool: totalFunding,
                 timestamp,
             });
 

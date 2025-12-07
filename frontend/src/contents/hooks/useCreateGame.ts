@@ -67,8 +67,7 @@ export type CreateGameStep =
 
 export interface GameSettings {
   tokenAddress: Address;
-  initialFunding: bigint; // 초기 펀딩 금액 (wei 단위) - V2 필수
-  cost: bigint; // 댓글 비용 (wei 단위)
+  initialFunding: bigint; // 초기 펀딩 금액 (wei 단위) - V3에서 cost = initialFunding / 10000 자동 계산
   time: number; // 타이머 (초)
   firstComment: string; // 첫 댓글 내용 (필수)
   firstCommentImage?: string; // 첫 댓글 이미지 URL (선택)
@@ -217,14 +216,16 @@ export function useCreateGame(): UseCreateGameReturn {
         const actualTokenAddress = MOCK_ERC20_ADDRESS;
         const v2ContractAddress = COMMENT_GAME_V2_ADDRESS as Address;
 
+        // V3: cost = totalFunding / 10000 (자동 계산)
         // 필요한 총 토큰: initialFunding + cost (첫 댓글용)
-        const totalRequired = settings.initialFunding + settings.cost;
+        const commentCost = settings.initialFunding / 10000n;
+        const totalRequired = settings.initialFunding + commentCost;
 
-        logger.info("게임 생성 플로우 시작 (V2)", {
+        logger.info("게임 생성 플로우 시작 (V3)", {
           originalTokenAddress: settings.tokenAddress,
           actualTokenAddress,
           initialFunding: settings.initialFunding.toString(),
-          cost: settings.cost.toString(),
+          commentCost: commentCost.toString(),
           totalRequired: totalRequired.toString(),
           time: settings.time,
           creator: userAddress,
@@ -301,14 +302,13 @@ export function useCreateGame(): UseCreateGameReturn {
           abi: commentGameV2ABI,
         });
 
-        // createGame(token, time, cost, initialFunding) - V2 시그니처
+        // createGame(token, time, initialFunding) - V3 시그니처 (cost 자동 계산: totalFunding / 10000)
         const result = await v2Client.write(
           {
             functionName: "createGame",
             args: [
               actualTokenAddress,
               BigInt(settings.time),
-              settings.cost,
               settings.initialFunding,
             ],
           },
