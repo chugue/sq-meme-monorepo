@@ -4,7 +4,7 @@
  */
 
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { formatUnits } from "viem";
 import { activeGameInfoAtom } from "../../atoms/commentAtoms";
 import { currentPageInfoAtom } from "../../atoms/currentPageInfoAtoms";
@@ -24,6 +24,29 @@ import "./CommentSection.css";
 import { FlipPrize } from "./FlipPrize";
 import { FlipTimer } from "./FlipTimer";
 import { WalletConnectionUI } from "./WalletConnectionUI";
+
+// 타이머 컴포넌트 - 리렌더링을 격리시키기 위해 분리
+const GameTimer = memo(function GameTimer({ endTime }: { endTime: string | undefined }) {
+    const [remainingTime, setRemainingTime] = useState("00:00:00");
+
+    useEffect(() => {
+        if (!endTime) {
+            return;
+        }
+
+        const updateTimer = () => {
+            const formatted = formatRemainingTime(endTime);
+            setRemainingTime(formatted);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(interval);
+    }, [endTime]);
+
+    return <FlipTimer time={remainingTime} />;
+});
 
 // 큰 숫자를 축약 표시 (예: 1,234,567 -> 1.23M)
 function formatCompactNumber(num: number): string {
@@ -60,31 +83,8 @@ export function CommentSection() {
     const [scrollTop, setScrollTop] = useState(0);
     const [scrollHeight, setScrollHeight] = useState(0);
     const [clientHeight, setClientHeight] = useState(0);
-    const [remainingTime, setRemainingTime] = useState("00:00:00");
     const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-
-    // 타이머 업데이트 (1초마다)
-    useEffect(() => {
-        console.log("[Timer Debug] activeGameInfo:", activeGameInfo);
-        console.log("[Timer Debug] endTime:", activeGameInfo?.endTime);
-
-        if (!activeGameInfo?.endTime) {
-            console.log("[Timer Debug] endTime이 없어서 타이머 비활성화");
-            return;
-        }
-
-        const updateTimer = () => {
-            const formatted = formatRemainingTime(activeGameInfo.endTime);
-            console.log("[Timer Debug] formatted time:", formatted);
-            setRemainingTime(formatted);
-        };
-
-        updateTimer();
-        const interval = setInterval(updateTimer, 1000);
-
-        return () => clearInterval(interval);
-    }, [activeGameInfo?.endTime]);
 
     // 펀딩 훅
     const { fundingAmount, setFundingAmount, isFunding, handleFund } = useFunding({
@@ -179,7 +179,7 @@ export function CommentSection() {
                             <div className="squid-game-timer">
                                 <span className="squid-timer-label">TIMER</span>
                                 <span className="squid-timer-value">
-                                    <FlipTimer time={remainingTime} />
+                                    <GameTimer endTime={activeGameInfo?.endTime} />
                                 </span>
                             </div>
                         </div>
