@@ -986,11 +986,26 @@ export default defineContentScript({
                         return true;
                     }
 
-                    // 로그아웃 시 inject script 토큰 캐시 초기화
+                    // 로그아웃 시 inject script 토큰 캐시 초기화 + sessionStorage GTM 키 삭제
                     if (message.type === "LOGOUT_INJECT_SCRIPT") {
                         console.log(
                             "🚪 [Content] LOGOUT_INJECT_SCRIPT 요청 수신",
                         );
+
+                        // 웹페이지 sessionStorage에서 gtm_user_identifier 삭제
+                        try {
+                            window.sessionStorage.removeItem(
+                                "gtm_user_identifier",
+                            );
+                            console.log(
+                                "✅ [Content] sessionStorage gtm_user_identifier 삭제 완료",
+                            );
+                        } catch (e) {
+                            console.warn(
+                                "⚠️ [Content] sessionStorage 삭제 실패:",
+                                e,
+                            );
+                        }
 
                         import("@/contents/lib/injectedApi")
                             .then(async ({ sendLogoutToInjectedScript }) => {
