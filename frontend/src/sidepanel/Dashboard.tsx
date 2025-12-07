@@ -20,7 +20,7 @@ import { getAllSessionStorage } from "./lib/sessionStorage";
 
 // Default data (세션 데이터가 없을 때 사용)
 const defaultUserData = {
-    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
+    profileImage: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842298_fcb.png",
 };
 
 // mTokenBalance 포맷팅 (콤마 추가)
