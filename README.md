@@ -174,10 +174,6 @@
 
 ## 아키텍처
 
-### 시스템 개요
-
-![System Overview](./docs/architecture-overview.png)
-
 ### 기술 스택
 
 | 레이어 | 기술 |
