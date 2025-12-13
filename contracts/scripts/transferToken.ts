@@ -1,4 +1,11 @@
-import { createPublicClient, createWalletClient, http, defineChain, parseUnits, formatUnits } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  defineChain,
+  formatUnits,
+  http,
+  parseUnits,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 const formicarium = defineChain({
@@ -11,7 +18,7 @@ const formicarium = defineChain({
 });
 
 // 전송 정보
-const PRIVATE_KEY = "0x295c93e649e07996472fab5bcca64442d3dafecac85f142e39f9d857643a4d57";
+const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY!;
 const TOKEN_ADDRESS = "0x2721b16bee3cb7a3a4071fb8bb2b49631cb6a9e7";
 const TO_ADDRESS = "0xdc52a1590982eb5fb784471dfe4c1e7ccee6533c";
 const AMOUNT = "10000000"; // 1000만개
@@ -106,7 +113,11 @@ async function main() {
     functionName: "balanceOf",
     args: [TO_ADDRESS as `0x${string}`],
   });
-  console.log("Receiver Balance:", formatUnits(toBalanceBefore, decimals), symbol);
+  console.log(
+    "Receiver Balance:",
+    formatUnits(toBalanceBefore, decimals),
+    symbol,
+  );
   console.log("");
 
   // 전송 실행
@@ -142,7 +153,11 @@ async function main() {
 
   console.log("=== After Transfer ===");
   console.log("Sender Balance:", formatUnits(balanceAfter, decimals), symbol);
-  console.log("Receiver Balance:", formatUnits(toBalanceAfter, decimals), symbol);
+  console.log(
+    "Receiver Balance:",
+    formatUnits(toBalanceAfter, decimals),
+    symbol,
+  );
   console.log("");
   console.log("Transfer Complete!");
 }
