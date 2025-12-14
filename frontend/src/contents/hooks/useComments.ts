@@ -84,7 +84,6 @@ export function useComments(
                     walletAddress || undefined,
                 );
                 const comments = (response?.commentsListDTO || []).map(mapToComment);
-                console.log(JSON.stringify(comments, null, 2), null, 2);
                 const userTotalFunding = response?.userTotalFunding || "0";
                 logger.info("댓글 조회 완료 (DB)", {
                     gameId,

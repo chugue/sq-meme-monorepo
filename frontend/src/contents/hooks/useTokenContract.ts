@@ -39,20 +39,10 @@ function getMockTokenAddressFromUrl(url: string): Address {
     if (profileMatch) {
         const username = decodeURIComponent(profileMatch[1]).toLowerCase();
         const mockTokenAddress = MOCK_TOKENS[username];
-        console.log("[getMockTokenAddressFromUrl]", {
-            url,
-            username,
-            mockTokenAddress,
-            availableTokens: Object.keys(MOCK_TOKENS),
-        });
         if (mockTokenAddress) {
             return mockTokenAddress;
         }
     }
-    console.log("[getMockTokenAddressFromUrl] fallback to MOCK_ERC20_ADDRESS", {
-        url,
-        MOCK_ERC20_ADDRESS,
-    });
     return MOCK_ERC20_ADDRESS;
 }
 

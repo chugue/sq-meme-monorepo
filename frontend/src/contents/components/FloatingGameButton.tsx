@@ -48,7 +48,6 @@ export function FloatingGameButton({ onClick }: FloatingGameButtonProps) {
     }, [isHovered]);
 
     const handleClick = () => {
-        console.log("🦑 [FloatingGameButton] 클릭됨");
         onClick();
     };
 

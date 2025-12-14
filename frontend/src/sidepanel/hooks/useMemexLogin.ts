@@ -76,7 +76,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
     const sendJoinRequest = useCallback(async () => {
         // 이미 요청 중이면 스킵
         if (joinRequestInProgress) {
-            console.log("🚀 [useMemexLogin] Join 요청 진행 중, 스킵");
             return;
         }
 
@@ -108,7 +107,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
             });
 
             setUser(response.user);
-            console.log("✅ [useMemexLogin] Join 요청 성공, User 저장:", response.user);
         } catch (joinErr) {
             console.warn("⚠️ [useMemexLogin] Join 요청 실패:", joinErr);
             joinRequestInProgress = false;
@@ -127,7 +125,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 username?: string;
                 userTag?: string;
             };
-            console.log("🔐 [useMemexLogin] checkLoginStatus 결과:", result);
 
             if (result?.isLoggedIn && result.username && result.userTag) {
                 // 백엔드에서 사용자 정보 조회 (출석 체크 포함)
@@ -143,7 +140,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
                             userTag: userResult.user.userTag,
                             profileImage: userResult.user.profileImage,
                         });
-                        console.log("✅ [useMemexLogin] 백엔드에서 사용자 정보 조회 완료:", userResult.user);
                         return true;
                     }
                 } catch (userErr) {
@@ -183,8 +179,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
 
             // 4. 전체 세션 초기화 (atomWithStorage가 자동으로 저장소에 반영)
             resetSession();
-
-            console.log("✅ [useMemexLogin] 로그아웃 완료");
         } catch (err) {
             console.error("❌ [useMemexLogin] 로그아웃 실패:", err);
         }
@@ -200,11 +194,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
         const performCheck = async () => {
             // 기존 세션에 username/userTag가 있어도 백엔드 통신 필요 (출석 체크)
             if (username && userTag) {
-                console.log("🔐 [useMemexLogin] 기존 세션 데이터로 백엔드 조회:", {
-                    username,
-                    userTag,
-                });
-
                 try {
                     const result = await backgroundApi.getUserByUsername(username, userTag);
 
@@ -216,7 +205,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
                             userTag: result.user.userTag,
                             profileImage: result.user.profileImage,
                         });
-                        console.log("✅ [useMemexLogin] 기존 세션 사용자 정보 조회 완료:", result.user);
                     } else {
                         // 백엔드에 유저가 없으면 로그인 상태 false
                         setMemexLoggedIn({ isLoggedIn: false });
@@ -249,7 +237,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
             isLoggedIn && username && userTag && walletAddress && profileImageUrl && myTokenAddr && myTokenSymbol && memexWalletAddress;
 
         if (allDataReady) {
-            console.log("✅ [useMemexLogin] 모든 데이터 준비됨, Join 요청 시작");
             sendJoinRequest();
         }
         // sendJoinRequest는 useCallback으로 메모이제이션되어 있으므로 의존성에서 제외
@@ -274,7 +261,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
         async (cachedUserInfo: { username: string; user_tag: string }, options?: TryLoginOptions): Promise<boolean> => {
             const { walletAddress: walletAddr, onSuccess, onRefetch } = options || {};
 
-            console.log("✅ GTM 키 발견, 백엔드에서 user 조회:", cachedUserInfo);
             setLoggingIn(true);
 
             try {
@@ -284,7 +270,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 };
 
                 if (checkResult?.user) {
-                    console.log("✅ MEMEX 로그인 완료:", checkResult.user.userName);
                     setUser(checkResult.user);
                     setLoggingIn(false);
                     if (onRefetch) await onRefetch();
@@ -293,15 +278,12 @@ export function useMemexLogin(): UseMemexLoginReturn {
                 }
 
                 // 백엔드에 user가 없으면 신규 사용자 - 자동 회원가입 시도
-                console.log("🆕 [cachedUserInfo] 백엔드에 user 없음, 자동 회원가입 시도...");
 
                 // 1. 프로필 정보 fetch
                 const profileInfo = await backgroundApi.fetchMemexProfileInfo(cachedUserInfo.username, cachedUserInfo.user_tag);
-                console.log("📋 [cachedUserInfo] 프로필 정보:", profileInfo);
 
                 // 2. 지갑 주소 확인
                 if (!walletAddr) {
-                    console.warn("⚠️ [cachedUserInfo] 지갑 연결 필요");
                     setLoggingIn(false);
                     return false;
                 } else if (profileInfo?.profileImageUrl && profileInfo?.tokenAddr && profileInfo?.memexWalletAddress) {
@@ -333,7 +315,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
 
                     if (joinResult?.user) {
                         setUser(joinResult.user);
-                        console.log("✅ [cachedUserInfo] 자동 회원가입 완료:", joinResult.user.userName);
                         setLoggingIn(false);
                         if (onRefetch) await onRefetch();
                         if (onSuccess) onSuccess(cachedUserInfo.username, cachedUserInfo.user_tag);
@@ -347,8 +328,6 @@ export function useMemexLogin(): UseMemexLoginReturn {
                     });
                 }
 
-                // 회원가입 실패
-                console.log("⚠️ [cachedUserInfo] 자동 회원가입 실패");
                 setLoggingIn(false);
                 return false;
             } catch (err) {

@@ -21,7 +21,6 @@ export function useResponsiveMode(): boolean {
     // 변경 감지 핸들러
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
       setIsMobileMode(e.matches);
-      console.log("🦑 반응형 모드 변경:", e.matches ? "모바일" : "데스크톱");
     };
 
     // 초기값 확인
@@ -40,7 +39,6 @@ export function useResponsiveMode(): boolean {
       const matches = window.innerWidth <= 988;
       setIsMobileMode((prev) => {
         if (matches !== prev) {
-          console.log("🦑 ResizeObserver로 반응형 모드 변경:", matches ? "모바일" : "데스크톱");
           return matches;
         }
         return prev;

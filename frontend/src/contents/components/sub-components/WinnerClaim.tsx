@@ -68,7 +68,6 @@ const WinnerClaim = forwardRef<WinnerClaimHandle, WinnerClaimProps>(({
                     endedGameInfo.id,
                     txHash,
                 );
-                console.log("백엔드에 claimPrize 등록 완료");
             } catch (apiError) {
                 console.warn("백엔드 claimPrize 등록 실패", apiError);
             }

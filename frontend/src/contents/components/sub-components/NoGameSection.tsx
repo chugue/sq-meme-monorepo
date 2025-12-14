@@ -81,15 +81,6 @@ export function NoGameSection({ onGameCreated }: NoGameSectionProps) {
     const tokenAddress = currentPageInfo?.contractAddress || "";
     const xHandle = currentPageInfo?.username ? `@${currentPageInfo.username}` : "";
 
-    // 디버깅: NoGameSection에서 사용하는 currentPageInfo 확인
-    console.log("🦑 [DEBUG] NoGameSection currentPageInfo:", {
-        contractAddress: currentPageInfo?.contractAddress,
-        username: currentPageInfo?.username,
-        symbol: currentPageInfo?.symbol,
-        tokenSymbol,
-        tokenAddress,
-    });
-
     // 페이지 정보가 없으면 로딩 표시
     if (!currentPageInfo) {
         return (

@@ -1,10 +1,8 @@
 const mockData = {
-    profileImageUrl:
-        "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
+    profileImageUrl: "https://cdn.memex.xyz/memex/prod/v1/profileImage/842310_e3c.jpeg",
     tokenAddr: "0xd289bEdEC3c49Ed65D01771ef8698Eb9E92e6674",
     tokenSymbol: "JRBR",
-    tokenImageUrl:
-        "https://cdn.memex.xyz/memex/prod/v1/mrc-20/842310/JRBR.jpeg",
+    tokenImageUrl: "https://cdn.memex.xyz/memex/prod/v1/mrc-20/842310/JRBR.jpeg",
     memexWalletAddress: "0xf4d52E1eB19c8a7d196BeD1A06F2F82feDd07c6A",
 };
 /**
@@ -26,18 +24,12 @@ export function extractProfileData(html: string): {
     let memexWalletAddress: string | null = null;
 
     try {
-        console.log("🔍 [ProfileExtractor] HTML에서 프로필 정보 추출 시작");
-
         // 1. Next.js hydration data 블록(self.__next_f.push)에서 이스케이프된 JSON 문자열을 추출
         // 'self.__next_f.push([1,"..."])' 형태에서 내부 문자열을 추출합니다.
-        const pushMatch = html.match(
-            /self\.__next_f\.push\(\[1,\"(\d+:\[.*?)\"\]\)/s,
-        );
+        const pushMatch = html.match(/self\.__next_f\.push\(\[1,\"(\d+:\[.*?)\"\]\)/s);
 
         if (!pushMatch || !pushMatch[1]) {
-            console.warn(
-                "⚠️ [ProfileExtractor] Next.js push data 블록을 찾을 수 없음",
-            );
+            console.warn("⚠️ [ProfileExtractor] Next.js push data 블록을 찾을 수 없음");
             // return { profileImageUrl, tokenAddr, tokenSymbol, tokenImageUrl, memexWalletAddress };
             return mockData;
         }
@@ -55,9 +47,7 @@ export function extractProfileData(html: string): {
             // 정규식의 첫 번째 캡처 그룹(JSON 객체)
             jsonString = dataBlockMatch[1];
         } else {
-            console.warn(
-                "⚠️ [ProfileExtractor] '18:' 데이터 블록 내에서 currentUser 쿼리 데이터를 찾을 수 없음",
-            );
+            console.warn("⚠️ [ProfileExtractor] '18:' 데이터 블록 내에서 currentUser 쿼리 데이터를 찾을 수 없음");
             // return { profileImageUrl, tokenAddr, tokenSymbol, tokenImageUrl, memexWalletAddress };
             return mockData;
         }
@@ -82,18 +72,11 @@ export function extractProfileData(html: string): {
             tokenSymbol = data.tokenSymbol || null;
             tokenImageUrl = data.tokenImageUrl || null;
             memexWalletAddress = data.walletAddress || null;
-
-            console.log("✅ [ProfileExtractor] 프로필 정보 추출 완료");
         } else {
-            console.warn(
-                "⚠️ [ProfileExtractor] 파싱된 객체에서 'data' 필드를 찾을 수 없음",
-            );
+            console.warn("⚠️ [ProfileExtractor] 파싱된 객체에서 'data' 필드를 찾을 수 없음");
         }
     } catch (error) {
-        console.warn(
-            "❌ [ProfileExtractor] HTML 파싱 또는 JSON 파싱 실패:",
-            error,
-        );
+        console.warn("❌ [ProfileExtractor] HTML 파싱 또는 JSON 파싱 실패:", error);
     }
 
     // return { profileImageUrl, tokenAddr, tokenSymbol, tokenImageUrl, memexWalletAddress };

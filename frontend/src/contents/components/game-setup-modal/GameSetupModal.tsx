@@ -29,9 +29,6 @@ export function GameSetupModal({ isOpen, onClose, tokenAddress, tokenSymbol = "T
     const modalContainerRef = useRef<HTMLDivElement>(null);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // 디버깅: GameSetupModal에 전달된 props 확인
-    console.log('🦑 [DEBUG] GameSetupModal props:', { isOpen, tokenAddress, tokenSymbol, username });
-
     const { checkExistingGame } = useCreateGame();
 
     // 모달 열릴 때 기존 게임 확인

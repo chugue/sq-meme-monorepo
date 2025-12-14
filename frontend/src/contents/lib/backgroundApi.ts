@@ -128,8 +128,6 @@ export async function sendToBackground<T>(
             return;
         }
 
-        console.log("📤 [backgroundApi] sendMessage:", message.type);
-
         runtime.sendMessage(message, (response: BackgroundResponse<T>) => {
             const lastError = runtime.lastError;
 
@@ -138,8 +136,6 @@ export async function sendToBackground<T>(
                 reject(new Error(lastError.message || "메시지 전송 실패"));
                 return;
             }
-
-            console.log("📥 [backgroundApi] response:", response);
 
             if (!response) {
                 reject(

@@ -24,22 +24,15 @@ export function SidePanelApp() {
     const [isProfileModalOpen, setIsProfileModalOpen] = useAtom(profileModalOpenAtom);
 
     // 지갑 연결 + MEMEX 로그인 완료 시 대시보드로 전환
-    useEffect(() => {
-        console.log("🔐 [App] 상태 확인:", { isConnected, isMemexLoggedIn });
-    }, [isConnected, isMemexLoggedIn]);
+    useEffect(() => {}, [isConnected, isMemexLoggedIn]);
 
     // MEMEX 로그인 완료 핸들러
     const handleMemexLoginComplete = (username: string, userTag: string) => {
-        console.log("🔐 [App] handleMemexLoginComplete 호출됨:", {
-            username,
-            userTag,
-        });
         setMemexLoggedIn(true, username, userTag);
     };
 
     // StartingLoading이 완료되면 숨김
     const handleStartingLoadingComplete = () => {
-        console.log("🎬 [App] StartingLoading 완료");
         setShowStartingLoading(false);
     };
 

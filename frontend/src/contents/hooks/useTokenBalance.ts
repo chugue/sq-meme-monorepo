@@ -87,16 +87,6 @@ export function useTokenBalance(): UseTokenBalanceReturn {
             : walletAddress;
 
         try {
-            // 디버깅: 사용 중인 토큰 주소 출력
-            console.log('🦑 [DEBUG] 토큰 잔액 조회에 사용되는 주소:', {
-                tokenAddress: actualTokenAddress,
-                walletAddress: actualWalletAddress,
-                originalWalletAddress: walletAddress,
-                username,
-                isTestUser: lowerUsername ? !!TEST_WALLET_ADDRESSES[lowerUsername] : false,
-                siteSymbol,
-            });
-
             logger.info('토큰 잔액 조회 시작', {
                 tokenAddress: actualTokenAddress,
                 walletAddress,

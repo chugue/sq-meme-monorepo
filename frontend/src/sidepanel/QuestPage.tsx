@@ -13,7 +13,6 @@ export default function QuestPage() {
             try {
                 const response = await backgroundApi.getQuests();
                 setQuests(response.quests || []);
-                console.log("✅ [QuestPage] 퀘스트 로드 완료:", response.quests?.length || 0);
             } catch (error) {
                 console.error("❌ [QuestPage] 퀘스트 로드 실패:", error);
             } finally {
@@ -47,7 +46,6 @@ export default function QuestPage() {
 
     const handleClaim = (quest: QuestItem) => {
         // TODO: API 호출로 클레임 처리
-        console.log("Claim quest:", quest);
     };
 
     // if (!user) return <div>Loading...</div>;

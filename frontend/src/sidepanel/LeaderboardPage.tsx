@@ -49,7 +49,6 @@ export function LeaderboardPage() {
                 setBestMemes(myGamesRes.gameRanking);
                 setPrizeRanking(prizeRes.prizeRanking);
                 setCommentLeaders(questRes.mostComments);
-                console.log("✅ [LeaderboardPage] 데이터 로드 완료");
             } catch (error) {
                 console.error("❌ [LeaderboardPage] 데이터 로드 실패:", error);
             } finally {

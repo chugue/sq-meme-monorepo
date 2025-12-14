@@ -61,18 +61,6 @@ function CommentAppInner() {
         setIsPopupOpen(false);
     };
 
-    // 디버깅: 모바일 모드 및 페이지 상태 로깅
-    useEffect(() => {
-        console.log("🦑 [CommentApp] 상태:", {
-            isMobileMode,
-            isProfile,
-            isHome,
-            isPopupOpen,
-            windowWidth: window.innerWidth,
-            shouldShowButton: isMobileMode && (isProfile || isHome),
-        });
-    }, [isMobileMode, isProfile, isHome, isPopupOpen]);
-
     // 모바일 모드: 플로팅 버튼 + 팝업
     const shouldUsePopupMode = isMobileMode;
 

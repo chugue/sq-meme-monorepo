@@ -40,9 +40,6 @@ export function createMessageHandler() {
         sender: any,
         sendResponse: (response: BackgroundResponse) => void,
     ): boolean => {
-        // 디버그: 모든 메시지 로깅
-        console.log("📨 [Background] 메시지 수신:", message.type);
-
         // 비동기 응답 처리
         (async () => {
             try {
@@ -616,10 +613,6 @@ export function createMessageHandler() {
 
                             // 토큰 정보가 있으면 백엔드 API에 저장 (upsert)
                             // tokenImageUrl이 있어야만 저장 (빈 값이면 스킵)
-                            console.log(
-                                "🔍 [Background] profileInfo:",
-                                profileInfo,
-                            );
                             if (
                                 profileInfo.tokenAddr &&
                                 profileInfo.tokenImageUrl
@@ -637,9 +630,6 @@ export function createMessageHandler() {
                                                 profileInfo.tokenSymbol,
                                         }),
                                     });
-                                    console.log(
-                                        `✅ [Background] 토큰 정보 저장 완료: ${profileInfo.tokenAddr}`,
-                                    );
                                 } catch (tokenError: any) {
                                     // 토큰 저장 실패는 무시 (주요 기능에 영향 없음)
                                     console.warn(
@@ -651,9 +641,7 @@ export function createMessageHandler() {
                                 profileInfo.tokenAddr &&
                                 !profileInfo.tokenImageUrl
                             ) {
-                                console.log(
-                                    `⚠️ [Background] tokenImageUrl 없음, 토큰 저장 스킵: ${profileInfo.tokenAddr}`,
-                                );
+                                // tokenImageUrl 없음, 토큰 저장 스킵
                             }
 
                             result = { success: true, data: { success: true } };
@@ -682,10 +670,6 @@ export function createMessageHandler() {
                         try {
                             // Background에서 직접 fetch (CORS 제약 없음, 페이지 이동 불필요)
                             const profileUrl = `https://app.memex.xyz/profile/${username}/${userTag}`;
-                            console.log(
-                                "🔍 [Background] 프로필 정보 fetch 시작:",
-                                profileUrl,
-                            );
 
                             const response = await fetch(profileUrl);
                             if (!response.ok) {
@@ -707,10 +691,6 @@ export function createMessageHandler() {
                             );
                             if (tokenMatch && tokenMatch[1]) {
                                 tokenAddr = tokenMatch[1];
-                                console.log(
-                                    "✅ [Background] tokenAddr 발견:",
-                                    tokenAddr,
-                                );
                             }
 
                             // walletAddress 패턴
@@ -719,23 +699,6 @@ export function createMessageHandler() {
                             );
                             if (walletMatch && walletMatch[1]) {
                                 memexWalletAddress = walletMatch[1];
-                                console.log(
-                                    "✅ [Background] memexWalletAddress 발견:",
-                                    memexWalletAddress,
-                                );
-                            }
-
-                            // profileImage 패턴 - 디버그
-                            const profileImageIndex =
-                                html.indexOf("profileImage");
-                            if (profileImageIndex !== -1) {
-                                console.log(
-                                    "🔍 [Background] profileImage 컨텍스트:",
-                                    html.substring(
-                                        profileImageIndex,
-                                        profileImageIndex + 150,
-                                    ),
-                                );
                             }
 
                             // profileImage 패턴 (여러 가지 시도)
@@ -759,10 +722,6 @@ export function createMessageHandler() {
                                     /\\\//g,
                                     "/",
                                 );
-                                console.log(
-                                    "✅ [Background] profileImageUrl 발견:",
-                                    profileImageUrl,
-                                );
                             }
 
                             // tokenSymbol 패턴
@@ -771,10 +730,6 @@ export function createMessageHandler() {
                             );
                             if (symbolMatch && symbolMatch[1]) {
                                 tokenSymbol = symbolMatch[1];
-                                console.log(
-                                    "✅ [Background] tokenSymbol 발견:",
-                                    tokenSymbol,
-                                );
                             }
 
                             result = {

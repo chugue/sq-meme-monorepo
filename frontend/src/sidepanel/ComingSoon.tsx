@@ -54,12 +54,10 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
     const handleRefreshMemexTab = async () => {
         try {
-            console.log("🔄 [이동 버튼] MEMEX 탭 새로고침 시작...");
             await backgroundApi.refreshMemexTab();
             closeSnackbar();
 
             // 새로고침 후 GTM 키 확인 (브라우저 sessionStorage에서 읽어서 익스텐션 storage에 동기화)
-            console.log("🔐 [이동 버튼] GTM 키 확인 중...");
             const gtmCheckResult = (await backgroundApi.memexLogin(false, true)) as {
                 success: boolean;
                 isLoggedIn?: boolean;
@@ -67,11 +65,9 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 userTag?: string;
                 error?: string;
             };
-            console.log("🔐 [이동 버튼] GTM 확인 결과:", gtmCheckResult);
 
             if (gtmCheckResult?.isLoggedIn && gtmCheckResult.username && gtmCheckResult.userTag) {
                 // GTM 키가 있으면 로그인 진행
-                console.log("✅ [이동 버튼] GTM 키 발견, 로그인 진행");
                 await connect();
                 await handleMemexLogin();
             }
@@ -114,7 +110,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 }
             } else {
                 // GTM 키가 없으면 스낵바 표시
-                console.log("⚠️ GTM 키 없음, 로그인 필요");
                 showRefreshSnackbar("MEMEX 로그인 후 이용해주세요");
             }
         } catch (err) {
@@ -156,8 +151,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
     const handleMemexLogin = async () => {
         try {
-            console.log("🔐 MEMEX login started...");
-
             // 1. GTM 키 먼저 체크
             const cachedUserInfo = await getMemexUserInfo();
 
@@ -167,8 +160,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                     if (success) {
                         return; // 로그인 성공
                     }
-                    // 실패 시 Google 로그인으로 계속 진행
-                    console.log("⚠️ [cachedUserInfo] 자동 회원가입 실패, memexLogin으로 계속 진행...");
                 } catch (err) {
                     // content script 에러 처리
                     if (isContentScriptError(err)) {
@@ -178,7 +169,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 }
             } else {
                 // GTM 키가 없으면 app.memex.xyz로 이동하여 Google 로그인 버튼 클릭
-                console.log("🔐 GTM 키 없음, Google 로그인 시작...");
             }
 
             // 2. GTM 키가 없거나, 있어도 프로필에서 로그인 확인 실패 시 Google 로그인 시도
@@ -192,7 +182,6 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 userTag?: string;
                 error?: string;
             };
-            console.log("🔐 MEMEX login result:", result);
 
             // Content script 연결 오류 체크 (응답에 error 필드가 있는 경우)
             if (
@@ -200,38 +189,31 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
                 (result.error.toLowerCase().includes("receiving end does not exist") ||
                     result.error.toLowerCase().includes("could not establish connection"))
             ) {
-                console.log("⚠️ Content script 연결 오류, 스낵바 표시");
                 showRefreshSnackbar();
                 return;
             }
 
             // Google 로그인 버튼이 없는 경우 (profile 페이지 등) - 메인 페이지로 이동 안내
             if (result?.noGoogleButton && !result?.isLoggedIn) {
-                console.log("⚠️ Google 로그인 버튼 없음, 로그인 페이지 이동 필요");
                 showRefreshSnackbar("MEMEX 로그인 후 이용해주세요");
                 return;
             }
 
             // 이미 로그인되어 있으면 백엔드에서 user 정보 조회 후 완료
             if (result?.isLoggedIn && result.username && result.userTag && onMemexLoginComplete) {
-                console.log("🔐 GTM 로그인 확인됨, 백엔드에서 user 정보 조회:", result.username);
                 try {
                     const userResult = await backgroundApi.getUserByUsername(result.username, result.userTag);
                     if (userResult?.user) {
                         setUser(userResult.user);
-                        console.log("✅ MEMEX 로그인 완료:", userResult.user.userName);
                         setLoggingIn(false);
                         onMemexLoginComplete(result.username, result.userTag);
                         return;
                     }
 
-                    // 백엔드에 user가 없으면 신규 사용자 - 자동 회원가입 시도
-                    console.log("🆕 백엔드에 user 없음, 자동 회원가입 시도...");
                     setLoggingIn(true);
 
                     // 1. 프로필 정보 fetch
                     const profileInfo = await backgroundApi.fetchMemexProfileInfo(result.username, result.userTag);
-                    console.log("📋 프로필 정보:", profileInfo);
 
                     // 2. 지갑 주소 확인
                     if (!address) {
@@ -269,7 +251,7 @@ export function ComingSoon({ onMemexLoginComplete }: ComingSoonProps) {
 
                         if (joinResult?.user) {
                             setUser(joinResult.user);
-                            console.log("✅ 자동 회원가입 완료:", joinResult.user.userName);
+
                             setLoggingIn(false);
                             onMemexLoginComplete(result.username, result.userTag);
                             return;

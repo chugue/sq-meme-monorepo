@@ -21,9 +21,6 @@ export function BalanceCheckStep({ tokenAddress, tokenSymbol, username, onNext, 
     const { tokenInfo, isLoading, error, checkBalance, hasBalance } = useTokenBalance();
     const [isChecked, setIsChecked] = useState(false);
 
-    // 디버깅: BalanceCheckStep에 전달된 props 확인
-    console.log("🦑 [DEBUG] BalanceCheckStep props:", { tokenAddress, tokenSymbol, username });
-
     // 잔액 조회 핸들러
     const handleCheckBalance = useCallback(async () => {
         if (!address) return;

@@ -4,8 +4,8 @@
  * 익스텐션 내부(SidePanel)에서 직접 chrome.storage.session에 접근
  */
 
-import type { AsyncStorage } from 'jotai/vanilla/utils/atomWithStorage';
-import { browser } from 'wxt/browser';
+import type { AsyncStorage } from "jotai/vanilla/utils/atomWithStorage";
+import { browser } from "wxt/browser";
 
 /**
  * Chrome Storage API 가져오기
@@ -21,7 +21,7 @@ export async function getStorage<T = any>(key: string): Promise<T | null> {
     try {
         const storage = getChromeStorage();
         if (!storage?.session) {
-            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+            throw new Error("Chrome Storage API를 사용할 수 없습니다.");
         }
 
         return new Promise<T | null>((resolve, reject) => {
@@ -47,7 +47,7 @@ export async function setStorage(key: string, value: any): Promise<void> {
     try {
         const storage = getChromeStorage();
         if (!storage?.session) {
-            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+            throw new Error("Chrome Storage API를 사용할 수 없습니다.");
         }
 
         return new Promise<void>((resolve, reject) => {
@@ -73,7 +73,7 @@ export async function removeStorage(key: string): Promise<void> {
     try {
         const storage = getChromeStorage();
         if (!storage?.session) {
-            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+            throw new Error("Chrome Storage API를 사용할 수 없습니다.");
         }
 
         return new Promise<void>((resolve, reject) => {
@@ -117,7 +117,7 @@ export async function clearAllSessionStorage(): Promise<void> {
     try {
         const storage = getChromeStorage();
         if (!storage?.session) {
-            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+            throw new Error("Chrome Storage API를 사용할 수 없습니다.");
         }
 
         return new Promise<void>((resolve, reject) => {
@@ -127,12 +127,11 @@ export async function clearAllSessionStorage(): Promise<void> {
                     reject(new Error(runtime.lastError.message));
                     return;
                 }
-                console.log('✅ [sessionStorage] 모든 세션 스토리지 클리어 완료');
                 resolve();
             });
         });
     } catch (error) {
-        console.error('[sessionStorage] 클리어 실패:', error);
+        console.error("[sessionStorage] 클리어 실패:", error);
         throw error;
     }
 }
@@ -144,7 +143,7 @@ export async function getAllSessionStorage(): Promise<Record<string, any>> {
     try {
         const storage = getChromeStorage();
         if (!storage?.session) {
-            throw new Error('Chrome Storage API를 사용할 수 없습니다.');
+            throw new Error("Chrome Storage API를 사용할 수 없습니다.");
         }
 
         return new Promise<Record<string, any>>((resolve, reject) => {
@@ -154,13 +153,11 @@ export async function getAllSessionStorage(): Promise<Record<string, any>> {
                     reject(new Error(runtime.lastError.message));
                     return;
                 }
-                console.log('📦 [sessionStorage] 전체 데이터:', result);
                 resolve(result || {});
             });
         });
     } catch (error) {
-        console.error('[sessionStorage] 전체 조회 실패:', error);
+        console.error("[sessionStorage] 전체 조회 실패:", error);
         return {};
     }
 }
-

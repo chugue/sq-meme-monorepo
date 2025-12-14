@@ -7,15 +7,10 @@
  * 흐름: sidepanel -> background -> content script -> injected script -> MetaMask
  */
 
-import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useEffect, useRef } from 'react';
-import { backgroundApi } from '../../contents/lib/backgroundApi';
-import {
-    sessionAtom,
-    setErrorAtom,
-    setLoadingAtom,
-    setWalletConnectedAtom,
-} from '../atoms/sessionAtoms';
+import { useAtomValue, useSetAtom } from "jotai";
+import { useCallback, useEffect, useRef } from "react";
+import { backgroundApi } from "../../contents/lib/backgroundApi";
+import { sessionAtom, setErrorAtom, setLoadingAtom, setWalletConnectedAtom } from "../atoms/sessionAtoms";
 
 export interface SidepanelWalletState {
     isConnected: boolean;
@@ -47,7 +42,6 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
     const checkAccount = useCallback(async () => {
         // 중복 요청 방지
         if (checkAccountInProgress.current) {
-            console.log('🔐 [SidePanel] checkAccount 진행 중, 스킵');
             return false;
         }
 
@@ -55,13 +49,12 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
 
         try {
             const result = await backgroundApi.walletGetAccount();
-            console.log('🔐 [SidePanel] checkAccount 결과:', result);
             setWalletConnected({ isConnected: result.isConnected, address: result.address });
             setLoading(false);
             setError(null);
             return result.isConnected;
         } catch (err) {
-            console.error('Failed to get wallet account:', err);
+            console.error("Failed to get wallet account:", err);
             setWalletConnected({ isConnected: false, address: null });
             setLoading(false);
             setError(null); // 초기 로드 에러는 표시하지 않음
@@ -82,21 +75,17 @@ export function useSidepanelWallet(): UseSidepanelWalletReturn {
     }, []);
 
     const handleConnect = useCallback(async () => {
-        console.log('🔐 [SidePanel] handleConnect 시작');
         setLoading(true);
         setError(null);
 
         try {
-            console.log('🔐 [SidePanel] backgroundApi.walletConnect() 호출');
             const result = await backgroundApi.walletConnect();
-            console.log('🔐 [SidePanel] walletConnect 결과:', result);
-
             setWalletConnected({ isConnected: true, address: result.address });
             setLoading(false);
             setError(null);
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet';
-            console.error('❌ [SidePanel] Wallet connection error:', err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to connect wallet";
+            console.error("❌ [SidePanel] Wallet connection error:", err);
             setLoading(false);
             setError(errorMessage);
             throw err; // 호출자가 에러를 처리할 수 있도록 다시 throw
